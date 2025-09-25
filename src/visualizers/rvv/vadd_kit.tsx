@@ -33,10 +33,23 @@ export function VaddRVVKitHost({
   const lanes = Math.max(1, Math.floor(vlen / sew))
 
   // 版面尺寸（关键：contentWidth 按 lanes 线性增长，KitStage fit="width" 初始时会横向贴满）
+  const left = 180, right = 140
+    
   const laneW = 86, laneH = 64, gap = 14
-  const left = 180, right = 140, top = 40, rowGap = 120
-  const contentWidth  = left + right + lanes * laneW + (lanes - 1) * gap
-  const contentHeight = top + rowGap * 3 + laneH + 60  // 3 行 + 说明
+
+    // 画面主体内容的起点/终点（你原来的摆放）
+    const leftVisual  = 180
+    const rightVisual = 140
+    const top = 40, rowGap = 120
+
+    // ★ 关键：为左侧 StepLabel/标题、以及右上角工具条等预留“不可见”宽度
+    const bboxPadLeft  = 200   // 覆盖 StepLabel/标题（left-150/left-120）
+    const bboxPadRight = 120   // 工具条/阴影/指示等
+
+    // 仅用于 KitStage 的缩放和居中（不影响实际绘制坐标）
+    const contentWidth  = (leftVisual + rightVisual + bboxPadLeft + bboxPadRight)
+    + lanes * laneW + (lanes - 1) * gap
+    const contentHeight = top + rowGap * 3 + laneH + 80  // 高度也略增一点安全边
 
   return (
     <KitStage
