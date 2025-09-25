@@ -1,145 +1,191 @@
-import { dbg, DEBUG_ON } from './debug';
+// src/utils/parse.ts
+export type DSLDoc = {
+  steps: { id: string; name: string }[]
+  shapes: DSLShape[]
+  anims: DSLAnim[]
+}
 
 export type DSLShape =
-  | { kind:'rect'; id:string; w:number; h:number; x:number; y:number; text?:string; color?:string }
-  | { kind:'line'; id:string; x1:number; y1:number; x2:number; y2:number; width?:number; label?:string; above?:boolean; color?:string }
-  | { kind:'arrow'; id:string; x1:number; y1:number; x2:number; y2:number; width?:number; label?:string; above?:boolean; color?:string; start?:boolean; end?:boolean }
-  | { kind:'label'; id:string; x:number; y:number; text:string }
-  | { kind:'group'; id:string; x:number; y:number; w:number; h:number; style?:'dotted'|'solid' }
-
-export type Step = { id:string; name:string }
-export type AnimAppear    = { kind:'appear';    id:string; stepId:string }
-export type AnimDisappear = { kind:'disappear'; id:string; stepId:string }
-export type AnimBlink     = { kind:'blink';     id:string; stepId:string; times:number; period:number }
-export type DSLAnim = AnimAppear | AnimDisappear | AnimBlink
-export interface DSLDoc { shapes: DSLShape[]; steps: Step[]; anims: DSLAnim[] }
-
-const toNum = (s:string)=> Number(String(s).trim());
-const unq = (s:string)=> String(s).trim().replace(/^"|"$|^'|'$/g,'');
-
-// —— 语句分割 —— //
-function splitStatements(src:string): string[] {
-  const out:string[] = [];
-  let buf = '';
-  let quote: '"' | "'" | null = null;
-  let atLineStart = true;
-
-  src = src.replace(/^\uFEFF/, ''); // 去 BOM
-  const push = () => { const s = buf.trim(); if (s) out.push(s); buf=''; };
-
-  for (let i=0;i<src.length;i++){
-    const ch = src[i];
-
-    // 兼容 \r\n / \r / \n
-    if (ch === '\r'){
-      if (src[i+1] === '\n') i++;
-      if (!quote) { push(); atLineStart = true; continue; }
-      buf += '\n'; atLineStart = true; continue;
-    }
-    if (ch === '\n'){
-      if (!quote) { push(); atLineStart = true; continue; }
-      buf += ch; atLineStart = true; continue;
+  | { kind: 'rect'; id: string; w: number; h: number; x: number; y: number; text?: string; color?: string }
+  | { kind: 'label'; id: string; x: number; y: number; text: string }
+  | { kind: 'text';  id: string; x: number; y: number; text: string; size?: number; color?: string; align?: 'left'|'center'|'right' }
+  | { kind: 'group'; id: string; x: number; y: number; w: number; h: number; style?: 'dotted' | 'solid' }
+  | { kind: 'line';  id: string; x1: number; y1: number; x2: number; y2: number; width?: number; color?: string }
+  | {
+      kind: 'arrow'; id: string; x1: number; y1: number; x2: number; y2: number;
+      width?: number; label?: string; above?: boolean; color?: string; start?: boolean; end?: boolean
     }
 
-    // 行首注释（避免把 #0EA5E9 误当注释）
-    if (!quote && atLineStart){
-      if (ch === '#'){
-        while (i<src.length && src[i] !== '\n' && src[i] !== '\r') i++;
-        i--; atLineStart = true; continue;
-      }
-      if (ch === '/' && src[i+1] === '/'){
-        while (i<src.length && src[i] !== '\n' && src[i] !== '\r') i++;
-        i--; atLineStart = true; continue;
-      }
-    }
+export type DSLAnim =
+  | { kind: 'appear'; id: string; stepId: string }
+  | { kind: 'disappear'; id: string; stepId: string }
+  | { kind: 'blink'; id: string; stepId: string; times: number; interval: number }
 
-    // 引号开关
-    if (ch === '"' || ch === "'"){
-      if (quote === ch) quote = null;
-      else if (!quote) quote = ch;
-      buf += ch; atLineStart = false; continue;
-    }
+const isBlank = (s: string) => !s || !s.trim()
+const unq = (s?: string) => (s ?? '').replace(/^"(.*)"$/s, '$1')
+const toNum = (s?: string) => (s ? Number(s) : 0)
 
-    // 语句结束：分号（引号外）
-    if (ch === ';' && !quote){ push(); atLineStart = false; continue; }
-
-    buf += ch;
-    if (ch !== ' ' && ch !== '\t') atLineStart = false;
+// 逗号分割（忽略引号中的逗号）
+function splitArgs(s: string): string[] {
+  const out: string[] = []
+  let buf = '', q = false
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]
+    if (c === '"' && s[i - 1] !== '\\') { q = !q; buf += c; continue }
+    if (c === ',' && !q) { out.push(buf.trim()); buf = ''; continue }
+    buf += c
   }
-  push();
-
-  if (DEBUG_ON) {
-    dbg.info('splitStatements -> count:', out.length);
-    out.slice(0, 20).forEach((s, i) => dbg.log(`stmt[${i}]`, JSON.stringify(s)));
-  }
-  return out;
+  if (!isBlank(buf)) out.push(buf.trim())
+  return out
 }
 
-// —— 参数拆分 —— //
-function splitArgs(argstr:string): string[] {
-  const out:string[] = [];
-  let buf = '';
-  let quote: '"' | "'" | null = null;
-  for (let i=0;i<argstr.length;i++){
-    const ch = argstr[i];
-    if (ch === '"' || ch === "'"){
-      if (quote === ch) quote = null;
-      else if (!quote) quote = ch;
-      buf += ch; continue;
+type Groups = Map<string, string[]>
+type Alias  = Map<string, string>
+
+function expandToken(tok: string, groups: Groups, alias: Alias): string[] {
+  if (alias.has(tok)) return [alias.get(tok)!]
+  const m = tok.match(/^([A-Za-z_]\w*)\[(\d+)\.\.(\d+)\]$/)
+  if (m) {
+    const base = m[1], a = Number(m[2]), b = Number(m[3])
+    const lo = Math.min(a, b), hi = Math.max(a, b)
+    const arr: string[] = []
+    for (let i = lo; i <= hi; i++) {
+      const key = `${base}[${i}]`
+      arr.push(alias.get(key) ?? `${base}_${i}`)
     }
-    if (ch === ',' && !quote){ out.push(buf.trim()); buf=''; continue; }
-    buf += ch;
+    return arr
   }
-  if (buf.trim()) out.push(buf.trim());
-  return out;
+  if (groups.has(tok)) return groups.get(tok)!.slice()
+  return [tok]
 }
 
-// —— 主解析 —— //
-export function parseDSL(src:string): DSLDoc{
-  const shapes:DSLShape[]=[]; const anims:DSLAnim[]=[]; const steps:Step[]=[];
-  if (!src || !src.trim()) { dbg.warn('parseDSL: empty src'); return { shapes, steps, anims }; }
+export function parseDSL(text: string): DSLDoc {
+  const shapes: DSLShape[] = []
+  const anims: DSLAnim[] = []
+  const steps: { id: string; name: string }[] = []
 
-  const stmts = splitStatements(src);
-  const re = /^(\w+)\s*\((.*)\)$/; // ★ 正确写法：不要过度转义
+  const groups: Groups = new Map()
+  const alias:  Alias  = new Map()
 
-  for (let i=0;i<stmts.length;i++){
-    const stmt = stmts[i].trim();
-    const m = re.exec(stmt);
-    if (!m) { dbg.warn('NO MATCH stmt', i, JSON.stringify(stmt.slice(0, 120))); continue; }
-    const fn = m[1]; const args = splitArgs(m[2]);
+  // 仅移除整行注释（行首 #），保留行内 #xxxxxx 颜色
+  const src = text
+    .split('\n')
+    .map(l => (/^\s*#/.test(l) ? '' : l))
+    .join('\n')
 
-    try{
-      if(fn==='rect'){ const [id,w,h,x,y,text,color]=args;
-        shapes.push({kind:'rect', id, w:toNum(w), h:toNum(h), x:toNum(x), y:toNum(y), text: text? unq(text): undefined, color: color? unq(color): undefined});
-      }else if(fn==='line'){ const [id,x1,y1,x2,y2,width,label,above,color]=args;
-        shapes.push({kind:'line', id, x1:toNum(x1), y1:toNum(y1), x2:toNum(x2), y2:toNum(y2), width: width? toNum(width): undefined, label: label? unq(label): undefined, above: above==='true', color: color? unq(color): undefined});
-      }else if(fn==='arrow'){ const [id,x1,y1,x2,y2,width,label,above,color,st,en]=args;
-        shapes.push({kind:'arrow', id, x1:toNum(x1), y1:toNum(y1), x2:toNum(x2), y2:toNum(y2), width: width? toNum(width): undefined, label: label? unq(label): undefined, above: above==='true', color: color? unq(color): undefined, start: st==='true', end: en==='false'? false : true });
-      }else if(fn==='label'){ const [id,x,y,text]=args;
-        shapes.push({kind:'label', id, x:toNum(x), y:toNum(y), text: unq(text)});
-      }else if(fn==='group'){ const [id,x,y,w,h,style]=args;
-        shapes.push({kind:'group', id, x:toNum(x), y:toNum(y), w:toNum(w), h:toNum(h), style: style? (unq(style) as any): 'dotted'});
-      }else if(fn==='step'){ const [id,name]=args;
-        steps.push({id, name: unq(name)});
-      }else if(fn==='appear'){ const [id,stepId]=args;
-        anims.push({kind:'appear', id, stepId});
-      }else if(fn==='disappear'){ const [id,stepId]=args;
-        anims.push({kind:'disappear', id, stepId});
-      }else if(fn==='blink'){ const [id,stepId,times,period]=args;
-        anims.push({kind:'blink', id, stepId, times: times? toNum(times):3, period: period? toNum(period):600});
-      }else{
-        dbg.warn('UNKNOWN fn', fn, 'stmt=', JSON.stringify(stmt));
+  const stmts = src
+    .split(/;|\n/g)
+    .map(s => s.trim())
+    .filter(Boolean)
+
+  const pushRect = (id: string, w: number, h: number, x: number, y: number, text?: string, color?: string) => {
+    shapes.push({ kind: 'rect', id, w, h, x, y, text, color })
+  }
+
+  for (const raw of stmts) {
+    // 允许在 ) 后面跟行内注释 "# ..."
+    const m = raw.match(/^([A-Za-z_]\w*)\s*\((.*)\)\s*(?:#.*)?$/)
+    if (!m) continue
+    const name = m[1].toLowerCase()
+    const args = splitArgs(m[2])
+
+    if (name === 'step') { const [id,n] = args; steps.push({ id, name: unq(n) }); continue }
+
+    if (name === 'label') {
+      const [id,x,y,txt] = args
+      shapes.push({ kind:'label', id, x: toNum(x), y: toNum(y), text: unq(txt) })
+      continue
+    }
+
+    if (name === 'text') {
+      const [id,x,y,txt,size,color,align] = args
+      shapes.push({
+        kind:'text', id, x: toNum(x), y: toNum(y),
+        text: unq(txt), size: size? toNum(size): undefined,
+        color, align: align ? (unq(align) as any) : undefined
+      })
+      continue
+    }
+
+    if (name === 'group') {
+      const [id,x,y,w,h,style] = args
+      shapes.push({ kind:'group', id, x:toNum(x), y:toNum(y), w:toNum(w), h:toNum(h), style: style? (unq(style) as any): 'dotted' })
+      continue
+    }
+
+    if (name === 'rect') {
+      const [id,w,h,x,y,txt,color] = args
+      pushRect(id, toNum(w), toNum(h), toNum(x), toNum(y), unq(txt), color)
+      continue
+    }
+
+    if (name === 'square') {
+      const [id,x,y,txt,color] = args
+      pushRect(id, 1, 1, toNum(x), toNum(y), unq(txt), color)
+      continue
+    }
+
+    if (name === 'line') {
+      const [id,x1,y1,x2,y2,width,color] = args
+      shapes.push({ kind:'line', id, x1:toNum(x1), y1:toNum(y1), x2:toNum(x2), y2:toNum(y2), width: width? toNum(width): undefined, color })
+      continue
+    }
+
+    if (name === 'arrow') {
+      const [id,x1,y1,x2,y2,width,label,above,color,st,en] = args
+      shapes.push({
+        kind:'arrow', id,
+        x1:toNum(x1), y1:toNum(y1), x2:toNum(x2), y2:toNum(y2),
+        width: width? toNum(width): undefined,
+        label: label? unq(label): undefined,
+        above: above? unq(above)==='true': undefined,
+        color, start: st? unq(st)==='true': undefined, end: en? unq(en)==='true': undefined
+      })
+      continue
+    }
+
+    if (/^vec(2|4|8)$/.test(name)) {
+      const N = Number(name.replace('vec',''))
+      const [id,x,y,labels,color,dir,gap] = args
+      const baseX = toNum(x), baseY = toNum(y)
+      const g = gap? toNum(gap): 0.2
+      const d = (dir? unq(dir): 'x').toLowerCase()
+      const lab = labels? unq(labels).split(','): []
+      const members: string[] = []
+      for (let i=0;i<N;i++){
+        const dx = d==='x'? i*(1+g): 0
+        const dy = d==='y'? i*(1+g): 0
+        const cid = `${id}_${i}`
+        members.push(cid)
+        alias.set(`${id}[${i}]`, cid)
+        pushRect(cid,1,1, baseX+dx, baseY+dy, lab[i]||'', color)
       }
-      if (DEBUG_ON) dbg.log(`OK fn=${fn} args=${args.length}`, args);
-    }catch(e){
-      dbg.err('parse error at stmt', i, 'fn=', fn, e);
+      groups.set(id, members)
+      // dotted 外框（仅视觉）
+      const totalW = d==='x'? (N-1)*(1+g)+1: 1
+      const totalH = d==='y'? (N-1)*(1+g)+1: 1
+      shapes.push({ kind:'group', id:`${id}__box`, x:baseX-0.1, y:baseY-0.1, w:totalW+0.2, h:totalH+0.2, style:'dotted' })
+      continue
+    }
+
+    if (name === 'appear' || name === 'disappear') {
+      if (args.length<2) continue
+      const stepId = args[args.length-1]
+      const ids = args.slice(0,-1).flatMap(tok => expandToken(tok, groups, alias))
+      ids.forEach(id => anims.push({ kind: name as any, id, stepId }))
+      continue
+    }
+
+    if (name === 'blink') {
+      if (args.length<3) continue
+      const stepId = args[args.length-3]
+      const times  = toNum(args[args.length-2] ?? '6')
+      const itv    = toNum(args[args.length-1] ?? '700')
+      const ids = args.slice(0,-3).flatMap(tok => expandToken(tok, groups, alias))
+      ids.forEach(id => anims.push({ kind:'blink', id, stepId, times, interval: itv }))
+      continue
     }
   }
 
-  if (DEBUG_ON) {
-    const byKind: Record<string, number> = {};
-    shapes.forEach(s => byKind[s.kind] = (byKind[s.kind] ?? 0) + 1);
-    dbg.info('summary:', { steps: steps.length, shapes: shapes.length, anims: anims.length, byKind });
-  }
-  return { shapes, steps, anims };
+  return { steps, shapes, anims }
 }

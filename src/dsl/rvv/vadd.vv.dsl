@@ -1,11 +1,67 @@
+# --------------------------
+# RVV vadd.vv：4-lane (VLEN=128, SEW=32)
+# 目标：向外行解释“128bit = 4 × 32bit”以及逐 lane 相加流程
+# 步骤：
+#   s1 载入与对齐    s2 解释位宽    s3 分量相加    s4 写回结果
+# --------------------------
 
-step(s1,"第一步：载入与对齐"); step(s2,"第二步：传输"); step(s3,"第三步：写回")
-label(v1,0.6,0.2,"v1"); label(v2,0.6,1.8,"v2"); label(v0,0.6,3.4,"v0")
-rect(x1,1,1,2.2,0.0,"1",lightgray); rect(x2,1,1,3.2,0.0,"2",lightgray); rect(x3,1,1,4.2,0.0,"3",lightgray)
-group(g2,1.6,1.6,6.2,1.2,dotted); rect(y1,1,1,2.2,1.8,"10",teal); rect(y2,1,1,3.2,1.8,"11",teal); rect(y3,1,1,4.2,1.8,"12",teal)
-rect(z1,1,1,2.2,3.4,"",lightgray); rect(z2,1,1,3.2,3.4,"",lightgray); rect(z3,1,1,4.2,3.4,"",lightgray)
-appear(v1,s1); appear(v2,s1); appear(v0,s1); appear(x1,s1); appear(x2,s1); appear(x3,s1); appear(g2,s1); appear(y1,s1); appear(y2,s1); appear(y3,s1)
-arrow(a1,2.7,1.0,2.7,3.4,2.8,"",true,#0EA5E9,false,true); arrow(a2,3.7,1.0,3.7,3.4,2.8,"",true,#22d3ee,false,true)
-appear(a1,s2); appear(a2,s2); blink(a1,s2,6,700); blink(a2,s2,6,700)
-appear(z1,s3); appear(z2,s3); appear(z3,s3); disappear(a1,s3); disappear(a2,s3); disappear(g2,s3)
-disappear(z3,s3); rect(z1f,1,1,2.2,3.4,"11",teal); appear(z1f,s3); rect(z2f,1,1,3.2,3.4,"13",teal); appear(z2f,s3)
+step(s1,"第一步：载入与对齐")
+step(s2,"第二步：位宽（128-bit = 4 × 32-bit）")
+step(s3,"第三步：逐 lane 相加：v0[i] = v1[i] + v2[i]")
+step(s4,"第四步：写回结果")
+
+# 行标签（仅用于视觉提示）
+label(tag_v1, 2.8, 1.2, "v1")
+label(tag_v2, 2.8, 2.5, "v2")
+label(tag_v0, 2.8, 3.9, "v0")
+
+# 输入向量：4 个 32b 元素。横向（dir=x），相邻间距 gap=0.2 格
+# v1: 1,2,3,4        v2: 10,11,12,13
+vec4(v1, 4.0, 0.8, "1,2,3,4", lightgray, x, 0.2)
+vec4(v2, 4.0, 2.1, "10,11,12,13", teal, x, 0.2)
+
+# 预留结果向量 v0（空白）—— 先展示出位置，便于理解“数据从上到下流动”
+
+
+# 显示第一步需要的元素
+appear(tag_v1, tag_v2, v1, v2, v1__box, v2__box, s1)
+
+# —— 第二步：解释位宽（128-bit = 4×32-bit）——————————————
+# 画一条“尺寸线”——长度跨越 4 个正方形的宽度（注意 gap=0.2，所以右侧终点要算上 3 段间隔）
+# 起点 = 4.0； 终点 = 4.0 + 4*1 + 3*0.2 = 8.6
+label(dim_text, 4.8, -0.1, "向量位宽 128-bit  （4 × 32-bit）")
+
+# 在每个元素上方标注“32b”
+text(b0, 4.3, 0.40, "32b")
+text(b1, 5.5, 0.40, "32b")
+text(b2, 6.7, 0.40, "32b")
+text(b3, 7.95, 0.40, "32b")
+
+appear(dim, dim_text, b0, b1, b2, b3, s2)
+blink(dim, dim_text, s2, 4, 300)   # 让位宽标注轻微闪烁几次，强调概念
+
+# —— 第三步：逐 lane 相加（自顶向下流动）——————————————
+# 4 条“来自 v1”的箭头（青色） + 4 条“来自 v2”的箭头（更亮青色），落到 v0 对应位置
+# 箭头 x 坐标 = 每格中心：4.5, 5.7, 6.9, 8.1
+# v1 正方形底部 y = 0.8 + 1.0 = 1.8； v2 底部 y = 1.9 + 1.0 = 2.9； v0 顶部 y = 3.2
+vec4(v0, 4.0, 3.5, "", lightgray, x, 0.2)
+
+line(l1, 3.6, 3.3, 8.8, 3.3, 2.6, black)
+text(b4, 3.3, 3.15, "+", 40)
+appear(b4,l1,tag_v0,v0, s3)
+blink(s3, 3, 200)
+
+# —— 第四步：写回结果（展示 v0 = v1 + v2 的每 lane 求和）——————————————
+# 计算： (1+10)=11, (2+11)=13, (3+12)=15, (4+13)=17
+# 用新的正方形覆盖（让结果更醒目）；先把空白 v0 消失，再出现结果
+square(z0, 4.0, 3.5, "11", teal)
+square(z1, 5.2, 3.5, "13", teal)
+square(z2, 6.4, 3.5, "15", teal)
+square(z3, 7.6, 3.5, "17", teal)
+
+disappear(dim, dim_text, s4)
+disappear(v0[0..3], s4)
+appear(z0, z1, z2, z3, s4)
+blink(z0, z1, z2, z3, s4, 2, 300)
+
+# 结束。你也可以把结果与每一 lane 的来源用淡色线再回连，或追加“清理”步骤。

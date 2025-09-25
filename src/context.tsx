@@ -1,43 +1,25 @@
-
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { fetchDSL } from './utils/fetchDSL'
-
-export type Selection = { arch:'rvv'; opcode:'vadd'|'vsub'|'vmul'; form:'vv'|'vx'|'vi' }
-export type StepMeta  = { id: string; name: string }
+import React, { createContext, useContext, useState } from 'react'
 
 type Ctx = {
-  sel: Selection
-  setSel: React.Dispatch<React.SetStateAction<Selection>>
-  dsl: string
-  steps: StepMeta[]
-  load: (s?: Selection) => Promise<void>
-  controls: { speed: number; playing: boolean }
-  setControls: React.Dispatch<React.SetStateAction<{ speed: number; playing: boolean }>>,
+  arch: string; setArch: (v:string)=>void
+  opcode: string; setOpcode: (v:string)=>void
+  form: string; setForm: (v:string)=>void
+  logs: string[]; pushLog: (line:string)=>void; clearLogs: ()=>void
 }
+const AppCtx = createContext<Ctx>(null as any)
 
-export const AppCtx = React.createContext<Ctx>({
-  sel: { arch:'rvv', opcode:'vadd', form:'vv' },
-  setSel: () => {},
-  dsl: '',
-  steps: [],
-  load: async () => {},
-  controls: { speed: 1, playing: true },
-  setControls: () => {},
-})
+export const AppProvider: React.FC<{children:React.ReactNode}> = ({children})=>{
+  const [arch, setArch] = useState('rvv')
+  const [opcode, setOpcode] = useState('vadd')
+  const [form, setForm] = useState('vv')
+  const [logs, setLogs] = useState<string[]>([])
+  const pushLog = (line: string)=> setLogs(l=>[...l, line])
+  const clearLogs = ()=> setLogs([])
 
-export function AppProvider({children}:{children:React.ReactNode}){
-  const [sel,setSel] = useState<Selection>({arch:'rvv', opcode:'vadd', form:'vv'})
-  const [dsl,setDsl] = useState<string>('')
-  const [steps,setSteps] = useState<StepMeta[]>([])
-  const [controls,setControls] = useState({ speed:1, playing:true })
-
-  const load = useCallback(async (s:Selection=sel)=>{
-    const got = await fetchDSL(s)
-    setDsl(got.text); setSteps(got.steps ?? [])
-  }, [sel])
-
-  useEffect(()=>{ void load(sel) }, [])
-
-  const value = useMemo<Ctx>(()=>({ sel, setSel, dsl, steps, load, controls, setControls }), [sel,dsl,steps,load,controls])
-  return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>
+  return (
+    <AppCtx.Provider value={{ arch, setArch, opcode, setOpcode, form, setForm, logs, pushLog, clearLogs }}>
+      {children}
+    </AppCtx.Provider>
+  )
 }
+export const useApp = ()=> useContext(AppCtx)

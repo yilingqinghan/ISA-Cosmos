@@ -1,16 +1,26 @@
 import React from 'react'
 import SplitLayout from './components/layout/SplitLayout'
-import ControlPanel from './components/panels/ControlPanel'
+import LeftPanel from './components/panels/LeftPanel'
 import CanvasKitPanel from './components/panels/CanvasKitPanel'
+import NavBar from './components/nav/NavBar'
 import { AppProvider } from './context'
 
-export default function App() {
+export default function App(){
   return (
     <AppProvider>
-      {/* 两列：左 32% / 右 68%，最小像素分别 260 / 480 */}
-      <SplitLayout columns={[32, 68]} minPx={[260, 480]}>
-        {[ <ControlPanel key="left" />, <CanvasKitPanel key="right" /> ]}
-      </SplitLayout>
+      <div className="app-shell">
+        <NavBar />
+        <main className="app-main">
+          <div className="container page-main">
+            {/* 两列：左 36% / 右 64% */}
+            <div className="split-host">
+              <SplitLayout columns={[36, 64]} minPx={[320, 520]}>
+                {[ <LeftPanel key="left"/>, <CanvasKitPanel key="right"/> ]}
+              </SplitLayout>
+            </div>
+          </div>
+        </main>
+      </div>
     </AppProvider>
   )
 }

@@ -1,63 +1,67 @@
-/* 主题与字体 */
-:root{
-  --header-h: 64px;
-  --bg: #f6f8fc;
-  --panel: #ffffff;
-  --border: #e5eaf4;
-  --muted: #6b7280;
-  --text: #0b1220;
-  --brand: #7c3aed; /* 高级紫，和青绿画布形成对比 */
+:root { --header-h: 64px; --bg:#f6f8fc; --panel:#fff; --border:#e5eaf4; --muted:#6b7280; --text:#0b1220; --brand:#7c3aed; }
+html,body,#root{height:100%; background:var(--bg); color:var(--text);}
+body{font-family:'Futura','STFangsong','PingFang SC','Microsoft YaHei',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+
+.container{max-width:1280px;margin:0 auto;padding:0 16px;}
+.app-shell{min-height:100vh;display:flex;flex-direction:column;}
+.app-main{flex:1 1 auto;min-height:0;}
+.page-main{height:calc(100vh - var(--header-h));display:flex;}
+.split-host{flex:1 1 auto;min-height:0;display:flex;}
+
+/* 顶部导航 */
+.app-header{
+  position:sticky;top:0;z-index:40;height:var(--header-h);
+  backdrop-filter:saturate(1.1) blur(8px);
+  background:color-mix(in srgb, white 80%, transparent);
+  border-bottom:1px solid var(--border);
 }
+.header-inner{height:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(145deg,var(--brand),#9f67ff);
+  box-shadow:0 8px 24px rgba(124,58,237,.25), inset 0 2px 6px rgba(255,255,255,.35);}
+.brand-title{font-weight:800;letter-spacing:.2px;}
+.brand-sub{font-size:12px;color:var(--muted);margin-top:4px;}
+.nav-controls{display:flex;align-items:center;gap:10px;}
+.label{font-size:12px;color:var(--muted);font-weight:700;}
+.nav-link{font-weight:700;color:#334155;text-decoration:none;padding:8px 10px;border-radius:10px;}
+.nav-link:hover{background:#eef2ff;color:#1e293b;}
+.btn{background:linear-gradient(180deg,#fff,#f3f7ff);color:var(--text);border:1px solid var(--border);
+  border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:700;transition:.12s ease;}
+.btn:hover{filter:brightness(1.02);box-shadow:0 4px 14px rgba(15,23,42,.06);transform:translateY(-1px);}
+.select{border:1px solid var(--border);background:#fff;border-radius:10px;padding:6px 10px;font-weight:700;}
 
-html, body, #root { height: 100%; background: var(--bg); color: var(--text); }
-body {
-  font-family: 'Futura','STFangsong','PingFang SC','Microsoft YaHei',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-}
+/* 左列布局：上编辑器 / 下日志 */
+.left-root{display:flex;flex-direction:column;gap:12px;height:100%;}
+.left-top{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;}
+.left-bottom{height:30%;min-height:160px;display:flex;flex-direction:column;}
+.nice-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 30px rgba(15,23,42,.05);}
+.panel-toolbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);}
+.panel-title{font-weight:800;}
+.grow{flex:1 1 auto;}
+.editor-wrap{flex:1 1 auto;min-height:0;border-radius:0 0 16px 16px;overflow:hidden;}
+.log-wrap{flex:1 1 auto;min-height:0;padding:10px 12px;overflow:auto;}
+.log-empty{color:var(--muted);}
+.log-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;}
+.log-list .dot{display:inline-block;width:6px;height:6px;border-radius:999px;background:#22d3ee;margin-right:8px;transform:translateY(-1px);}
 
-/* 顶部导航 AppShell */
-.app-shell { min-height: 100vh; display: flex; flex-direction: column; }
-.app-header {
-  position: sticky; top: 0; z-index: 40; height: var(--header-h);
-  backdrop-filter: saturate(1.1) blur(8px);
-  background: color-mix(in srgb, white 80%, transparent);
-  border-bottom: 1px solid var(--border);
-}
-.container { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
-.header-inner { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+/* 右侧画布容器保持铺满 */
+.app-root,.panel{min-height:0;}
+.panel{display:flex;flex-direction:column;background:var(--panel);}
+.panel--right .canvas-root{position:relative;flex:1 1 auto;min-height:0;height:100%;}
+.konvajs-content canvas{background:transparent!important;}
+/* —— 页面铺满，去掉左右留白 —— */
+.app-main .container { max-width: 100%; padding: 0; }
+.page-main { height: calc(100vh - var(--header-h)); padding: 0; }
 
-/* 品牌区（Logo+文字） */
-.brand { display: flex; align-items: center; gap: 12px; }
-.logo {
-  width: 28px; height: 28px; border-radius: 8px;
-  background: linear-gradient(145deg, var(--brand), #9f67ff);
-  box-shadow: 0 8px 24px rgba(124,58,237,.25), inset 0 2px 6px rgba(255,255,255,.35);
-}
-.brand-text { line-height: 1; }
-.brand-title { font-weight: 800; letter-spacing: .2px; }
-.brand-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
-
-/* 顶部导航链接与主按钮 */
-.nav { display: flex; align-items: center; gap: 14px; }
-.nav-item {
-  font-weight: 600; color: #334155; text-decoration: none;
-  padding: 8px 10px; border-radius: 10px; transition: background .15s ease, color .15s ease;
-}
-.nav-item:hover { background: #eef2ff; color: #1e293b; }
-.nav-cta { background: linear-gradient(180deg,#ffffff,#f3f7ff); }
-
-/* 主体区域：减去导航高度 */
-.app-main { flex: 1 1 auto; min-height: 0; }
-.page-main { height: calc(100vh - var(--header-h)); display: flex; }
-.split-host { flex: 1 1 auto; min-height: 0; display: flex; }
-
-/* 你现有的网格/面板规则保持：确保可收缩与铺满 */
-.app-root, .split-pane, .panel { min-height: 0; }
-.panel { display: flex; flex-direction: column; background: var(--panel); }
+/* —— 右侧画布层级与点击问题（确保工具条在最上） —— */
 .panel--right .canvas-root { position: relative; flex: 1 1 auto; min-height: 0; height: 100%; }
+.konvajs-content { position: relative; z-index: 1; }               /* Canvas */
+.konvajs-content canvas { background: transparent !important; }
 
-/* 画布工具条（右上角玻璃条） */
-.canvas-toolbar {
-  position: absolute; right: 16px; top: 12px; z-index: 6;
+.canvas-toolbar {                                                  /* 步骤 UI/控制条 */
+  position: absolute; right: 12px; top: 10px;
+  z-index: 30;                     /* ★高于 Konva */
+  pointer-events: auto;            /* ★确保可点 */
   display: flex; gap: 8px; align-items: center;
   padding: 8px 10px; border-radius: 12px;
   backdrop-filter: saturate(1.1) blur(6px);
@@ -65,29 +69,111 @@ body {
   border: 1px solid var(--border);
   box-shadow: 0 6px 24px rgba(15,23,42,.06);
 }
-.chip { border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: 12px; }
-.step-chip { background: #111827; color: #fff; }
 
-/* 通用按钮/选择器（页面统一气质） */
-.btn{
-  background: linear-gradient(180deg,#ffffff,#f3f7ff);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-weight: 700;
-  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+/*（保留你的按钮/选择器等样式即可）*/
+.switch {
+  display: inline-flex; align-items: center; gap: 6px; user-select: none;
+  font-size: 12px; color: #0f172a; padding-left: 4px;
 }
-.btn:hover{ filter: brightness(1.02); box-shadow: 0 4px 14px rgba(15,23,42,.06); transform: translateY(-1px); }
-.btn:active{ transform: translateY(0) scale(.99); }
+.switch input { accent-color: #111827; }
 
-.select {
-  border: 1px solid var(--border);
-  background: #fff;
-  border-radius: 10px;
+.canvas-root { position: relative; height: 100%; min-height: 0; }
+.canvas-toolbar {
+  position: absolute; top: 8px; right: 16px; display: flex; gap: 8px; align-items: center;
+  z-index: 10; background: rgba(255,255,255,0.85); backdrop-filter: blur(6px);
+  border: 1px solid #e5e7eb; border-radius: 10px; padding: 6px 10px;
+}
+.step-chip { background: #0f172a; color: #fff; padding: 4px 8px; border-radius: 999px; font-size: 12px; }
+.select, .btn {
+  border: 1px solid #d1d5db; border-radius: 8px; padding: 4px 8px; font-size: 12px; background: #fff; cursor: pointer;
+}
+.select:focus, .btn:focus { outline: none; box-shadow: 0 0 0 2px #dbeafe; }
+.switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #0f172a; }
+
+/* === 基础：整页拉满视口高度 === */
+html, body, #root {
+  height: 100%;
+}
+:root {
+  --header-h: 56px;       /* 顶部导航高度（有的话） */
+}
+
+/* 页面骨架（如果你有 header） */
+.app-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.app-header {
+  flex: 0 0 var(--header-h);
+}
+.app-main {
+  flex: 1 1 auto;
+  min-height: 0;          /* ★ 关键，允许子元素按 1fr 收缩 */
+  display: flex;          /* 下面是 SplitLayout */
+}
+
+/* === SplitLayout 容器铺满 === */
+.split-host, .app-root, .page-main {
+  flex: 1 1 auto;
+  min-height: 0;          /* ★ 避免高度撑开 */
+  height: 100%;
+  display: grid;          /* 你的 SplitLayout 用的是 Grid */
+}
+
+/* 面板通用：列容器 + 可收缩 */
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;          /* ★ 关键：不给子元素设上限 */
+}
+
+/* 右侧面板：整列吃满 */
+.panel--right {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 画布根容器：最后一层 flex:1，给 KitStage 用 */
+.canvas-root {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;          /* ★ 关键 */
+  display: flex;
+}
+
+/* 工具条悬浮，不占高度，也不会把 Stage 挤成 300px */
+.canvas-toolbar {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+}
+
+/* KitStage 宿主（新增类名） */
+.kitstage-host {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;          /* ★ 关键 */
+  height: 100%;           /* 供 ResizeObserver 读到真正高度 */
+}
+
+/* 其余 UI（保持你现有的风格） */
+.btn { cursor: pointer; }
+.select { cursor: pointer; }
+.step-chip {
   padding: 6px 10px;
-  font-weight: 700;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  opacity: .85;
+  margin-right: 8px;
 }
 
-.konvajs-content canvas { background: transparent !important; }
+/* 让左右两侧真正“占满”，去掉多余留白（根据你页面实际结构选择性保留） */
+.container, .page-main, .app-root {
+  width: 100%;
+}
