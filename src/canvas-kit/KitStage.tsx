@@ -1,116 +1,118 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Stage, Layer, Group, Shape, Rect as KRect } from 'react-konva'
-import { CKTheme } from './theme'
+// src/canvas-kit/KitStage.tsx
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { Stage, Layer, Group, Rect } from 'react-konva'
 
-export type BBox = { minX:number; minY:number; maxX:number; maxY:number }
-export function sizeOf(b:BBox){ return { w: b.maxX - b.minX, h: b.maxY - b.minY } }
+export type KitStageProps = {
+  contentSize: { width: number; height: number }   // 逻辑内容尺寸
+  zoom?: number                                    // 0.75/1/1.25/1.5/2 ...
+  onResetSignal?: number                           // 改变这个数值可触发复位
+  pannable?: boolean                               // 是否允许拖动平移
+  children?: React.ReactNode
+}
 
-type FitMode = 'width' | 'height' | 'contain'
-type Insets = { top:number; right:number; bottom:number; left:number }
+/** 安全自适应画布容器（点阵背景 / 可拖动 / 禁止手势缩放） */
+export const KitStage: React.FC<KitStageProps> = ({
+  contentSize,
+  zoom = 1,
+  onResetSignal = 0,
+  pannable = true,
+  children
+}) => {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState({ w: 0, h: 0 })       // 容器实际像素
+  const [offset, setOffset] = useState({ x: 0, y: 0 })   // 内容偏移（用于平移）
+  const [dragging, setDragging] = useState(false)
+  const dragOrigin = useRef<{ x: number; y: number } | null>(null)
 
-export default function KitStage({
-  bbox, zoom, fit='width', padding=24, children, resetSignal,
-  safeInsets = { top:0, right:0, bottom:0, left:0 },
-}:{
-  bbox:BBox; zoom:number; fit?:FitMode; padding?:number; children:React.ReactNode;
-  resetSignal?:number; safeInsets?:Insets;
-}){
-  const ref = useRef<HTMLDivElement|null>(null)
-  const [w,setW]=useState(1)
-  const [h,setH]=useState(1)
-  const [pos,setPos]=useState({x:0,y:0})
-
-  // 安全的 ResizeObserver
-  useEffect(()=>{
-    const el = ref.current
-    if(!el) return
-    const apply = (node:HTMLElement) => {
-      setW(Math.max(1, node.clientWidth))
-      setH(Math.max(1, node.clientHeight))
-    }
-    apply(el)
-    const ro = new ResizeObserver(e=>{
-      const t = (e[0]?.target ?? ref.current) as HTMLElement | null
-      if(t) apply(t)
+  // 观察容器尺寸
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      setSize({ w: el.clientWidth, h: el.clientHeight })
     })
     ro.observe(el)
-    return ()=>ro.disconnect()
+    // 初始化
+    setSize({ w: el.clientWidth, h: el.clientHeight })
+    return () => ro.disconnect()
   }, [])
 
-  // 禁用手势缩放
-  useEffect(()=>{
-    const el = ref.current; if(!el) return
-    const prevent=(e:Event)=>e.preventDefault()
-    el.addEventListener('wheel',prevent,{passive:false})
-    el.addEventListener('gesturestart',prevent as any,{passive:false})
-    el.addEventListener('gesturechange',prevent as any,{passive:false})
-    el.addEventListener('gestureend',prevent as any,{passive:false})
-    return ()=>{
-      el.removeEventListener('wheel',prevent)
-      el.removeEventListener('gesturestart',prevent as any)
-      el.removeEventListener('gesturechange',prevent as any)
-      el.removeEventListener('gestureend',prevent as any)
+  // 居中（当容器尺寸/缩放/复位信号变化时）
+  useEffect(() => {
+    if (!size.w || !size.h) return
+    const cx = (size.w - contentSize.width * zoom) / 2
+    const cy = (size.h - contentSize.height * zoom) / 2
+    setOffset({ x: Math.round(cx), y: Math.round(cy) })
+  }, [size.w, size.h, contentSize.width, contentSize.height, zoom, onResetSignal])
+
+  // 拖动平移（不依赖 maxX/maxY）
+  const onMouseDown = (e: any) => {
+    if (!pannable) return
+    if (e.evt?.button !== 0) return // 只接受左键
+    setDragging(true)
+    dragOrigin.current = {
+      x: e.evt.clientX - offset.x,
+      y: e.evt.clientY - offset.y
     }
-  }, [])
+  }
+  const onMouseMove = (e: any) => {
+    if (!dragging || !dragOrigin.current) return
+    setOffset({
+      x: e.evt.clientX - dragOrigin.current.x,
+      y: e.evt.clientY - dragOrigin.current.y
+    })
+  }
+  const onMouseUp = () => {
+    setDragging(false)
+    dragOrigin.current = null
+  }
 
-  // —— 关键：扣除安全边距后的可用宽高
-  const innerW = Math.max(1, w - safeInsets.left - safeInsets.right)
-  const innerH = Math.max(1, h - safeInsets.top  - safeInsets.bottom)
-
-  const s = sizeOf(bbox)
-  const sx = (innerW - padding*2) / s.w
-  const sy = (innerH - padding*2) / s.h
-  const base = fit==='width' ? sx : fit==='height' ? sy : Math.min(sx, sy)
-  const scale = base * zoom
-
-  // 原点偏移：先从左/上 insets 开始，再做居中，最后叠加拖拽偏移
-  const ox = safeInsets.left + (innerW - s.w*base)/2 - bbox.minX*base + pos.x
-  const oy = safeInsets.top  + (innerH - s.h*base)/2 - bbox.minY*base + pos.y
-
-  const rRef = useRef(resetSignal)
-  useEffect(()=>{
-    if(rRef.current!==resetSignal){ rRef.current=resetSignal; setPos({x:0,y:0}) }
-  },[resetSignal])
+  // 点阵背景（随容器尺寸变化）
+  const Grid = useMemo(() => {
+    const gap = 24
+    const cols = Math.ceil(size.w / gap) + 1
+    const rows = Math.ceil(size.h / gap) + 1
+    const dots: JSX.Element[] = []
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        dots.push(
+          <Rect
+            key={`${i}-${j}`}
+            x={i * gap}
+            y={j * gap}
+            width={1}
+            height={1}
+            fill="#cbd5e180"
+            listening={false}
+          />
+        )
+      }
+    }
+    return () => <Layer listening={false}>{dots}</Layer>
+  }, [size.w, size.h])
 
   return (
-    <div ref={ref} className="ck-stage" style={{ position: 'absolute', inset: 0 }}>
-      <Stage width={w} height={h}>
-        <Layer listening={false}>
-          <KRect x={0} y={0} width={w} height={h} fill="transparent" />
-          <Grid w={w} h={h}/>
-        </Layer>
-        <Layer>
-          <Group
-            x={ox} y={oy}
-            scaleX={scale} scaleY={scale}
-            draggable
-            onDragMove={e=>{
-              const p=e.target.position()
-              setPos({
-                x: p.x - (safeInsets.left + (innerW - s.w*base)/2 - bbox.minX*base),
-                y: p.y - (safeInsets.top  + (innerH - s.h*base)/2 - bbox.minY*base),
-              })
-            }}
-          >
-            {children}
-          </Group>
-        </Layer>
-      </Stage>
+    <div ref={wrapRef} style={{ position: 'absolute', inset: 0, minHeight: 0 }}>
+      {/* 只有拿到有效宽高后才渲染 Stage，避免首帧 null 访问 */}
+      {size.w > 0 && size.h > 0 && (
+        <Stage
+          width={size.w}
+          height={size.h}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          // 禁止滚轮缩放（如果你在别处做倍率控制，这里保持默认即可）
+          onWheel={(e) => e.evt.preventDefault()}
+        >
+          <Grid />
+          <Layer x={offset.x} y={offset.y} scaleX={zoom} scaleY={zoom}>
+            <Group>{children}</Group>
+          </Layer>
+        </Stage>
+      )}
     </div>
   )
 }
 
-function Grid({w,h}:{w:number;h:number}){
-  const g=CKTheme.grid
-  return (
-    <Shape listening={false} sceneFunc={(ctx,shape)=>{
-      ctx.fillStyle=g.color; ctx.globalAlpha=.55
-      for(let x=0;x<=w;x+=g.spacing){
-        for(let y=0;y<=h;y+=g.spacing){
-          ctx.beginPath(); ctx.arc(x,y,g.dotSize,0,Math.PI*2); ctx.fill()
-        }
-      }
-      ctx.globalAlpha=1; ctx.fillStrokeShape(shape)
-    }}/>
-  )
-}
+// 同时提供默认导出，和命名导出二选一均可
+export default KitStage

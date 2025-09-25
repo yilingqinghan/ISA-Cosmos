@@ -1,8 +1,8 @@
-// src/context.tsx
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchDSL } from './utils/fetchDSL'
 
-export type Selection = { arch: 'rvv'; opcode: 'vadd' | 'vsub' | 'vmul'; form: 'vv' | 'vx' | 'vi' }
+export type Selection = { arch:'rvv'; opcode:'vadd'|'vsub'|'vmul'; form:'vv'|'vx'|'vi' }
 export type StepMeta  = { id: string; name: string }
 
 type Ctx = {
@@ -12,37 +12,32 @@ type Ctx = {
   steps: StepMeta[]
   load: (s?: Selection) => Promise<void>
   controls: { speed: number; playing: boolean }
-  setControls: React.Dispatch<React.SetStateAction<{ speed: number; playing: boolean }>>
+  setControls: React.Dispatch<React.SetStateAction<{ speed: number; playing: boolean }>>,
 }
 
 export const AppCtx = React.createContext<Ctx>({
-  sel: { arch: 'rvv', opcode: 'vadd', form: 'vv' },
+  sel: { arch:'rvv', opcode:'vadd', form:'vv' },
   setSel: () => {},
   dsl: '',
   steps: [],
-  load: async () => {},             // ✅ 不使用 TS 断言，给出同签名的空异步函数
+  load: async () => {},
   controls: { speed: 1, playing: true },
   setControls: () => {},
 })
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [sel, setSel] = useState<Selection>({ arch: 'rvv', opcode: 'vadd', form: 'vv' })
-  const [dsl, setDsl] = useState<string>('')
-  const [steps, setSteps] = useState<StepMeta[]>([])
-  const [controls, setControls] = useState({ speed: 1, playing: true })
+export function AppProvider({children}:{children:React.ReactNode}){
+  const [sel,setSel] = useState<Selection>({arch:'rvv', opcode:'vadd', form:'vv'})
+  const [dsl,setDsl] = useState<string>('')
+  const [steps,setSteps] = useState<StepMeta[]>([])
+  const [controls,setControls] = useState({ speed:1, playing:true })
 
-  const load = useCallback(async (s: Selection = sel) => {
-    const got = await fetchDSL(s) // 后端 /api/dsl?... → { text, steps? }
-    setDsl(got.text)
-    setSteps(got.steps ?? [])
+  const load = useCallback(async (s:Selection=sel)=>{
+    const got = await fetchDSL(s)
+    setDsl(got.text); setSteps(got.steps ?? [])
   }, [sel])
 
-  useEffect(() => { void load(sel) }, []) // 初始加载一次
+  useEffect(()=>{ void load(sel) }, [])
 
-  const value = useMemo<Ctx>(
-    () => ({ sel, setSel, dsl, steps, load, controls, setControls }),
-    [sel, dsl, steps, load, controls]
-  )
-
+  const value = useMemo<Ctx>(()=>({ sel, setSel, dsl, steps, load, controls, setControls }), [sel,dsl,steps,load,controls])
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>
 }

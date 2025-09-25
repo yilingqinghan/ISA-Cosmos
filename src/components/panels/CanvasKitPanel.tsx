@@ -1,178 +1,230 @@
-import React, { useContext, useMemo, useState, useEffect } from 'react'
-import KitStage, { BBox } from '../../canvas-kit/KitStage'
-import Block from '../../canvas-kit/components/Block'
-import Arrow from '../../canvas-kit/components/Arrow'
-import DottedGroup from '../../canvas-kit/components/DottedGroup'
-import StepLabel from '../../canvas-kit/components/StepLabel'
-import { parseDSL } from '../../utils/parse'
-import useTimeline from '../../canvas-kit/animation/useTimeline'
-import { Button } from '../../ui/Button'
-import { Select } from '../../ui/Select'
-import { AppCtx } from '../../context'
-import { CKTheme } from '../../canvas-kit/theme'
-import { Group } from 'react-konva'
+import React, { useEffect, useMemo, useState } from 'react'
+import KitStage from '../../canvas-kit/KitStage'
+import { fetchDSL } from '../../utils/fetchDSL'
+import { parseDSL, DSLDoc, DSLShape } from '../../utils/parse'
+import { dbg, DEBUG_ON } from '../../utils/debug'
+import { Group, Rect, Text, Line } from 'react-konva'
 
-const UNIT = 72
-const DIM_OPACITY = 0.35
+// 颜色表（可按需继续扩展）
+const COLOR: Record<string, string> = {
+  lightgray: '#F4F6FA',
+  teal: '#59E0D0',
+  black: '#0B1220',
+  '#0EA5E9': '#0EA5E9',
+  '#22d3ee': '#22d3ee',
+}
+const colorOf = (c?: string) => (c && COLOR[c] ? COLOR[c] : (c || '#E5E7EB'))
 
-function useTicker(enabled:boolean){
-  const [,setTick] = useState(0)
-  useEffect(()=>{
-    if(!enabled) return
-    let raf:number
-    const loop=()=>{ setTick(t=> (t+1)%1_000_000); raf=requestAnimationFrame(loop) }
-    raf=requestAnimationFrame(loop)
-    return ()=> cancelAnimationFrame(raf)
-  }, [enabled])
+// —— 可见性与动画信息 —— //
+function useVisibility(doc: DSLDoc, stepIdx: number) {
+  const appearAt = new Map<string, number>()
+  const disappearAt = new Map<string, number>()
+  const blinkAt = new Map<string, { step: number; times: number; period: number }>()
+
+  doc.anims.forEach(a => {
+    if (a.kind === 'appear') appearAt.set(a.id, doc.steps.findIndex(s => s.id === a.stepId))
+    if (a.kind === 'disappear') disappearAt.set(a.id, doc.steps.findIndex(s => s.id === a.stepId))
+    if (a.kind === 'blink') {
+      const s = doc.steps.findIndex(x => x.id === a.stepId)
+      blinkAt.set(a.id, { step: s, times: a.times, period: a.period })
+    }
+  })
+
+  const isVisible = (id: string) => {
+    const ap = appearAt.has(id) ? appearAt.get(id)! : -1
+    const dp = disappearAt.has(id) ? disappearAt.get(id)! : Infinity
+    return stepIdx >= ap && stepIdx < dp
+  }
+
+  return { isVisible, blinkAt, appearAt }
 }
 
-export default function CanvasKitPanel(){
-  const { dsl, steps: stepMeta, controls } = useContext(AppCtx)
-  const [zoom,setZoom]=useState(1)
-  const [reset,setReset]=useState(0)
+export default function CanvasKitPanel() {
+  // 你可以替换为来自 UI/Context 的选择
+  const [arch] = useState<'rvv'>('rvv')
+  const [opcode] = useState('vadd')
+  const [form] = useState('vv')
 
-  const doc = useMemo(()=> parseDSL(dsl), [dsl])
-  const steps = stepMeta.length ? stepMeta : doc.steps
-  const tl = useTimeline(steps.map(s=>({name:s.name, ms:900})), { autoPlay:true, speed:controls.speed })
+  const [dsl, setDsl] = useState('')
+  const [doc, setDoc] = useState<DSLDoc>({ steps: [], shapes: [], anims: [] })
+  const [stepIdx, setStepIdx] = useState(0)
 
-  // 步骤索引映射
-  const idxByStepId = useMemo(
-    ()=> new Map<string,number>(steps.map((s,i)=>[s.id,i])),
-    [steps]
+  // 画布控制
+  const [zoom, setZoom] = useState(1)
+  const [resetTick, setResetTick] = useState(0)
+  const [blinkTick, setBlinkTick] = useState(0)
+
+  // 加载 & 解析
+  useEffect(() => {
+    fetchDSL({ arch, opcode, form }).then(({ text }) => setDsl(text))
+  }, [arch, opcode, form])
+
+  useEffect(() => {
+    const d = parseDSL(dsl)
+    setDoc(d)
+    setStepIdx(0)
+    dbg.info('parsed:', { steps: d.steps.length, shapes: d.shapes.length, anims: d.anims.length })
+  }, [dsl])
+
+  const { isVisible, blinkAt, appearAt } = useVisibility(doc, stepIdx)
+
+  // 闪烁（仅在当前步骤涉及的 id 上）
+  useEffect(() => {
+    const ids = Array.from(blinkAt.keys()).filter(id => blinkAt.get(id)!.step === stepIdx)
+    if (!ids.length) return
+    const period = Math.min(...ids.map(id => blinkAt.get(id)!.period))
+    const t = setInterval(() => setBlinkTick(t => t + 1), Math.max(150, period / 2))
+    return () => clearInterval(t)
+  }, [blinkAt, stepIdx])
+
+  // 控制条（右上角）
+  const stepName = doc.steps[stepIdx]?.name ?? ''
+  const CtrlBar = () => (
+    <div className="canvas-toolbar nice-glass">
+      <div className="chip step-chip">
+        步骤：{Math.min(stepIdx + 1, Math.max(1, doc.steps.length))}/{Math.max(doc.steps.length, 1)} · {stepName || '—'}
+      </div>
+      <div className="spacer" />
+      <button className="btn" onClick={() => setStepIdx(i => Math.max(0, i - 1))}>上一步</button>
+      <button className="btn" onClick={() => setStepIdx(i => Math.min((doc?.steps.length || 1) - 1, i + 1))}>下一步</button>
+      <select className="select" value={String(zoom)} onChange={e => setZoom(parseFloat(e.target.value))}>
+        <option value="0.75">75%</option><option value="1">100%</option>
+        <option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option>
+      </select>
+      <button className="btn" onClick={() => setResetTick(t => t + 1)}>复位</button>
+    </div>
   )
 
-  // 计算首/末步
-  const firstStep = (id:string)=>{
-    const ap = doc.anims.find(a=>a.kind==='appear' && a.id===id) as any
-    return ap ? (idxByStepId.get(ap.stepId) ?? 0) : 0
-  }
-  const lastStep = (id:string)=>{
-    const dp = doc.anims.find(a=>a.kind==='disappear' && a.id===id) as any
-    return dp ? (idxByStepId.get(dp.stepId) ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY
-  }
+  // —— Konva 渲染 —— //
+  const renderShape = (s: DSLShape) => {
+    if (!isVisible(s.id)) return null
 
-  // 是否需要驱动 raf（有闪烁或正在播放）
-  const hasBlink = useMemo(()=> doc.anims.some(a=>a.kind==='blink'), [doc])
-  useTicker(tl.playing || hasBlink)
-
-  const blinkOpacity = (id:string)=>{
-    const b = doc.anims.find(a=>a.kind==='blink' && a.id===id) as any
-    if(!b) return 1
-    const si = idxByStepId.get(b.stepId) ?? 0
-    if(tl.idx < si) return 1
-    const period = b.period || 600
-    // 0.6 ~ 1.0 之间脉冲
-    return 0.6 + 0.4 * (0.5 + 0.5 * Math.sin((performance.now()%period)/period * Math.PI*2))
-  }
-
-  // 可见性 + “新出现/历史降噪”
-  const visibility = (id:string)=>{
-    const f = firstStep(id), l = lastStep(id)
-    if(tl.idx < f || tl.idx >= l) return { visible:false, fresh:false }
-    return { visible:true, fresh: tl.idx === f }
-  }
-
-  // 计算 bbox
-  const bbox:BBox = useMemo(()=>{
-    let minX=1e9, minY=1e9, maxX=-1e9, maxY=-1e9
-    const put=(x:number,y:number,w:number,h:number)=>{ minX=Math.min(minX,x); minY=Math.min(minY,y); maxX=Math.max(maxX,x+w); maxY=Math.max(maxY,y+h) }
-    for(const s of doc.shapes){
-      if(s.kind==='rect') put(s.x*UNIT, s.y*UNIT, s.w*UNIT, s.h*UNIT)
-      else if(s.kind==='group') put(s.x*UNIT, s.y*UNIT, s.w*UNIT, s.h*UNIT)
-      else if(s.kind==='line' || s.kind==='arrow'){
-        put(Math.min(s.x1,s.x2)*UNIT, Math.min(s.y1,s.y2)*UNIT, Math.abs(s.x2-s.x1)*UNIT, Math.abs(s.y2-s.y1)*UNIT)
-      } else if(s.kind==='label') {
-        put(s.x*UNIT, s.y*UNIT, 70, 30)
+    switch (s.kind) {
+      case 'rect': {
+        const W = s.w * 96, H = s.h * 96, X = s.x * 96, Y = s.y * 96
+        const fontSize = 28
+        const justAppeared = appearAt.get(s.id) === stepIdx
+        const scale = justAppeared ? 1.035 : 1
+        const shadow = justAppeared ? 18 : 12
+        return (
+          <Group key={s.id} x={X} y={Y} opacity={1} scaleX={scale} scaleY={scale}>
+            <Rect width={W} height={H} cornerRadius={20} fill={colorOf(s.color)} shadowBlur={shadow} shadowColor="#00000022" />
+            {s.text ? (
+              <Text
+                text={s.text}
+                x={0}
+                y={(H - fontSize) / 2}          // ★ 完全数值居中（避免字体基线差异）
+                width={W}
+                height={fontSize}
+                align="center"
+                fontSize={fontSize}
+                fontStyle="600"
+                listening={false}
+                fill={COLOR.black}
+                fontFamily="'Futura','STFangsong','PingFang SC','Microsoft YaHei',system-ui"
+              />
+            ) : null}
+          </Group>
+        )
       }
+      case 'label': {
+        const X = s.x * 96, Y = s.y * 96
+        const padding = 12
+        const textWidth = Math.max(40, s.text.length * 16)
+        const W = textWidth + padding * 2, H = 32
+        return (
+          <Group key={s.id} x={X} y={Y}>
+            <Rect width={W} height={H} cornerRadius={10} fill="#111827" opacity={0.72} />
+            <Text
+              text={s.text}
+              x={padding}
+              y={6}
+              fill="#fff"
+              fontSize={16}
+              fontStyle="600"
+              listening={false}
+              fontFamily="'Futura','STFangsong','PingFang SC','Microsoft YaHei',system-ui"
+            />
+          </Group>
+        )
+      }
+      case 'group': {
+        const X = s.x * 96, Y = s.y * 96, W = s.w * 96, H = s.h * 96
+        return (
+          <Rect
+            key={s.id}
+            x={X}
+            y={Y}
+            width={W}
+            height={H}
+            cornerRadius={18}
+            stroke="#6B7280"
+            dash={[10, 8]}
+            opacity={0.35}
+            listening={false}
+          />
+        )
+      }
+      case 'line': {
+        const pts = [s.x1, s.y1, s.x2, s.y2].map(v => v * 96)
+        return <Line key={s.id} points={pts} stroke={colorOf(s.color)} strokeWidth={s.width || 2} />
+      }
+      case 'arrow': {
+        const pts = [s.x1, s.y1, s.x2, s.y2].map(v => v * 96)
+        const blink = blinkAt.get(s.id)
+        const blinking = !!blink && blink.step === stepIdx
+        const alpha = blinking ? (blinkTick % 2 === 0 ? 1 : 0.25) : 1
+        const w = s.width || 3
+        const head = 10 + w * 2
+        const [x1, y1, x2, y2] = pts
+        const angle = Math.atan2(y2 - y1, x2 - x1)
+        const hx = x2 - Math.cos(angle) * head
+        const hy = y2 - Math.sin(angle) * head
+        return (
+          <Group key={s.id} opacity={alpha}>
+            <Line points={[x1, y1, x2, y2]} stroke={colorOf(s.color)} strokeWidth={w} />
+            <Line
+              points={[x2, y2, hx - Math.sin(angle) * head * 0.35, hy + Math.cos(angle) * head * 0.35, hx + Math.sin(angle) * head * 0.35, hy - Math.cos(angle) * head * 0.35]}
+              closed
+              fill={colorOf(s.color)}
+            />
+          </Group>
+        )
+      }
+      default:
+        return null
     }
-    if(minX===1e9){ minX=0; minY=0; maxX=800; maxY=600 }
-    minX-=120; maxX+=120; minY-=40; maxY+=60
-    return {minX,minY,maxX,maxY}
-  }, [doc])
+  }
+
+  // 一层 Layer 内分三个 Group（底/中/顶）
+  const Content = () => {
+    if (!doc?.shapes.length) {
+      return DEBUG_ON ? (
+        <Text text="(调试) 无可绘制图元：请检查解析日志。" x={24} y={24} fontSize={16} fill="#EF4444" />
+      ) : null
+    }
+    const groups = doc.shapes.filter(s => s.kind === 'group')
+    const main = doc.shapes.filter(s => s.kind === 'rect' || s.kind === 'line' || s.kind === 'arrow')
+    const labels = doc.shapes.filter(s => s.kind === 'label')
+
+    return (
+      <>
+        <Group listening={false}>{groups.map(renderShape)}</Group>
+        <Group>{main.map(renderShape)}</Group>
+        <Group listening={false}>{labels.map(renderShape)}</Group>
+      </>
+    )
+  }
 
   return (
-    <div className="panel__body canvas-root">
-      {/* 步骤标题（HTML） */}
-      <div style={{ position:'absolute', left:12, top:10, zIndex:6,
-        fontFamily: CKTheme.font.zh, fontSize: 14, color: '#0f172a' }}>
-        {steps[tl.idx]?.name ?? ''}
-      </div>
-
-      <KitStage
-        bbox={bbox}
-        zoom={zoom}
-        fit="width"
-        resetSignal={reset}
-        safeInsets={{ top: 56, right: 12, bottom: 12, left: 12 }}
-      >
-        {doc.shapes.map((s)=>{
-          const vis = visibility(s.id)
-          if(!vis.visible) return null
-          const baseOpacity = vis.fresh ? 1 : DIM_OPACITY
-          const blink = blinkOpacity(s.id)
-          const opacity = Math.max(0, Math.min(1, baseOpacity * blink))
-
-          if(s.kind==='rect'){
-            const variant = (s.color && s.color.toLowerCase()==='lightgray') ? 'white' : 'primary'
-            return (
-              <Group key={s.id} opacity={opacity}>
-                <Block
-                  x={s.x*UNIT} y={s.y*UNIT}
-                  w={s.w*UNIT} h={s.h*UNIT}
-                  text={s.text}
-                  variant={variant as any}
-                  fontSize={20}
-                  active={vis.fresh}  // ★ 当前步新出现 → 高亮描边
-                />
-              </Group>
-            )
-          }else if(s.kind==='group'){
-            return (
-              <Group key={s.id} opacity={opacity}>
-                <DottedGroup x={s.x*UNIT} y={s.y*UNIT} w={s.w*UNIT} h={s.h*UNIT}/>
-              </Group>
-            )
-          }else if(s.kind==='label'){
-            return (
-              <Group key={s.id} opacity={opacity}>
-                <StepLabel x={s.x*UNIT} y={s.y*UNIT} text={s.text}/>
-              </Group>
-            )
-          }else if(s.kind==='line'){
-            return (
-              <Group key={s.id} opacity={opacity}>
-                <Arrow x1={s.x1*UNIT} y1={s.y1*UNIT} x2={s.x2*UNIT} y2={s.y2*UNIT} color={s.color||'#0f172a'} width={s.width||2}/>
-              </Group>
-            )
-          }else if(s.kind==='arrow'){
-            return (
-              <Group key={s.id} opacity={opacity}>
-                <Arrow x1={s.x1*UNIT} y1={s.y1*UNIT} x2={s.x2*UNIT} y2={s.y2*UNIT} color={s.color||'#10BDB0'} width={s.width||2.5}/>
-              </Group>
-            )
-          }
-          return null
-        })}
+    <div className="canvas-root">
+      <CtrlBar />
+      <KitStage contentSize={{ width: 1600, height: 1000 }} zoom={zoom} onResetSignal={resetTick} pannable>
+        {/* 内容整体可平移区域（留边距更通透） */}
+        <Group x={96} y={72}>
+          <Content />
+        </Group>
       </KitStage>
-
-      <div className="canvas-toolbar">
-        <span className="badge">步骤：{tl.idx+1}/{Math.max(steps.length,1)}</span>
-        <Button onClick={()=>tl.prev()}>上一步</Button>
-        <Button onClick={()=>tl.next()}>下一步</Button>
-        <Button onClick={()=>tl.toggle()}>{tl.playing?'暂停':'继续'}</Button>
-        <span className="label-muted">速度</span>
-        <Select value={String(tl.speed)} onChange={(e)=>tl.setSpeed(parseFloat(e.target.value))}>
-          <option value="0.5">0.5x</option><option value="1">1x</option>
-          <option value="1.5">1.5x</option><option value="2">2x</option>
-        </Select>
-        <span className="label-muted">倍率</span>
-        <Select value={String(zoom)} onChange={e=>setZoom(parseFloat(e.target.value))}>
-          <option value="0.5">50%</option><option value="0.75">75%</option>
-          <option value="1">100%</option><option value="1.25">125%</option>
-          <option value="1.5">150%</option><option value="2">200%</option>
-        </Select>
-        <Button onClick={()=>setReset(s=>s+1)}>复位</Button>
-      </div>
     </div>
   )
 }

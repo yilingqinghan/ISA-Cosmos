@@ -11,14 +11,12 @@ export default function useTimeline(steps:TLStep[], opts:{autoPlay?:boolean, spe
   useEffect(()=>{
     let raf=0
     const tick=(ts:number)=>{
-      if(!playing){ raf=requestAnimationFrame(tick); return }
       if(!ref.current.last) ref.current.last=ts
-      const dt=(ts-ref.current.last)*speed; ref.current.last=ts
-      const dur=steps[idx]?.ms ?? 800
+      const dt=(ts-ref.current.last)*(playing?speed:0); ref.current.last=ts
+      const dur=steps[idx]?.ms ?? 900
       const next=Math.min(1, t01 + dt/dur); setT01(next)
       if(next>=1){
         if(idx<steps.length-1){ setIdx(idx+1); setT01(0) }
-        else { setPlaying(false) }
       }
       raf=requestAnimationFrame(tick)
     }
