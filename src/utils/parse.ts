@@ -25,7 +25,6 @@ const isBlank = (s: string) => !s || !s.trim()
 const unq = (s?: string) => (s ?? '').replace(/^"(.*)"$/s, '$1')
 const toNum = (s?: string) => (s ? Number(s) : 0)
 
-// 逗号分割（忽略引号中的逗号）
 function splitArgs(s: string): string[] {
   const out: string[] = []
   let buf = '', q = false
@@ -67,7 +66,7 @@ export function parseDSL(text: string): DSLDoc {
   const groups: Groups = new Map()
   const alias:  Alias  = new Map()
 
-  // 仅移除整行注释（行首 #），保留行内 #xxxxxx 颜色
+  // 仅删除整行注释（以 # 起始），保留行内颜色如 #0EA5E9
   const src = text
     .split('\n')
     .map(l => (/^\s*#/.test(l) ? '' : l))
@@ -83,7 +82,6 @@ export function parseDSL(text: string): DSLDoc {
   }
 
   for (const raw of stmts) {
-    // 允许在 ) 后面跟行内注释 "# ..."
     const m = raw.match(/^([A-Za-z_]\w*)\s*\((.*)\)\s*(?:#.*)?$/)
     if (!m) continue
     const name = m[1].toLowerCase()
@@ -91,67 +89,24 @@ export function parseDSL(text: string): DSLDoc {
 
     if (name === 'step') { const [id,n] = args; steps.push({ id, name: unq(n) }); continue }
 
-    if (name === 'label') {
-      const [id,x,y,txt] = args
-      shapes.push({ kind:'label', id, x: toNum(x), y: toNum(y), text: unq(txt) })
-      continue
-    }
+    if (name === 'label') { const [id,x,y,txt]=args; shapes.push({kind:'label', id, x:toNum(x), y:toNum(y), text:unq(txt)}); continue }
+    if (name === 'text')  { const [id,x,y,txt,size,color,align]=args; shapes.push({kind:'text', id, x:toNum(x), y:toNum(y), text:unq(txt), size:size?toNum(size):undefined, color, align:align?(unq(align) as any):undefined}); continue }
+    if (name === 'group'){ const [id,x,y,w,h,style]=args; shapes.push({kind:'group', id, x:toNum(x), y:toNum(y), w:toNum(w), h:toNum(h), style: style?(unq(style) as any):'dotted'}); continue }
+    if (name === 'rect') { const [id,w,h,x,y,txt,color]=args; pushRect(id,toNum(w),toNum(h),toNum(x),toNum(y),unq(txt),color); continue }
+    if (name === 'square'){ const [id,x,y,txt,color]=args; pushRect(id,1,1,toNum(x),toNum(y),unq(txt),color); continue }
+    if (name === 'line') { const [id,x1,y1,x2,y2,width,color]=args; shapes.push({kind:'line', id, x1:toNum(x1), y1:toNum(y1), x2:toNum(x2), y2:toNum(y2), width:width?toNum(width):undefined, color}); continue }
+    if (name === 'arrow'){ const [id,x1,y1,x2,y2,width,label,above,color,st,en]=args; shapes.push({kind:'arrow', id, x1:toNum(x1), y1:toNum(y1), x2:toNum(x2), y2:toNum(y2), width:width?toNum(width):undefined, label:label?unq(label):undefined, above:above?unq(above)==='true':undefined, color, start:st?unq(st)==='true':undefined, end:en?unq(en)==='true':undefined}); continue }
 
-    if (name === 'text') {
-      const [id,x,y,txt,size,color,align] = args
-      shapes.push({
-        kind:'text', id, x: toNum(x), y: toNum(y),
-        text: unq(txt), size: size? toNum(size): undefined,
-        color, align: align ? (unq(align) as any) : undefined
-      })
-      continue
-    }
-
-    if (name === 'group') {
-      const [id,x,y,w,h,style] = args
-      shapes.push({ kind:'group', id, x:toNum(x), y:toNum(y), w:toNum(w), h:toNum(h), style: style? (unq(style) as any): 'dotted' })
-      continue
-    }
-
-    if (name === 'rect') {
-      const [id,w,h,x,y,txt,color] = args
-      pushRect(id, toNum(w), toNum(h), toNum(x), toNum(y), unq(txt), color)
-      continue
-    }
-
-    if (name === 'square') {
-      const [id,x,y,txt,color] = args
-      pushRect(id, 1, 1, toNum(x), toNum(y), unq(txt), color)
-      continue
-    }
-
-    if (name === 'line') {
-      const [id,x1,y1,x2,y2,width,color] = args
-      shapes.push({ kind:'line', id, x1:toNum(x1), y1:toNum(y1), x2:toNum(x2), y2:toNum(y2), width: width? toNum(width): undefined, color })
-      continue
-    }
-
-    if (name === 'arrow') {
-      const [id,x1,y1,x2,y2,width,label,above,color,st,en] = args
-      shapes.push({
-        kind:'arrow', id,
-        x1:toNum(x1), y1:toNum(y1), x2:toNum(x2), y2:toNum(y2),
-        width: width? toNum(width): undefined,
-        label: label? unq(label): undefined,
-        above: above? unq(above)==='true': undefined,
-        color, start: st? unq(st)==='true': undefined, end: en? unq(en)==='true': undefined
-      })
-      continue
-    }
-
+    // ------- vec2/4/8：新增外框开关（最后一个参数） -------
     if (/^vec(2|4|8)$/.test(name)) {
       const N = Number(name.replace('vec',''))
-      const [id,x,y,labels,color,dir,gap] = args
+      const [id,x,y,labels,color,dir,gap,boxFlag] = args
       const baseX = toNum(x), baseY = toNum(y)
       const g = gap? toNum(gap): 0.2
       const d = (dir? unq(dir): 'x').toLowerCase()
       const lab = labels? unq(labels).split(','): []
       const members: string[] = []
+
       for (let i=0;i<N;i++){
         const dx = d==='x'? i*(1+g): 0
         const dy = d==='y'? i*(1+g): 0
@@ -161,13 +116,22 @@ export function parseDSL(text: string): DSLDoc {
         pushRect(cid,1,1, baseX+dx, baseY+dy, lab[i]||'', color)
       }
       groups.set(id, members)
-      // dotted 外框（仅视觉）
-      const totalW = d==='x'? (N-1)*(1+g)+1: 1
-      const totalH = d==='y'? (N-1)*(1+g)+1: 1
-      shapes.push({ kind:'group', id:`${id}__box`, x:baseX-0.1, y:baseY-0.1, w:totalW+0.2, h:totalH+0.2, style:'dotted' })
+
+      // box 开关：缺省 true；支持 box:false / nobox / none / off / 0
+      let needBox = true
+      if (boxFlag) {
+        const v = unq(boxFlag).toLowerCase()
+        if (v==='nobox' || v==='none' || v==='off' || v==='0' || v==='false' || v==='box:false') needBox = false
+      }
+      if (needBox) {
+        const totalW = d==='x'? (N-1)*(1+g)+1: 1
+        const totalH = d==='y'? (N-1)*(1+g)+1: 1
+        shapes.push({ kind:'group', id:`${id}__box`, x:baseX-0.1, y:baseY-0.1, w:totalW+0.2, h:totalH+0.2, style:'dotted' })
+      }
       continue
     }
 
+    // appear/disappear/blink: 允许多个 ID，最后参数为 step（blink: 倒数第三为 step）
     if (name === 'appear' || name === 'disappear') {
       if (args.length<2) continue
       const stepId = args[args.length-1]
@@ -175,7 +139,6 @@ export function parseDSL(text: string): DSLDoc {
       ids.forEach(id => anims.push({ kind: name as any, id, stepId }))
       continue
     }
-
     if (name === 'blink') {
       if (args.length<3) continue
       const stepId = args[args.length-3]
@@ -186,6 +149,5 @@ export function parseDSL(text: string): DSLDoc {
       continue
     }
   }
-
   return { steps, shapes, anims }
 }

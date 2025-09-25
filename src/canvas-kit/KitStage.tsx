@@ -1,69 +1,99 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Stage, Layer } from 'react-konva'
-
-type Size = { width: number; height: number }
+// src/canvas-kit/KitStage.tsx
+import React, { useEffect, useRef, useState } from "react";
+import { Stage, Layer, Group } from "react-konva";
+import GridOverlay, { GridStyle } from "./components/GridOverlay";
 
 type Props = {
-  contentSize: Size
-  zoom?: number
-  autoFit?: boolean
-  padding?: number
-  pannable?: boolean
-  onResetSignal?: number
-  children: React.ReactNode
-}
+  contentSize: { width: number; height: number };  // 世界内容边界（仅用于初始居中）
+  zoom: number;                                    // 现有的缩放
+  onResetSignal?: number;
+  children: React.ReactNode;
+  /** 新增：是否显示全屏坐标网格 */
+  showGrid?: boolean;
+  /** 新增：网格样式 */
+  gridStyle?: GridStyle;
+};
 
-export default function KitStage({
+export function KitStage({
   contentSize,
-  zoom = 1,
-  autoFit = true,
-  padding = 48,
-  pannable = true,
-  onResetSignal = 0,
-  children
+  zoom,
+  onResetSignal,
+  children,
+  showGrid = true,
+  gridStyle,
 }: Props) {
-  const hostRef = useRef<HTMLDivElement>(null)
-  const [stageSize, setStageSize] = useState({ w: 300, h: 300 })
-  const [view, setView] = useState({ scale: 1, x: 0, y: 0 })
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 300, h: 300 });
 
-  // 监听容器大小
-  useLayoutEffect(() => {
-    if (!hostRef.current) return
-    const ro = new ResizeObserver((es) => {
-      const cr = es[0].contentRect
-      setStageSize({ w: cr.width, h: cr.height })
-    })
-    ro.observe(hostRef.current)
-    return () => ro.disconnect()
-  }, [])
+  // 你的平移状态（layer 的 x/y）
+  const [pan, setPan] = useState({ x: 0, y: 0 });
 
-  // AutoFit：等比 contain + 自定义缩放
+  // 自适应容器
   useEffect(() => {
-    if (!autoFit) return
-    const vw = stageSize.w || 1, vh = stageSize.h || 1
-    const cw = contentSize.width, ch = contentSize.height
-    const s0 = Math.min(vw / (cw + padding * 2), vh / (ch + padding * 2))
-    const s = s0 * zoom
-    const x = (vw - cw * s) / 2
-    const y = (vh - ch * s) / 2
-    setView({ scale: s, x, y })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoFit, stageSize.w, stageSize.h, contentSize.width, contentSize.height, padding, onResetSignal, zoom])
+    const ro = new ResizeObserver(() => {
+      if (!wrapRef.current) return;
+      setSize({
+        w: wrapRef.current.clientWidth,
+        h: wrapRef.current.clientHeight,
+      });
+    });
+    if (wrapRef.current) ro.observe(wrapRef.current);
+    return () => ro.disconnect();
+  }, []);
 
-  // 拖拽平移
-  const dragging = useRef(false)
-  const dragStart = useRef<{ x: number; y: number; vx: number; vy: number }>()
-  const onDown = (e: any) => { if (!pannable) return; dragging.current = true; dragStart.current = { x: e.evt.clientX, y: e.evt.clientY, vx: view.x, vy: view.y } }
-  const onMove = (e: any) => { if (!pannable || !dragging.current || !dragStart.current) return; const dx=e.evt.clientX-dragStart.current.x, dy=e.evt.clientY-dragStart.current.y; setView(v=>({ ...v, x: dragStart.current!.vx+dx, y: dragStart.current!.vy+dy })) }
-  const onUp   = () => { dragging.current = false }
+  // 复位：让内容大致居中（可按你的逻辑）
+  useEffect(() => {
+    if (!wrapRef.current) return;
+    const cx = (size.w - contentSize.width * zoom) / 2;
+    const cy = (size.h - contentSize.height * zoom) / 2;
+    setPan({ x: cx, y: cy });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onResetSignal, size.w, size.h, zoom]);
+
+  // 简单拖拽（如已有可忽略）
+  const dragging = useRef(false);
+  const last = useRef({ x: 0, y: 0 });
+  const onDown = (e: any) => {
+    dragging.current = true;
+    last.current = e.evt ? { x: e.evt.clientX, y: e.evt.clientY } : { x: 0, y: 0 };
+  };
+  const onMove = (e: any) => {
+    if (!dragging.current) return;
+    const cur = e.evt ? { x: e.evt.clientX, y: e.evt.clientY } : { x: 0, y: 0 };
+    setPan((p) => ({ x: p.x + (cur.x - last.current.x), y: p.y + (cur.y - last.current.y) }));
+    last.current = cur;
+  };
+  const onUp = () => (dragging.current = false);
 
   return (
-    <div ref={hostRef} className="kitstage-host">
-      <Stage width={stageSize.w} height={stageSize.h} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp}>
-        <Layer x={view.x} y={view.y} scaleX={view.scale} scaleY={view.scale}>
-          {children}
+    <div ref={wrapRef} className="kitstage-wrap" style={{ width: "100%", height: "100%" }}>
+      <Stage
+        width={size.w}
+        height={size.h}
+        onMouseDown={onDown}
+        onMouseMove={onMove}
+        onMouseUp={onUp}
+      >
+        {/* 背景层：全屏网格（不依赖原点，整屏铺开） */}
+        <Layer listening={false}>
+          {showGrid && (
+            <GridOverlay
+              width={size.w}
+              height={size.h}
+              scale={zoom}
+              offset={{ x: pan.x, y: pan.y }}
+              style={gridStyle}
+            />
+          )}
+        </Layer>
+
+        {/* 内容层：带缩放/平移 */}
+        <Layer x={pan.x} y={pan.y} scaleX={zoom} scaleY={zoom}>
+          <Group>{children}</Group>
         </Layer>
       </Stage>
     </div>
-  )
+  );
 }
+
+export default KitStage;

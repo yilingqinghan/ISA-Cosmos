@@ -177,3 +177,17 @@ html, body, #root {
 .container, .page-main, .app-root {
   width: 100%;
 }
+
+/* Toolbar 通用（若与行内样式重复，以此为准） */
+.toolbar { backdrop-filter: saturate(1.1) blur(2px); }
+.toolbar--compact { padding: 6px 8px; }
+.toolbar--floating { position: relative; }
+.toolbar__group { display: flex; align-items: center; gap: 8px; }
+.toolbar__divider { width: 1px; background: linear-gradient(180deg,#e2e8f0,#cbd5e1); }
+.toolbar__title { color: #0f172a; font-weight: 700; font-size: 12px; letter-spacing: .3px; text-transform: uppercase; }
+.label-muted { color: #475569; font-size: 12px; line-height: 20px; user-select: none; }
+
+/* 让 Select / Button 与 Toolbar 视觉统一（如你已有，可忽略） */
+.select { border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 8px; background: #fff; }
+.btn { border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 10px; background: linear-gradient(180deg,#fff,#f8fafc); font-weight: 600; }
+.btn:hover { filter: brightness(1.02); }

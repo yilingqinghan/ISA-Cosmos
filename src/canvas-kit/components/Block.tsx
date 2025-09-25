@@ -1,21 +1,60 @@
+// src/canvas-kit/components/Block.tsx
+import React, { useMemo } from 'react';
+import { Group, Rect, Text } from 'react-konva';
+import { useApp } from '@/context';
+import { fmtLane, isNumericLike } from '@/utils/format';
 
-import React from 'react'
-import { Rect as KRect, Text as KText, Group } from 'react-konva'
-import { CKTheme } from '../theme'
-const hasCJK=(s?:string)=>!!s && /[\u3400-\u9FFF]/.test(s)
-export default function Block({x,y,w,h,text,variant='white',strokeWidth=2,radius=CKTheme.radius,active,fontSize=22}:
- {x:number;y:number;w:number;h:number;text?:string;variant?:'primary'|'white'|'dark'|'ghost'|'dashed';strokeWidth?:number;radius?:number;active?:boolean;fontSize?:number;}){
-  const t=CKTheme.color
-  const style={primary:{fill:t.primaryBg,stroke:t.primary}, white:{fill:t.whiteBg,stroke:'#94a3b8'},
-               dark:{fill:t.darkBg,stroke:t.darkBg}, ghost:{fill:'transparent',stroke:t.stroke}, dashed:{fill:'transparent',stroke:t.dashed}}[variant]
-  const dash= variant==='dashed' ? [6,6] : undefined
-  const textColor= variant==='dark' ? t.darkText : t.text
-  const fontFamily= hasCJK(text) ? CKTheme.font.zh : CKTheme.font.en
-  return <Group listening={false}>
-    <KRect x={x} y={y} width={w} height={h} cornerRadius={radius} fill={style.fill} stroke={style.stroke}
-           strokeWidth={active?strokeWidth+0.8:strokeWidth} dash={dash}
-           shadowColor={active?'rgba(0,0,0,0.18)':undefined} shadowBlur={active?20:10} shadowOffsetY={active?6:2} shadowOpacity={0.18}/>
-    {text!=null && <KText x={x} y={y} width={w} height={h} text={text} fontSize={fontSize}
-           fontFamily={fontFamily} fill={textColor} align="center" verticalAlign="middle"/>}
-  </Group>
+type Props = {
+  id?: string;
+  x: number; y: number;
+  w: number; h: number;
+  text?: string | number;
+  fill?: string;
+  stroke?: string;
+  radius?: number;
+};
+
+/** 估算等宽字体的字符宽度比例（用于自适应字号） */
+const CHAR_RATIO = 0.62;
+
+export default function Block({
+  id, x, y, w, h, text = '', fill = '#ECF0F5', stroke = '#1F2937', radius = 12,
+}: Props) {
+  const { base, sew } = useApp();
+
+  const display = useMemo(() => {
+    if (isNumericLike(text)) return fmtLane(text, base, sew);
+    return String(text);
+  }, [text, base, sew]);
+
+  // 自适应字体大小（留一些 padding）
+  const innerW = (w - 0.18) * 100;         // 你的世界坐标 -> 像素换算里，保持比例即可
+  const baseFont = 20;                      // 默认字号
+  let fontSize = baseFont;
+  const need = display.length * baseFont * CHAR_RATIO;
+  if (need > innerW) fontSize = Math.max(12, (innerW / (display.length * CHAR_RATIO)));
+
+  return (
+    <Group x={x * 100} y={y * 100} id={id}>
+      <Rect
+        width={w * 100}
+        height={h * 100}
+        fill={fill}
+        stroke={stroke}
+        cornerRadius={radius}
+        shadowBlur={12}
+        shadowColor="rgba(0,0,0,0.08)"
+      />
+      <Text
+        text={display}
+        width={w * 100}
+        height={h * 100}
+        fontSize={fontSize}
+        fontFamily={'SFMono, ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'}
+        align="center"
+        verticalAlign="middle"
+        fill="#0F172A"
+      />
+    </Group>
+  );
 }
