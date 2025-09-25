@@ -3,6 +3,7 @@ import { classNames } from '@utils/classNames'
 import { EditorPanel } from '@components/panels/EditorPanel'
 import { ControlPanel } from '@components/panels/ControlPanel'
 import { CanvasPanel } from '@components/panels/CanvasPanel'
+import CanvasKitPanel from '@components/panels/CanvasKitPanel'
 import { SplitLayout } from '@components/layout/SplitLayout'
 import { parseInstruction } from '@utils/parse'
 import { getArchitectures } from '@arch/index'
@@ -62,7 +63,7 @@ export default function App() {
         </div>
 
         <div className="panel panel--right">
-          <CanvasPanel built={built} />
+        <CanvasKitPanel/>
         </div>
       </SplitLayout>
     </div>

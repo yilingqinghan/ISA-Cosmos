@@ -3,7 +3,6 @@ import { Rect as KRect, Text as KText, Group } from 'react-konva'
 import { CKTheme } from '../../canvas-kit/theme'
 
 type Variant = 'primary' | 'white' | 'dark' | 'ghost' | 'dashed'
-
 export interface BlockProps {
   x: number; y: number; w: number; h: number
   text?: string
@@ -11,11 +10,14 @@ export interface BlockProps {
   strokeWidth?: number
   radius?: number
   id?: string
-  active?: boolean            // 高亮（加重描边/阴影）
+  active?: boolean
+  fontSize?: number
 }
 
+const hasCJK = (s?: string) => !!s && /[\u3400-\u9FFF]/.test(s)
+
 export function Block({
-  x, y, w, h, text, variant='white', strokeWidth=1.5, radius=CKTheme.radius, id, active
+  x, y, w, h, text, variant='white', strokeWidth=1.8, radius=CKTheme.radius, id, active, fontSize=18
 }: BlockProps) {
   const t = CKTheme.color
   const style = {
@@ -25,9 +27,9 @@ export function Block({
     ghost:   { fill: 'transparent', stroke: t.stroke },
     dashed:  { fill: 'transparent', stroke: t.dashed }
   }[variant]
-
-  const dash = variant === 'dashed' ? [6, 6] : undefined
+  const dash = variant === 'dashed' ? [6,6] : undefined
   const textColor = variant === 'dark' ? t.darkText : t.text
+  const fontFamily = hasCJK(text) ? CKTheme.font.zh : CKTheme.font.en
 
   return (
     <Group id={id}>
@@ -36,7 +38,7 @@ export function Block({
         cornerRadius={radius}
         fill={style.fill}
         stroke={style.stroke}
-        strokeWidth={active ? strokeWidth + 1 : strokeWidth}
+        strokeWidth={active ? strokeWidth + 0.8 : strokeWidth}
         dash={dash}
         shadowColor={active ? 'rgba(0,0,0,0.18)' : undefined}
         shadowBlur={active ? 14 : 0}
@@ -45,11 +47,10 @@ export function Block({
       />
       {text != null && (
         <KText
-          x={x} y={y}
-          width={w} height={h}
+          x={x} y={y} width={w} height={h}
           text={text}
-          fontSize={14}
-          fontFamily="Inter, ui-sans-serif, system-ui"
+          fontSize={fontSize}
+          fontFamily={fontFamily}
           fill={textColor}
           align="center"
           verticalAlign="middle"
