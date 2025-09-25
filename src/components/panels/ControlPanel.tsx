@@ -1,37 +1,48 @@
-import { Architecture } from '@core/instructions/types'
 
-export function ControlPanel({ archId, setArchId, archs, onVisualize }:{
-  archId: string; setArchId:(v:string)=>void; archs: Architecture[]; onVisualize:()=>void
-}){
+import React, { useContext, useState } from 'react'
+import { AppCtx } from '../../context'
+import { Button } from '../../ui/Button'
+import { Select } from '../../ui/Select'
+
+export default function ControlPanel(){
+  const { sel, setSel, load } = useContext(AppCtx)
+  const [busy,setBusy] = useState(false)
+
+  async function onRun(){
+    setBusy(true); try{ await load(sel) } finally{ setBusy(false) }
+  }
+
   return (
-    <div style={{display:'grid', gridTemplateRows:'auto 1fr', height:'100%'}}>
-      <div style={{padding:'8px 10px', borderBottom:'1px solid var(--border)'}}>
-        <div style={{display:'flex', alignItems:'center', gap:8}}>
-          <strong>Controls</strong>
-          <div style={{marginLeft:'auto'}}>
-            <button className="btn" onClick={onVisualize}>Run ▶</button>
-          </div>
+    <>
+      <header style={{padding:'8px 12px', fontWeight:700}}>Controls</header>
+      <div className='panel__body' style={{padding:12, display:'flex', flexDirection:'column', gap:10}}>
+        <div>
+          <div className='label-muted' style={{marginBottom:4}}>Architecture</div>
+          <Select value={sel.arch} onChange={e=>setSel(s=>({...s, arch:e.target.value as any}))}>
+            <option value='rvv'>RISC-V Vector (RVV)</option>
+          </Select>
         </div>
-      </div>
-      <div style={{padding:12, display:'grid', gap:12}}>
-        <label style={{display:'grid', gap:6}}>
-          <span style={{fontSize:12, color:'var(--muted)'}}>Architecture</span>
-          <select
-            value={archId}
-            onChange={e => setArchId(e.target.value)}
-            style={{
-              background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)',
-              borderRadius:8, padding:'8px 10px'
-            }}
-          >
-            {archs.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-        </label>
-
-        <div style={{fontSize:12, color:'var(--muted)'}}>
-          Tip: Try <code>vadd.vv v0, v1, v2</code> then click Run.
+        <div>
+          <div className='label-muted' style={{marginBottom:4}}>Instruction</div>
+          <Select value={sel.opcode} onChange={e=>setSel(s=>({...s, opcode:e.target.value as any}))}>
+            <option value='vadd'>vadd</option>
+            <option value='vsub'>vsub</option>
+            <option value='vmul'>vmul</option>
+          </Select>
         </div>
+        <div>
+          <div className='label-muted' style={{marginBottom:4}}>Form</div>
+          <Select value={sel.form} onChange={e=>setSel(s=>({...s, form:e.target.value as any}))}>
+            <option value='vv'>vv</option>
+            <option value='vx'>vx</option>
+            <option value='vi'>vi</option>
+          </Select>
+        </div>
+        <div style={{display:'flex', gap:8}}>
+          <Button onClick={onRun}>{busy?'加载中...':'Run ▶'}</Button>
+        </div>
+        <p className='label-muted'>说明：点击 Run 后，前端会向 <code>/api/dsl?arch=...&opcode=...&form=...</code> 请求 DSL 文本（后端返回 JSON：{"{text, steps}"}），随后在右侧画布渲染，并按步骤自动播放。可在右上角控制“暂停/继续/上一步/下一步/速度/倍率”。</p>
       </div>
-    </div>
+    </>
   )
 }

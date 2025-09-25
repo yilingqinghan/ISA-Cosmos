@@ -1,28 +1,13 @@
-import { useRef } from 'react'
 
-export function EditorPanel({ code, setCode, onRun }:{ code:string; setCode:(v:string)=>void; onRun:()=>void }) {
-  const ref = useRef<HTMLTextAreaElement | null>(null)
-
+import React from 'react'
+export default function EditorPanel(){
   return (
-    <div style={{display:'grid', gridTemplateRows:'36px 1fr', height:'100%'}}>
-      <div style={{display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderBottom:'1px solid var(--border)'}}>
-        <div style={{fontWeight:600}}>Instruction</div>
-        <div style={{marginLeft:'auto', display:'flex', gap:8}}>
-          <button className="btn" onClick={onRun}>Visualize ▶</button>
-        </div>
+    <div className="panel panel--left">
+      <header style={{padding:'8px 12px', fontWeight:700}}>Instruction</header>
+      <div className="panel__body" style={{padding:'12px'}}>
+        <p className="label-muted">从中间面板选择架构和指令，然后点击 <b>Run</b>。</p>
+        <p className="label-muted">DSL 在后端生成；前端仅负责渲染与播放控制。</p>
       </div>
-      <textarea
-        ref={ref}
-        value={code}
-        onChange={(e)=>setCode(e.target.value)}
-        spellCheck={false}
-        style={{
-          width:'100%', height:'100%', resize:'none', outline:'none', border:'0',
-          background:'var(--panel)', color:'var(--text)', padding:12, fontFamily:'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-          fontSize:14, lineHeight:1.6
-        }}
-        placeholder='Example: vadd.vv v0, v1, v2'
-      />
     </div>
   )
 }

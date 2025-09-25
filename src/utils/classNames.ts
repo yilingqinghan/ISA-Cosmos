@@ -1,3 +1,1 @@
-export function classNames(...xs: (string | false | undefined)[]) {
-  return xs.filter(Boolean).join(' ')
-}
+export default function cx(...xs:(string|false|undefined|null)[]){return xs.filter(Boolean).join(' ')}

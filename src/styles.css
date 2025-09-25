@@ -1,165 +1,42 @@
-/* =========================
-   全局与主题
-   ========================= */
-   :root {
-    --bg: #f7fafc;
-    --panel: #ffffff;
-    --panel-2: #f9fbff;
-    --text: #0f172a;
-    --muted: #475569;
-    --accent: #2563eb;
-    --border: #e2e8f0;
-  }
-  
-  * { box-sizing: border-box; }
-  html, body, #root { height: 100%; }
-  body {
-    margin: 0;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
-    color: var(--text);
-    background: linear-gradient(180deg, #ffffff, #f7fafc 60%, #eef4ff);
-  }
-  
-  /* =========================
-     App 容器
-     ========================= */
-  .app-root {
-    height: 100%;
-    min-height: 0; /* 允许在 Grid/Flex 内收缩 */
-  }
-  
-  /* =========================
-     SplitLayout（容器在 TS 中设置了 grid-template-columns）
-     这里的每个网格子项都用 Flex 继续传导高度
-     ========================= */
-  .split-pane {
-    /* 关键：Grid 子项可在主轴/交叉轴收缩，避免把行轨道顶高 */
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-  
-    /* 作为列容器，让内部 .panel 用 flex:1 吃满 */
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* =========================
-     面板通用
-     ========================= */
-  .panel {
-    /* 关键：面板在列容器中拉伸到满高 */
-    flex: 1 1 auto;
-    min-height: 0;
-  
-    /* 内部再用 Flex 让内容区可继续拉伸 */
-    display: flex;
-    flex-direction: column;
-  
-    background: var(--panel-2);
-    border-left: 1px solid var(--border);
-  }
-  
-  /* 左/中/右三栏的默认滚动策略：
-     - 左/中：通常是表单、代码或说明，允许垂直滚动
-     - 右：是画布，避免滚动，用内部的 Konva Stage 自适应 */
-  .panel--left,
-  .panel--middle {
-    overflow: auto;    /* 只在内容超过时滚动 */
-  }
-  .panel--right {
-    overflow: hidden;  /* 画布自己铺满，外层不滚动 */
-  }
-  
-  /* =========================
-     右侧画布容器
-     ========================= */
-  .canvas-root {
-    /* 画布所在的容器，占据面板剩余空间 */
-    flex: 1 1 auto;
-    min-height: 0;
-    position: relative;
-    background: transparent;  /* 透明以实现“无缝内嵌” */
-  }
-  
-  /* 画布右上角工具条（暂停/速度/倍率/复位） */
-  .canvas-toolbar {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    background: rgba(255,255,255,0.85);
-    backdrop-filter: blur(6px);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 6px 8px;
-    z-index: 5;
-  }
-  
-  /* =========================
-     按钮与选择器（通用组件库使用）
-     ========================= */
-  .btn {
-    background: linear-gradient(180deg, #ffffff, #f3f6ff);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px 10px;
-    cursor: pointer;
-    font-weight: 600;
-    line-height: 1;
-  }
-  .btn:hover { filter: brightness(1.02); }
-  
-  .select {
-    background: var(--panel);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 4px 8px;
-  }
-  
-  /* 小标签文本颜色（例如“速度/倍率”字样） */
-  .label-muted {
-    font-size: 12px;
-    color: var(--muted);
-  }
-  
-  /* =========================
-     提示条
-     ========================= */
-  .notice {
-    margin: 12px;
-    background: #fff8e1;
-    color: #8a6d3b;
-    border: 1px solid #ffecb5;
-    padding: 8px 10px;
-    border-radius: 8px;
-  }
-  
-  /* =========================
-     工具：确保任何需要吃满父容器的块都能收缩
-     ========================= */
-  .min-h-0 { min-height: 0 !important; }
-  .min-w-0 { min-width: 0 !important; }
-  .flex-1  { flex: 1 1 auto !important; }
 
-  /* SplitLayout 的 Grid 行在 TS 已设为 minmax(0,1fr)；这里把子项做成列容器 */
-.split-pane {
-  min-width: 0; min-height: 0; overflow: hidden;
-  display: flex; flex-direction: column;
+:root {
+  --bg: #f7fafc;
+  --panel: #ffffff;
+  --panel-2: #f9fbff;
+  --text: #0f172a;
+  --muted: #475569;
+  --accent: #2563eb;
+  --border: #e2e8f0;
 }
-.panel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: var(--panel-2); }
-.panel__body { flex: 1 1 auto; min-height: 0; overflow: auto; } /* ★ 中间列内容区放这里 */
-
-/* 右侧画布铺满 */
-.panel--right .canvas-root { flex: 1 1 auto; min-height: 0; position: relative; background: transparent; }
-
-/* 按钮/选择器（供 Toolbar/Button/Select 使用） */
-.btn { background: linear-gradient(180deg,#fff,#f3f6ff); color: var(--text); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-weight:600; cursor:pointer; }
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+  color: var(--text); background: linear-gradient(180deg, #ffffff, #f7fafc 60%, #eef4ff);
+}
+.app-root { height: 100%; min-height: 0; }
+.split-pane { min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+.panel { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; background:var(--panel-2); }
+.panel__body { flex:1 1 auto; min-height:0; overflow:auto; }
+.canvas-root { flex:1 1 auto; min-height:0; position:relative; }
+.canvas-toolbar { position:absolute; top:8px; right:8px; display:flex; gap:8px; align-items:center;
+  background:rgba(255,255,255,.85); backdrop-filter:blur(6px); border:1px solid var(--border);
+  border-radius:10px; padding:6px 8px; z-index:5; }
+.btn { background:linear-gradient(180deg,#fff,#f3f6ff); color:var(--text); border:1px solid var(--border);
+  border-radius:8px; padding:6px 10px; font-weight:600; cursor:pointer; }
 .btn:hover { filter:brightness(1.02); }
-.select { background: var(--panel); color: var(--text); border:1px solid var(--border); border-radius:8px; padding:4px 8px; }
-.canvas-toolbar { position:absolute; top:8px; right:8px; display:flex; gap:8px; align-items:center; background:rgba(255,255,255,.85); backdrop-filter:blur(6px); border:1px solid var(--border); border-radius:10px; padding:6px 8px; z-index:5; }
+.select { background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:4px 8px; }
+.label-muted { font-size:12px; color:var(--muted); }
+.badge { font-size:12px; color:#334155; background:#e2e8f0; padding:2px 6px; border-radius:6px; }
+/* 作为画布容器：要能占满父级，并成为绝对定位的参照物 */
+.canvas-root {
+  position: relative;         /* ★ 让内部绝对定位基于它 */
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
 
-  
+/* 画布根节点（KitStage 外层 div）绝对铺满容器 */
+.ck-stage {
+  position: absolute;         /* ★ 不再撑开布局，直接覆盖容器 */
+  inset: 0;                   /* top/right/bottom/left = 0 */
+}
