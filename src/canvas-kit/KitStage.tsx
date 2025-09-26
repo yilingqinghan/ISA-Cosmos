@@ -50,29 +50,45 @@ export function KitStage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onResetSignal, size.w, size.h, zoom]);
 
-  // 简单拖拽（如已有可忽略）
+  // 简单拖拽（改为 pointer 事件，绑定到外层 div）
   const dragging = useRef(false);
   const last = useRef({ x: 0, y: 0 });
-  const onDown = (e: any) => {
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     dragging.current = true;
-    last.current = e.evt ? { x: e.evt.clientX, y: e.evt.clientY } : { x: 0, y: 0 };
+    last.current = { x: e.clientX, y: e.clientY };
+    (e.target as HTMLElement)?.setPointerCapture?.(e.pointerId);
   };
-  const onMove = (e: any) => {
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
-    const cur = e.evt ? { x: e.evt.clientX, y: e.evt.clientY } : { x: 0, y: 0 };
-    setPan((p) => ({ x: p.x + (cur.x - last.current.x), y: p.y + (cur.y - last.current.y) }));
+    const cur = { x: e.clientX, y: e.clientY };
+    const dx = cur.x - last.current.x;
+    const dy = cur.y - last.current.y;
+    setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
     last.current = cur;
   };
-  const onUp = () => (dragging.current = false);
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    dragging.current = false;
+    (e.target as HTMLElement)?.releasePointerCapture?.(e.pointerId);
+  };
 
   return (
-    <div ref={wrapRef} className="kitstage-wrap" style={{ width: "100%", height: "100%" }}>
+    <div
+      ref={wrapRef}
+      className="kitstage-wrap"
+      style={{
+        width: "100%",
+        height: "100%",
+        touchAction: "none",
+        cursor: dragging.current ? "grabbing" : "grab",
+      }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+    >
       <Stage
         width={size.w}
         height={size.h}
-        onMouseDown={onDown}
-        onMouseMove={onMove}
-        onMouseUp={onUp}
       >
         {/* 背景层：全屏网格（不依赖原点，整屏铺开） */}
         <Layer listening={false}>
