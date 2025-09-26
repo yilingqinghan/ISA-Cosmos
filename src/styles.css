@@ -191,3 +191,13 @@ html, body, #root {
 .select { border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 8px; background: #fff; }
 .btn { border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 10px; background: linear-gradient(180deg,#fff,#f8fafc); font-weight: 600; }
 .btn:hover { filter: brightness(1.02); }
+
+/* Monaco 诊断：glyph 红点 */
+.err-glyph { background:#ef4444; width:10px; height:10px; border-radius:999px; margin-left:3px; margin-top:4px; }
+/* Monaco 诊断：右侧浮框（Xcode 风格） */
+.err-bubble{
+  position:absolute; transform:translate(8px,-50%);
+  background:#fff3f3; border:1px solid #ffc9c9; color:#b91c1c;
+  padding:4px 8px; border-radius:8px; font-size:12px; white-space:nowrap;
+  box-shadow:0 8px 24px rgba(185,28,28,.15); pointer-events:auto; z-index:50;
+}

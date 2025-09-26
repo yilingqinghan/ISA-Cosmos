@@ -131,14 +131,18 @@ function FmtText({
 
 export default function CanvasKitPanel() {
   const [showGrid, setShowGrid] = useState(true);
-  const { arch, opcode, form, pushLog, clearLogs } = useApp()
+  const { arch, opcode, form, pushLog, clearLogs, dslOverride } = useApp()
   const [dsl, setDsl] = useState('')
   const [doc, setDoc] = useState<DSLDoc>({ steps:[], shapes:[], anims:[], packOn:[], packOff:[] })
   const [stepIdx, setStepIdx] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [resetTick, setResetTick] = useState(0)
   const fmtSnap = useFormat()
-
+  useEffect(() => {
+    if (dslOverride) { setDsl(dslOverride.text); return }
+    fetchDSL({ arch, opcode, form }).then(({ text }) => setDsl(text))
+  // 依赖 rev，确保同一文本也会重新解析渲染
+  }, [dslOverride?.rev, arch, opcode, form])
   // --- Debug toggle and logger ---
   const [debugOn, setDebugOn] = useState(false)
   const [debug, setDebug] = useState(false);
@@ -157,7 +161,6 @@ export default function CanvasKitPanel() {
   const stepStartRef = useRef<number>(performance.now())
   const [clock, setClock] = useState(0)
 
-  useEffect(()=>{ fetchDSL({arch,opcode,form}).then(r=>setDsl(r.text)) },[arch,opcode,form])
   useEffect(()=>{
     const d = parseDSL(dsl)
     setDoc(d); setStepIdx(0); stepStartRef.current = performance.now(); setResetTick(t=>t+1)
@@ -256,30 +259,6 @@ export default function CanvasKitPanel() {
     const summary = vecGroups.map(g => ({ base: g.baseId, lanes: g.lanes.map(l=>l.id) }))
     dbg('vecGroups =', summary)
   }, [vecGroups])
-
-
-  // 内容尺寸估计
-  const contentSize = useMemo(()=>{
-    if(!doc.shapes.length) return { width: 1200, height: 800 }
-    let maxX=0, maxY=0
-    for(const s of doc.shapes){
-      if(s.kind==='rect'||s.kind==='group'){ maxX=Math.max(maxX,PX(s.x+s.w)); maxY=Math.max(maxY,PX(s.y+s.h)) }
-      else if(s.kind==='line'||s.kind==='arrow'){ maxX=Math.max(maxX,PX(Math.max(s.x1,s.x2))); maxY=Math.max(maxY,PX(Math.max(s.y1,s.y2))) }
-      else if(s.kind==='label'||s.kind==='text'){ maxX=Math.max(maxX,PX(s.x)+400); maxY=Math.max(maxY,PX(s.y)+80) }
-    }
-    return { width: Math.max(900, maxX+120), height: Math.max(600, maxY+120) }
-  },[doc])
-
-  const worldU = useMemo(()=>{
-    if(!doc.shapes.length) return { w: 10, h: 7 }
-    let w=0,h=0
-    for(const s of doc.shapes){
-      if(s.kind==='rect'||s.kind==='group'){ w=Math.max(w,s.x+s.w); h=Math.max(h,s.y+s.h) }
-      else if(s.kind==='line'||s.kind==='arrow'){ w=Math.max(w,Math.max(s.x1,s.x2)); h=Math.max(h,Math.max(s.y1,s.y2)) }
-      else if(s.kind==='label'||s.kind==='text'){ w=Math.max(w,s.x+4); h=Math.max(h,s.y+1) }
-    }
-    return { w: Math.max(9,w+1), h: Math.max(6,h+1) }
-  },[doc])
 
   // 过渡
   const elapsedInCurrentStep = () => (performance.now() - stepStartRef.current) * speed
