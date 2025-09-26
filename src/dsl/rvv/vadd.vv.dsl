@@ -8,7 +8,7 @@
 #   s4 写回结果
 # ----------------------------------------------------
 
-step(s0,"选择寄存器：VRF 顶行 32 个寄存器（源: v1、v2；目标: v0）")
+step(s0,"选择寄存器")
 step(s1,"第一步：载入与对齐")
 step(s2,"第二步：位宽（128-bit = 4 × 32-bit）")
 step(s3,"第三步：逐 lane 相加：v0[i] = v1[i] + v2[i]")
@@ -21,7 +21,8 @@ text(vrf_legend, 5.80, -0.28, "源寄存器: v1, v2    目标寄存器: v0", 14,
 
 # 行对齐辅助（淡虚线）
 group(reg_row, 2.50, -0.12, 10.40, 0.44, dotted)
-
+pack_default(off)
+nopack_prefix("rf_")
 # 小寄存器尺寸与间距：w=0.25, h=0.25, step=0.31（含 0.06 间距），32×0.31≈9.92 可完整放下
 # v0..v31
 rect(rf_v0, 0.25, 0.25, 2.60, 0.00, "v0", teal)          # 目标：高亮
@@ -66,8 +67,9 @@ appear(vrf_title, vrf_legend, reg_row,
        rf_v14, rf_v15, rf_v16, rf_v17, rf_v18, rf_v19, rf_v20, rf_v21, rf_v22, rf_v23, rf_v24, rf_v25, rf_v26, rf_v27, rf_v28, rf_v29, rf_v30, rf_v31,
        sel_box, sel_to_zoom, s0)
 
+# 顶排出现 + 三个关键寄存器“呼吸”高亮
 blink(rf_v0, rf_v1, rf_v2, s0, 6, 450)
-
+pack(v1, v2, v0)
 # =============== s1：载入与对齐（进入放大视图） ===============
 # 行标签（仅用于视觉提示）
 label(tag_v1, 2.8, 1.5, "v1")

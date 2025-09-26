@@ -3,10 +3,21 @@ export type DSLDoc = {
   steps: { id: string; name: string }[]
   shapes: DSLShape[]
   anims: DSLAnim[]
+  packOn: string[]
+  packOff: string[]
+  packDefault?: 'auto' | 'on' | 'off'
 }
 
+const doc: DSLDoc = {
+  steps: [],
+  shapes: [],
+  anims: [],
+  packOn: [],
+  packOff: [],
+};
+
 export type DSLShape =
-  | { kind: 'rect'; id: string; w: number; h: number; x: number; y: number; text?: string; color?: string }
+  | { kind: 'rect'; id: string; w: number; h: number; x: number; y: number; text?: string; color?: string; meta?: { vecItem?: boolean; family?: string } }
   | { kind: 'label'; id: string; x: number; y: number; text: string }
   | { kind: 'text';  id: string; x: number; y: number; text: string; size?: number; color?: string; align?: 'left'|'center'|'right' }
   | { kind: 'group'; id: string; x: number; y: number; w: number; h: number; style?: 'dotted' | 'solid' }
@@ -62,6 +73,9 @@ export function parseDSL(text: string): DSLDoc {
   const shapes: DSLShape[] = []
   const anims: DSLAnim[] = []
   const steps: { id: string; name: string }[] = []
+  const packOn: string[] = []
+  const packOff: string[] = []
+  let packDefault: 'auto' | 'on' | 'off' | undefined
 
   const groups: Groups = new Map()
   const alias:  Alias  = new Map()
@@ -77,8 +91,8 @@ export function parseDSL(text: string): DSLDoc {
     .map(s => s.trim())
     .filter(Boolean)
 
-  const pushRect = (id: string, w: number, h: number, x: number, y: number, text?: string, color?: string) => {
-    shapes.push({ kind: 'rect', id, w, h, x, y, text, color })
+  const pushRect = (id: string, w: number, h: number, x: number, y: number, text?: string, color?: string, meta?: { vecItem?: boolean; family?: string }) => {
+    shapes.push({ kind: 'rect', id, w, h, x, y, text, color, meta })
   }
 
   for (const raw of stmts) {
@@ -89,11 +103,16 @@ export function parseDSL(text: string): DSLDoc {
 
     if (name === 'step') { const [id,n] = args; steps.push({ id, name: unq(n) }); continue }
 
+    // --- pack directives ---
+    if (name === 'pack_default') { const [mode] = args; const m = (unq(mode) || 'auto').toLowerCase() as any; if (m==='auto'||m==='on'||m==='off') packDefault = m; continue }
+    if (name === 'pack') { args.forEach(tok => expandToken(tok, groups, alias).forEach(id => packOn.push(id))); continue }
+    if (name === 'nopack') { args.forEach(tok => expandToken(tok, groups, alias).forEach(id => packOff.push(id))); continue }
+
     if (name === 'label') { const [id,x,y,txt]=args; shapes.push({kind:'label', id, x:toNum(x), y:toNum(y), text:unq(txt)}); continue }
     if (name === 'text')  { const [id,x,y,txt,size,color,align]=args; shapes.push({kind:'text', id, x:toNum(x), y:toNum(y), text:unq(txt), size:size?toNum(size):undefined, color, align:align?(unq(align) as any):undefined}); continue }
     if (name === 'group'){ const [id,x,y,w,h,style]=args; shapes.push({kind:'group', id, x:toNum(x), y:toNum(y), w:toNum(w), h:toNum(h), style: style?(unq(style) as any):'dotted'}); continue }
-    if (name === 'rect') { const [id,w,h,x,y,txt,color]=args; pushRect(id,toNum(w),toNum(h),toNum(x),toNum(y),unq(txt),color); continue }
-    if (name === 'square'){ const [id,x,y,txt,color]=args; pushRect(id,1,1,toNum(x),toNum(y),unq(txt),color); continue }
+    if (name === 'rect') { const [id,w,h,x,y,txt,color]=args; pushRect(id,toNum(w),toNum(h),toNum(x),toNum(y),unq(txt),color, undefined); continue }
+    if (name === 'square'){ const [id,x,y,txt,color]=args; pushRect(id,1,1,toNum(x),toNum(y),unq(txt),color, undefined); continue }
     if (name === 'line') { const [id,x1,y1,x2,y2,width,color]=args; shapes.push({kind:'line', id, x1:toNum(x1), y1:toNum(y1), x2:toNum(x2), y2:toNum(y2), width:width?toNum(width):undefined, color}); continue }
     if (name === 'arrow'){ const [id,x1,y1,x2,y2,width,label,above,color,st,en]=args; shapes.push({kind:'arrow', id, x1:toNum(x1), y1:toNum(y1), x2:toNum(x2), y2:toNum(y2), width:width?toNum(width):undefined, label:label?unq(label):undefined, above:above?unq(above)==='true':undefined, color, start:st?unq(st)==='true':undefined, end:en?unq(en)==='true':undefined}); continue }
 
@@ -113,7 +132,7 @@ export function parseDSL(text: string): DSLDoc {
         const cid = `${id}_${i}`
         members.push(cid)
         alias.set(`${id}[${i}]`, cid)
-        pushRect(cid,1,1, baseX+dx, baseY+dy, lab[i]||'', color)
+        pushRect(cid,1,1, baseX+dx, baseY+dy, lab[i]||'', color, { vecItem: true, family: id })
       }
       groups.set(id, members)
 
@@ -149,5 +168,5 @@ export function parseDSL(text: string): DSLDoc {
       continue
     }
   }
-  return { steps, shapes, anims }
+  return { steps, shapes, anims, packOn, packOff, packDefault }
 }

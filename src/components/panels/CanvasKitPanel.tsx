@@ -7,11 +7,21 @@ import { useApp } from '../../context'
 import { Toolbar, ToolbarGroup } from '@ui/Toolbar';
 import { Select } from "@ui/Select";
 import { useFormat, fmt, formatStore } from '../../state/formatStore'
-// 追加：把一组 v1[0..3] / v2[0..3] 等 lane 识别出来
+
+// ---- Lane/Vec 结构 ----
 type LaneRect = { id:string; x:number; y:number; w:number; h:number; text?:string; color?:string }
 type VecGroup = { baseId:string; lanes: LaneRect[]; box?: {x:number;y:number;w:number;h:number} }
 
-function collectVecGroups(shapes: DSLShape[]): VecGroup[] {
+// 提取 lane 基名，如 v0[1] / v0_1 / v0-1 / v0.1 → v0
+function laneBase(id: string): string | null {
+  const m =
+    id.match(/^([A-Za-z_]\w*)\[(\d+)\]$/) ||
+    id.match(/^([A-Za-z_]\w*)[._-](\d+)$/);
+  return m ? m[1] : null;
+}
+
+// ========== 变更 1：collectVecGroups 支持 allow 白名单（来自 DSL 的 pack(...)） ==========
+function collectVecGroups(shapes: DSLShape[], allowSet = new Set<string>()): VecGroup[] {
   const map = new Map<string, VecGroup>()
   const boxes: Record<string, {x:number;y:number;w:number;h:number}> = {}
 
@@ -26,26 +36,35 @@ function collectVecGroups(shapes: DSLShape[]): VecGroup[] {
 
   // 2) 把每个 rect 归入 vec
   for (const s of shapes) {
-    if (s.kind !== 'rect') continue
+    if (s.kind !== 'rect') continue;
 
-    let baseId: string | null = null
-    // 支持两种命名：v1[0] / v1_0
-    const m = s.id.match(/^([a-zA-Z_]\w*)$begin:math:display$(\\d+)$end:math:display$$/) || s.id.match(/^([a-zA-Z_]\w*)[_-](\d+)$/)
-    if (m) {
-      baseId = m[1]
+    let baseId: string | null = null;
+
+    // 显式命名：v1[0] / v1_0 / v1-0 / v1.0 都识别
+    const m =
+      s.id.match(/^([a-zA-Z_]\w*)\[(\d+)\]$/) ||
+      s.id.match(/^([a-zA-Z_]\w*)[._-](\d+)$/);
+
+    if (m && boxes[m[1]]) {
+      // 有 __box → 直接按 box 归组
+      baseId = m[1];
+    } else if (m && allowSet.has(m[1])) {
+      // 没有 __box，但在 pack 白名单 → 按名称归组（支持 nobox）
+      baseId = m[1];
     } else {
-      // 没命中命名规则：用几何包含（中心点落在哪个 __box 内）
-      const cx = s.x + s.w / 2, cy = s.y + s.h / 2
+      // 否则仅在几何上位于某个 __box 内时归组；没有 __box 一律不归组
+      const cx = s.x + s.w / 2, cy = s.y + s.h / 2;
       for (const [bid, b] of Object.entries(boxes)) {
-        if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) { baseId = bid; break }
+        if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) { baseId = bid; break; }
       }
     }
 
-    if (!baseId) continue
-    const g = map.get(baseId) ?? { baseId, lanes: [], box: boxes[baseId] }
-    g.lanes.push({ id: s.id, x: s.x, y: s.y, w: s.w, h: s.h, text: s.text, color: s.color })
-    map.set(baseId, g)
+    if (!baseId || (!boxes[baseId] && !allowSet.has(baseId))) continue; // 防止误并
+    const g = map.get(baseId) ?? { baseId, lanes: [], box: boxes[baseId] };
+    g.lanes.push({ id: s.id, x: s.x, y: s.y, w: s.w, h: s.h, text: s.text, color: s.color });
+    map.set(baseId, g);
   }
+
 
   // 3) 排序输出
   const groups: VecGroup[] = []
@@ -56,16 +75,14 @@ function collectVecGroups(shapes: DSLShape[]): VecGroup[] {
   return groups
 }
 
-// 根据可用宽度做简单自适应字号
+// 自适应字号
 function fitFontSize(txt: string, widthPx: number, maxSize=28, pad=24) {
-  const approxChar = 0.58;              // 英数大致宽度系数
+  const approxChar = 0.58;
   const need = txt.length * maxSize * approxChar + pad * 2
   if (need <= widthPx) return maxSize
-  // 按比例缩小
   const s = Math.max(12, Math.floor((widthPx - pad*2) / (txt.length * approxChar)))
   return Math.min(maxSize, s)
 }
-
 
 const PX = (u: number) => u * 96
 const COLOR: Record<string,string> = {
@@ -74,13 +91,14 @@ const COLOR: Record<string,string> = {
 }
 const col = (c?:string) => (c && COLOR[c]? COLOR[c] : (c || '#94a3b8'))
 
-// === 动画参数 ===
+// 动画参数
 const STEP_MS = 1600
 const APPEAR_MS = 420
 const DISAPPEAR_MS = 320
-const BLINK_MIN = 0.55      // 呼吸最低不透明度
+const BLINK_MIN = 0.55
 const BLINK_MAX = 1.00
-// 仅渲染一段 Konva Text，且只会在 base/sew 变更时自身更新
+
+// 仅渲染一段 Text，跟随数制/位宽
 function FmtText({
   value,
   x, y, width, height,
@@ -88,7 +106,6 @@ function FmtText({
   vAlign = 'middle' as 'top'|'middle'|'bottom',
   fontSize = 28,
   color = '#0B1220',
-  // 可传自定义字体；默认用你的 Futura + 华文仿宋
   fontFamily = "'Futura','STFangsong','PingFang SC','Microsoft YaHei',system-ui",
 }: {
   value: string | number
@@ -98,7 +115,7 @@ function FmtText({
   fontSize?: number; color?: string
   fontFamily?: string
 }) {
-  const snap = useFormat() // { base, hexDigits }
+  const snap = useFormat()
   const txt = fmt(value, snap.base, snap.hexDigits)
   return (
     <Text
@@ -112,16 +129,28 @@ function FmtText({
   )
 }
 
-
 export default function CanvasKitPanel() {
   const [showGrid, setShowGrid] = useState(true);
-  const { arch, opcode, form } = useApp()
+  const { arch, opcode, form, pushLog, clearLogs } = useApp()
   const [dsl, setDsl] = useState('')
-  const [doc, setDoc] = useState<DSLDoc>({ steps:[], shapes:[], anims:[] })
+  const [doc, setDoc] = useState<DSLDoc>({ steps:[], shapes:[], anims:[], packOn:[], packOff:[] })
   const [stepIdx, setStepIdx] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [resetTick, setResetTick] = useState(0)
   const fmtSnap = useFormat()
+
+  // --- Debug toggle and logger ---
+  const [debugOn, setDebugOn] = useState(false)
+  const [debug, setDebug] = useState(false);
+  const dbg = (...args: any[]) => {
+    if (!debugOn) return;
+    const line = args.map((x)=> (typeof x === 'string' ? x : JSON.stringify(x))).join(' ')
+    // 写入控制台 + 左侧 Logs 面板
+    // 控制台带统一前缀便于过滤
+    // 面板只收短文本，避免超长
+    console.debug('[DSL]', ...args)
+    try { pushLog(line.length > 400 ? line.slice(0, 400) + ' …' : line) } catch {}
+  }
 
   const [playing, setPlaying] = useState(true)
   const [speed, setSpeed] = useState(1)
@@ -132,6 +161,7 @@ export default function CanvasKitPanel() {
   useEffect(()=>{
     const d = parseDSL(dsl)
     setDoc(d); setStepIdx(0); stepStartRef.current = performance.now(); setResetTick(t=>t+1)
+    dbg('parse done:', { steps: d.steps.length, shapes: d.shapes.length, anims: d.anims.length, packOn: d.packOn, packOff: d.packOff })
   },[dsl])
 
   const appearAt = useMemo(()=>{
@@ -157,7 +187,7 @@ export default function CanvasKitPanel() {
     return m
   },[doc])
 
-  // RAF 驱动自动播放与平滑动画
+  // RAF
   useEffect(()=>{
     let raf = 0
     const loop = (t:number)=>{
@@ -179,9 +209,39 @@ export default function CanvasKitPanel() {
   },[playing, speed, doc.steps.length])
 
   const stepName = doc.steps[stepIdx]?.name ?? ''
-  const vecGroups = useMemo(()=>collectVecGroups(doc.shapes), [doc.shapes])
 
-  // 内容尺寸估计（像素）
+  // ========== 变更 2：把 DSL 的 packOn 做成白名单，传给收集函数 ==========
+  const allowSet = useMemo(() => {
+    const set = new Set(doc.packOn ?? []);
+    if (set.size === 0) {
+      // 当 DSL 未显式 pack(...) 时，尝试自动推断：
+      // 1) 只统计形如 base[idx] / base_idx / base-idx / base.idx 的 lane
+      // 2) 跳过 VRF 顶排（以 rf_ 开头）
+      const cnt = new Map<string, number>();
+      for (const s of doc.shapes) {
+        if (s.kind !== 'rect') continue;
+        const base = laneBase(s.id);
+        if (!base) continue;
+        if (base.startsWith('rf_')) continue; // 不合并 VRF 顶行
+        cnt.set(base, (cnt.get(base) || 0) + 1);
+      }
+      cnt.forEach((n, b) => { if (n >= 2) set.add(b); });
+    }
+    return set;
+  }, [doc.packOn, doc.shapes]);
+  useEffect(()=>{
+    dbg('allowSet =', Array.from(allowSet))
+  }, [allowSet])
+
+  // 注意：用 allowSet 调 collectVecGroups
+  const vecGroups = useMemo(() => collectVecGroups(doc.shapes, allowSet), [doc.shapes, allowSet]);
+  useEffect(()=>{
+    const summary = vecGroups.map(g => ({ base: g.baseId, lanes: g.lanes.map(l=>l.id) }))
+    dbg('vecGroups =', summary)
+  }, [vecGroups])
+
+
+  // 内容尺寸估计
   const contentSize = useMemo(()=>{
     if(!doc.shapes.length) return { width: 1200, height: 800 }
     let maxX=0, maxY=0
@@ -204,9 +264,8 @@ export default function CanvasKitPanel() {
     return { w: Math.max(9,w+1), h: Math.max(6,h+1) }
   },[doc])
 
-  // —— 过渡函数 —— //
+  // 过渡
   const elapsedInCurrentStep = () => (performance.now() - stepStartRef.current) * speed
-
   const appearAlpha = (id:string): number => {
     const ap = appearAt.has(id) ? appearAt.get(id)! : -1
     if (ap < 0) return 1
@@ -215,7 +274,6 @@ export default function CanvasKitPanel() {
     const t = elapsedInCurrentStep()
     return Math.max(0, Math.min(1, t / APPEAR_MS))
   }
-
   const disappearAlpha = (id:string): number => {
     const dp = disappearAt.has(id) ? disappearAt.get(id)! : Infinity
     if (stepIdx < dp) return 1
@@ -223,7 +281,6 @@ export default function CanvasKitPanel() {
     const t = elapsedInCurrentStep()
     return 1 - Math.max(0, Math.min(1, t / DISAPPEAR_MS))
   }
-
   const blinkAlpha = (id:string): number => {
     const cfgs = blinkMap.get(id)
     if (!cfgs || !cfgs.length) return 1
@@ -232,18 +289,15 @@ export default function CanvasKitPanel() {
     const elapsed = elapsedInCurrentStep()
     const total = cfg.times * cfg.interval
     if (elapsed >= total) return 1
-    // 余弦缓动波形（呼吸灯）：0..1..0
     const local = (elapsed % cfg.interval) / cfg.interval
-    const wave = 0.5 - 0.5 * Math.cos(local * Math.PI * 2) // 0~1~0
+    const wave = 0.5 - 0.5 * Math.cos(local * Math.PI * 2)
     return BLINK_MIN + (BLINK_MAX - BLINK_MIN) * wave
   }
-
   const isVisibleLogical = (id:string) => {
     const ap = appearAt.has(id) ? appearAt.get(id)! : -1
     const dp = disappearAt.has(id) ? disappearAt.get(id)! : Infinity
     return stepIdx >= ap && stepIdx <= dp
   }
-
   const finalOpacity = (id:string): number => {
     if (!isVisibleLogical(id)) return 0
     const a = appearAlpha(id)
@@ -251,15 +305,33 @@ export default function CanvasKitPanel() {
     const b = blinkAlpha(id)
     return Math.max(0, Math.min(1, a * d * b))
   }
+
+  // lane → vec
   const laneIdToVec = useMemo(()=>{
     const map = new Map<string,string>()
     vecGroups.forEach(g => g.lanes.forEach(l => map.set(l.id, g.baseId)))
     return map
   },[vecGroups])
+  useEffect(()=>{ dbg('mode =', fmtSnap.base, 'hidden-lanes=', laneIdToVec.size) }, [fmtSnap.base, laneIdToVec])
+  useEffect(()=>{
+    if (!debugOn) return;
+    // 找出所有 id 属于 v0 家族的 rect
+    const v0lanes = doc.shapes.filter(s => s.kind === 'rect' && /^(v0(\[\d+\]|[._-]\d+))$/.test(s.id)).map(s=>s.id)
+    const grouped = vecGroups.find(g=>g.baseId==='v0')
+    dbg('v0 lanes =', v0lanes)
+    dbg('v0 grouped?', !!grouped, grouped ? grouped.lanes.map(l=>l.id) : [])
+    dbg('allowSet has v0?', (allowSet as Set<string>).has('v0'))
+  }, [debugOn, doc.shapes, vecGroups, allowSet])
 
   const renderShape = (s: DSLShape) => {
-    if (fmtSnap.base === 'hex' && s.kind === 'rect' && laneIdToVec.has(s.id)) {
-      return null
+    // 在十六进制模式下：凡是 id 属于允许合并(base 在 allowSet) 的 lane（vX[0]/vX_0/…），直接隐藏单 lane，
+    // 不再依赖收集到的 vecGroups 映射，避免 nobox 时“没 box 不合并”的情况
+    if (fmtSnap.base === 'hex' && s.kind === 'rect') {
+      const baseName = laneBase(s.id || '')
+      if (baseName && allowSet.has(baseName)) {
+        if (debugOn) dbg('[HIDE]', s.id, 'base=', baseName)
+        return null
+      }
     }
     const op = finalOpacity(s.id)
     if (op <= 0) return null
@@ -272,21 +344,21 @@ export default function CanvasKitPanel() {
             <Rect width={W} height={H} cornerRadius={20} fill={col(s.color)} shadowBlur={14} shadowColor="#00000022" />
             { s.text ? (
               <FmtText
-              value={s.text ?? ''}
-              x={0} y={0} width={W} height={H}
-              align="center" vAlign="middle"
-              fontSize={28}
-              color="#0B1220"
-              fontFamily="'Futura','STFangsong','PingFang SC','Microsoft YaHei',system-ui"
-            />
+                value={s.text ?? ''}
+                x={0} y={0} width={W} height={H}
+                align="center" vAlign="middle"
+                fontSize={28}
+                color="#0B1220"
+                fontFamily="'Futura','STFangsong','PingFang SC','Microsoft YaHei',system-ui"
+              />
             ) : null}
           </Group>
         )
       }
       case 'label': {
         const X = PX(s.x), Y = PX(s.y)
-        const H = 32, padX = 14, fontSize = 16
-        const W = Math.max(48, s.text.length * 9 + padX * 2)
+        const H = 32, padX = 14
+        const W = Math.max(48, (s.text?.length ?? 0) * 9 + padX * 2)
         return (
           <Group key={s.id} x={X} y={Y} opacity={op} listening={false}>
             <Rect width={W} height={H} cornerRadius={H/2} fill="#111827" opacity={0.78} />
@@ -315,6 +387,7 @@ export default function CanvasKitPanel() {
         )
       }
       case 'group': {
+        // hex 模式下隐藏 vec 的盒子（__box）
         if (fmtSnap.base === 'hex' && /__box$/.test(s.id)) return null
         const X = PX(s.x), Y = PX(s.y), W = PX(s.w), H = PX(s.h)
         return (
@@ -354,15 +427,11 @@ export default function CanvasKitPanel() {
     }
   }
 
-    // 订阅数制（沿用你前面做的 formatStore/useFormat）
-
-  // 收集 vec 组（v1[0..3]、v2[0..3]……）
-
-  // 在十六进制模式下：把某个 vec 组渲染为“合并寄存器条”，并让单 lane 隐藏
+  // 在十六进制模式下：把某个 vec 组渲染为“合并寄存器条”，并让单 lane 隐藏（见上面 renderShape）
   function renderCompactVec(g: VecGroup) {
     if (!g.lanes.length) return null
-  
-    // 盒子：优先用 __box，缺省用 lanes 的包围盒
+
+    // 盒子：优先用 __box；没有就用 lanes 的包围盒
     const box = g.box ?? (() => {
       const minX = Math.min(...g.lanes.map(l => l.x))
       const minY = Math.min(...g.lanes.map(l => l.y))
@@ -370,21 +439,39 @@ export default function CanvasKitPanel() {
       const maxY = Math.max(...g.lanes.map(l => l.y + l.h))
       return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
     })()
-  
+
     const X = PX(box.x), Y = PX(box.y), W = PX(box.w), H = PX(box.h)
-  
-    // 连续拼接：0x0001 0002 0003 0004 -> 0x0001000200030004
+
+    // 0x0001 0002 0003 0004 → 0x0001000200030004
     const digits = fmtSnap.hexDigits
     const laneHex = g.lanes.map(l => fmt(l.text ?? '', 'hex', digits).replace(/^0x/i, ''))
     const merged = '0x' + laneHex.join('')
-  
-    // 透明度 = lanes 的平均透明度（跟随 appear/disappear/blink）
-    const op = g.lanes.map(l => finalOpacity(l.id)).reduce((a, b) => a + b, 0) / g.lanes.length
-    if (op <= 0) return null
-  
+
+    // 透明度跟随 lanes（appear/disappear/blink）
+    const laneOps = g.lanes.map(l => finalOpacity(l.id));
+    const op = Math.max(...laneOps);
+    
+    // —— 调试日志 ——
+    // 打印 base、step、box、合成的 hex 串、每个 lane 的不透明度以及最终 op
+    if (debug) {
+      // merged 变量在你函数上面已经算过：'0x' + laneHex.join('')
+      // @ts-ignore
+      console.info('[COMPACT]', {
+        base: g.baseId,
+        step: stepIdx,
+        box,
+        merged,
+        laneIds: g.lanes.map(l => l.id),
+        laneOps: laneOps.map(v => +v.toFixed(2)),
+        op: +op.toFixed(2),
+      });
+    }
+    
+    if (op <= 0) return null;
+
     const fill = col(g.lanes[0].color || '#59E0D0')
     const fontSize = fitFontSize(merged, W, 28)
-  
+
     return (
       <Group key={`${g.baseId}__compact`} x={X} y={Y} listening={false} opacity={op}>
         <Rect width={W} height={H} cornerRadius={20} fill={fill} shadowBlur={14} shadowColor="#00000022" />
@@ -400,29 +487,44 @@ export default function CanvasKitPanel() {
     )
   }
 
-
   const Content = () => {
     const groups = doc.shapes.filter(s => s.kind==='group')
     const main   = doc.shapes.filter(s => s.kind==='rect' || s.kind==='line' || s.kind==='arrow')
     const deco   = doc.shapes.filter(s => s.kind==='label' || s.kind==='text')
-  
+
     return (
       <Group x={48} y={48}>
         <Group listening={false}>{groups.map(renderShape)}</Group>
         <Group>{main.map(renderShape)}</Group>
-  
+
         {/* 十六进制模式下渲染“合并寄存器条” */}
         {fmtSnap.base === 'hex' && (
           <Group listening={false}>
             {vecGroups.map(renderCompactVec)}
+            {debug && vecGroups.map(g=>{
+              const box = g.box ?? (() => {
+                const minX = Math.min(...g.lanes.map(l => l.x));
+                const minY = Math.min(...g.lanes.map(l => l.y));
+                const maxX = Math.max(...g.lanes.map(l => l.x + l.w));
+                const maxY = Math.max(...g.lanes.map(l => l.y + l.h));
+                return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+              })();
+              return (
+                <Rect
+                  key={`${g.baseId}__dbgbox`}
+                  x={PX(box.x)} y={PX(box.y)} width={PX(box.w)} height={PX(box.h)}
+                  stroke="#2563eb" dash={[6, 6]} opacity={0.35} cornerRadius={18}
+                  listening={false}
+                />
+              );
+            })}
           </Group>
         )}
-  
+
         <Group listening={false}>{deco.map(renderShape)}</Group>
       </Group>
     )
   }
-  
 
   return (
     <div className="canvas-root">
@@ -452,7 +554,18 @@ export default function CanvasKitPanel() {
         </label>
 
         <button className="btn" onClick={()=>setResetTick(t=>t+1)} style={{marginLeft:6}}>复位</button>
-        <button className="btn" onClick={()=>setShowGrid(s=>!s)}>坐标</button> 
+        <button className="btn" onClick={()=>setShowGrid(s=>!s)}>坐标</button>
+        <button className="btn" onClick={()=>{
+          setDebugOn(v=>!v);
+          if (!debugOn) clearLogs();
+          dbg('--- DSL debug enabled ---')
+        }}>
+          {debugOn ? '日志: 开' : '日志: 关'}
+        </button>
+        <button className="btn" onClick={()=>setDebug(d=>!d)}>
+          调试: {debug ? '开' : '关'}
+        </button>
+
         <Toolbar floating>
           <ToolbarGroup>
             <span className="label-muted">数制</span>
@@ -472,7 +585,7 @@ export default function CanvasKitPanel() {
               className="select"
             >
               <option value="2">2</option>
-              <option value="4">4</option>    {/* 默认：0x0001 */}
+              <option value="4">4</option>
               <option value="8">8</option>
             </Select>
           </ToolbarGroup>
@@ -484,15 +597,15 @@ export default function CanvasKitPanel() {
         zoom={zoom}
         showGrid={showGrid}
         gridStyle={{
-          spacing: 0.2,      // 每格 5 条细网格
-          majorEvery: 5,     // 每 5 条一条主网格 → 每格 1 条主网格
+          spacing: 0.2,
+          majorEvery: 5,
           strokeWidth: 0.5,
-          color: "#EEF2F7",  // 细网格
-          majorColor: "#E5E7EB" // 主网格
+          color: "#EEF2F7",
+          majorColor: "#E5E7EB"
         }}
       >
         <Content/>
-        </KitStage>
+      </KitStage>
     </div>
   )
 }
