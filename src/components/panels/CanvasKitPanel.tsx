@@ -187,26 +187,43 @@ export default function CanvasKitPanel() {
     return m
   },[doc])
 
-  // RAF
-  useEffect(()=>{
-    let raf = 0
-    const loop = (t:number)=>{
-      setClock(t)
-      if (playing && doc.steps.length>0) {
-        const elapsed = (t - stepStartRef.current) * speed
+  // RAF（只在需要时运行）：播放中，或手动切换步骤后的短暂过渡期
+  useEffect(() => {
+    const TRANSITION_MS = Math.max(APPEAR_MS, DISAPPEAR_MS) + 50; // 过渡缓冲
+
+    // 是否需要时钟驱动：播放中，或暂停但处于过渡时间窗
+    const needClock = () => {
+      if (playing) return true;
+      const now = performance.now();
+      return (now - stepStartRef.current) < TRANSITION_MS;
+    };
+
+    if (!doc.steps.length || !needClock()) return; // 不需要则不占用 rAF
+
+    let raf = 0;
+    const loop = (t: number) => {
+      // 播放时推进步骤；暂停时只用于让过渡动画自然结束
+      if (playing && doc.steps.length > 0) {
+        const elapsed = (t - stepStartRef.current) * speed;
         if (elapsed >= STEP_MS) {
-          setStepIdx(i=>{
-            const n = Math.min(doc.steps.length-1, i+1)
-            if (n!==i) stepStartRef.current = t
-            return n
-          })
+          setStepIdx((i) => {
+            const n = Math.min(doc.steps.length - 1, i + 1);
+            if (n !== i) stepStartRef.current = t;
+            return n;
+          });
         }
       }
-      raf = requestAnimationFrame(loop)
-    }
-    raf = requestAnimationFrame(loop)
-    return ()=>cancelAnimationFrame(raf)
-  },[playing, speed, doc.steps.length])
+
+      // 仅当仍然需要时钟时才触发重绘；否则停止 rAF，避免空转占用 GPU
+      if (needClock()) {
+        setClock(t);
+        raf = requestAnimationFrame(loop);
+      }
+    };
+
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [playing, speed, doc.steps.length, stepIdx]);
 
   const stepName = doc.steps[stepIdx]?.name ?? ''
 
