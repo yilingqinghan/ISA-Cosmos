@@ -6,7 +6,7 @@ type AppShellProps = {
   title?: string
 }
 
-export default function AppShell({ children, title = 'Instruction Set Visualizer' }: AppShellProps) {
+export default function AppShell({ children, title = 'ISA Cosmos♡' }: AppShellProps) {
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -15,7 +15,7 @@ export default function AppShell({ children, title = 'Instruction Set Visualizer
             <div className="logo">ISA</div>
             <div className="brand-text">
               <div className="brand-title">{title}</div>
-              <div className="brand-sub">Canvas · React · TypeScript</div>
+              <div className="brand-sub">RISC-V · ARM · Loongarch</div>
             </div>
           </div>
 

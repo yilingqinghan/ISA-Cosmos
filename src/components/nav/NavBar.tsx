@@ -10,8 +10,8 @@ export default function NavBar() {
         <div className="brand">
           <div className="logo" />
           <div className="brand-text">
-            <div className="brand-title">Instruction Set Visualizer</div>
-            <div className="brand-sub">Canvas · React · TypeScript</div>
+            <div className="brand-title">ISA Cosmos♡</div>
+            <div className="brand-sub">RISC-V · ARM · Loongarch</div>
           </div>
         </div>
 

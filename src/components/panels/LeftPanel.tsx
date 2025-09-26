@@ -6,9 +6,7 @@ import { astToDsl } from '../../lang/toDsl'
 
 export default function LeftPanel() {
   const { arch, logs, pushLog, setDslOverride } = useApp()
-  const [code, setCode] = useState(`
-    vadd.vv v0, v1, v2
-  `)
+  const [code, setCode] = useState(`vadd.vv v0, v1, v2`)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor|null>(null)
   const monacoRef = useRef<typeof monaco|null>(null)
   const widgets = useRef<monaco.editor.IContentWidget[]>([])
