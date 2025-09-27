@@ -17,6 +17,7 @@ vsetvli.ri x1, x10, e32m2
   const widgets = useRef<monaco.editor.IContentWidget[]>([])
   const decoIds = useRef<string[]>([])
   const runFocusDecoIds = useRef<string[]>([])
+  const runExecDecoIds = useRef<string[]>([])
 
   const [doc, setDoc] = useState<{ usage?: string; scenarios?: string[]; notes?: string[]; exceptions?: string[] }>({})
 
@@ -80,6 +81,7 @@ vsetvli.ri x1, x10, e32m2
     widgets.current = []
     if (decoIds.current.length) { ed.deltaDecorations(decoIds.current, []); decoIds.current=[] }
     if (runFocusDecoIds.current.length) { ed.deltaDecorations(runFocusDecoIds.current, []); runFocusDecoIds.current = [] }
+    if (runExecDecoIds.current.length) { ed.deltaDecorations(runExecDecoIds.current, []); runExecDecoIds.current = [] }
   }
 
   const showDiagnostics = (errs: ParseError[])=>{
@@ -116,6 +118,17 @@ vsetvli.ri x1, x10, e32m2
     decoIds.current = ed.deltaDecorations(decoIds.current, decos)
   }
 
+  // 给“正在执行”的行加上醒目的装饰（不改变选区）
+  function markExecutingLine(line: number) {
+    const ed = editorRef.current, m = monacoRef.current
+    const model = ed?.getModel()
+    if (!ed || !m || !model) return
+    runExecDecoIds.current = ed.deltaDecorations(runExecDecoIds.current, [
+      { range: new m.Range(line, 1, line, 1), options: { isWholeLine: true, className: 'run-exec-line', linesDecorationsClassName: 'run-exec-leftbar' } }
+    ])
+    ed.revealLineInCenter(line)
+  }
+
   // 找到从某行之后的下一条“有效指令行”（跳过空行和注释）
   function nextMeaningfulLine(startLine: number) {
     const ed = editorRef.current
@@ -144,8 +157,61 @@ vsetvli.ri x1, x10, e32m2
   const onMount:OnMount = (ed, m)=>{
     pushLog('Editor ready ✔')
     editorRef.current = ed; monacoRef.current = m
-    ed.updateOptions({ glyphMargin:true, lineDecorationsWidth:14, padding:{top:6,bottom:6} })
+    m.editor.defineTheme('isa-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#FBFCFD',
+        'editorLineNumber.foreground': '#94a3b8',
+        'editorLineNumber.activeForeground': '#0f172a',
+        'editorGutter.background': '#F8FAFC',
+        'editor.lineHighlightBackground': '#e0f2fe',
+        'editor.lineHighlightBorder': '#bae6fd',
+        'editor.selectionBackground': '#93c5fd66',
+        'editor.inactiveSelectionBackground': '#93c5fd33',
+        'editorIndentGuide.background': '#e2e8f0',
+        'editorIndentGuide.activeBackground': '#94a3b8',
+        'scrollbarSlider.background': '#cbd5e180',
+        'scrollbarSlider.hoverBackground': '#cbd5e1aa',
+        'scrollbarSlider.activeBackground': '#94a3b8aa',
+        'editorCursor.foreground': '#0f172a'
+      }
+    })
+    m.editor.setTheme('isa-light')
+    ed.updateOptions({
+      glyphMargin:true,
+      lineDecorationsWidth:14,
+      padding:{top:6,bottom:6},
+      bracketPairColorization: { enabled: true },
+      guides: { bracketPairs: true, indentation: true },
+      renderWhitespace: 'selection',
+      renderLineHighlight: 'all',
+      smoothScrolling: true,
+      cursorSmoothCaretAnimation: 'on',
+      fontLigatures: true,
+      mouseWheelZoom: true,
+      rulers: [80],
+    })
   }
+
+  useEffect(() => {
+    if (document.getElementById('isa-monaco-style')) return
+    const style = document.createElement('style')
+    style.id = 'isa-monaco-style'
+    style.textContent = `
+    /* 当前将要执行：蓝条 + 淡蓝底（由 highlightLine 设置） */
+    .monaco-editor .run-focus-line { background: rgba(14,165,233,0.12); }
+    .monaco-editor .run-focus-leftbar { background: #38bdf8; width: 3px; }
+    /* 正在执行：绿条 + 淡绿底（由 markExecutingLine 设置） */
+    .monaco-editor .run-exec-line { background: rgba(34,197,94,0.14); }
+    .monaco-editor .run-exec-leftbar { background: #22c55e; width: 3px; }
+    /* 错误气泡的基础样式（你已有），这里微调一点阴影/圆角以显得更高级 */
+    .err-bubble { background:#fff; border:1px solid #fecaca; color:#991b1b; padding:4px 8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.06); font-size:12px; }
+    /* glyph 红点在 Monaco 左侧栏已经启用，这里不强行覆盖 */
+    `
+    document.head.appendChild(style)
+  }, [])
 
   const handleRun = ()=>{
     clearDiagnostics()
@@ -179,6 +245,7 @@ vsetvli.ri x1, x10, e32m2
     // 仅播放当前行
     const dsl = astToDsl(ast!)
     setDslOverride({ text: dsl, rev: Date.now() })
+    markExecutingLine(lineNo)
     pushLog(`✅ 已解析：${ast!.opcode}.${ast!.form} ${ast!.operands.join(', ')}`)
   
     // 用法/说明（延续原单条逻辑）
