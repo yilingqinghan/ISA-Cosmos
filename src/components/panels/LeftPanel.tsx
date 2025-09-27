@@ -168,7 +168,7 @@ vsetvli.ri x1, x10, e32m2
           </div>
         </div>
 
-        <div className="left-mid nice-card" style={{height:'36%', minHeight: 160}}>
+        <div className="left-mid nice-card" style={{height:'40%', minHeight: 160}}>
           <div className="panel-toolbar">
             <div className="panel-title">Usage</div>
             <div className="grow" />
@@ -190,7 +190,7 @@ vsetvli.ri x1, x10, e32m2
         </div>
 
         {/* 下：日志/提示 */}
-        <div className="left-bottom nice-card" style={{height:'24%', minHeight: 120}}>
+        <div className="left-bottom nice-card" style={{height:'20%', minHeight: 120}}>
           <div className="panel-toolbar">
             <div className="panel-title">Logs</div>
             <div className="grow" />
