@@ -1,11 +1,17 @@
-import type { Ast } from './index'
+import type { AsmAst } from './types'
+import { miniDocOf, makeKey, getUsage } from './registry'
 
-const HELP: Record<string, string> = {
-  'rvv.vadd.vv': '向量加法: 逐 lane：vd[i] = vs1[i] + vs2[i]，常用于并行数据处理、科学计算',
-  // 继续加：'rvv.vadd.vx': 'vadd.vx vd, vs1, x2 ...'
-}
-
-export function usageOf(ast: Ast){
-  const key = `${ast.arch}.${ast.opcode}.${ast.form}`.toLowerCase()
-  return HELP[key] ?? `${ast.opcode}.${ast.form} ${ast.operands.join(', ')}`
+// 兼容两种签名：usageOf(ast) / usageOf(arch, opcode, form)
+export function usageOf(a: AsmAst): any
+export function usageOf(arch: string, opcode: string, form: string): any
+export function usageOf(...args: any[]): any {
+  const key = args.length === 1
+    ? makeKey(args[0] as AsmAst)
+    : `${args[0]}.${args[1]}.${args[2]}`
+  const doc = miniDocOf(key)
+  if (doc) return doc                       // ✅ LeftPanel 会拿到 {usage, scenarios, ...}
+  // 兼容旧逻辑：只返回一行 usage 文本
+  return getUsage(typeof args[0] === 'string'
+    ? { arch: args[0], opcode: args[1], form: args[2], operands: [] } as AsmAst
+    : args[0])
 }
