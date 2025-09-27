@@ -12,7 +12,6 @@ export default function App(){
         <NavBar />
         <main className="app-main">
           <div className="container page-main">
-            {/* 两列：左 36% / 右 64% */}
             <div className="split-host">
               <SplitLayout columns={[36, 64]} minPx={[320, 520]}>
                 {[ <LeftPanel key="left"/>, <CanvasKitPanel key="right"/> ]}
