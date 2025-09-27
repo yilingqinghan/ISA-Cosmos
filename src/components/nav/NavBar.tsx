@@ -39,7 +39,7 @@ export default function NavBar() {
 
           <a className="nav-link" href="#" onClick={(e)=>e.preventDefault()}>Docs</a>
           <a className="nav-link" href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
-          <button className="btn nav-cta" onClick={()=>window.dispatchEvent(new CustomEvent('app/run'))}>Run</button>
+          <button className="btn nav-cta" onClick={()=>window.dispatchEvent(new CustomEvent('app/run'))}>运行</button>
         </div>
       </div>
     </header>
