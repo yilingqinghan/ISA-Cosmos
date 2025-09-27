@@ -208,12 +208,18 @@ export default function CanvasKitPanel() {
       // 播放时推进步骤；暂停时只用于让过渡动画自然结束
       if (playing && doc.steps.length > 0) {
         const elapsed = (t - stepStartRef.current) * speed;
-        if (elapsed >= STEP_MS) {
+        const atLast = stepIdx >= doc.steps.length - 1;
+        if (!atLast && elapsed >= STEP_MS) {
           setStepIdx((i) => {
             const n = Math.min(doc.steps.length - 1, i + 1);
             if (n !== i) stepStartRef.current = t;
             return n;
           });
+        } else if (atLast) {
+          // 到达最后一步后，等待转场结束即自动停止刷新，避免持续占用 GPU
+          if (elapsed >= TRANSITION_MS) {
+            setPlaying(false);
+          }
         }
       }
 
