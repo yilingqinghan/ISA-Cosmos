@@ -3,6 +3,7 @@ import { useApp } from '../../context'
 import Editor, { OnMount } from '@monaco-editor/react'
 import { parseAsm, type ParseError } from '../../lang'
 import { astToDsl } from '../../lang/toDsl'
+import { usageOf } from '../../lang/help'
 
 export default function LeftPanel() {
   const { arch, logs, pushLog, setDslOverride } = useApp()
@@ -75,6 +76,7 @@ export default function LeftPanel() {
     const dsl = astToDsl(ast!)
     setDslOverride({ text: dsl, rev: Date.now() })
     pushLog(`✅ 已解析：${ast!.opcode}.${ast!.form} ${ast!.operands.join(', ')}`)
+    pushLog(`ℹ️ 用法：${usageOf(ast!)}`)      // ★ 新增：在底部 Logs 打印用法
   }
 
   // 顶部导航的 Run 也可以触发
