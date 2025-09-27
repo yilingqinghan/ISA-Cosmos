@@ -9,6 +9,13 @@ const instrs: InstrSpec[] = [
       { kind:'vreg', role:'vs2' },
     ] }
   } },
+  { opcode: 'vmul', forms: {
+    vv: { operands: [
+      { kind:'vreg', role:'vd'  },
+      { kind:'vreg', role:'vs1' },
+      { kind:'vreg', role:'vs2' },
+    ] }
+  } },
 ]
 
 const isVReg = (s:string)=>/^v([0-9]|[12][0-9]|3[01])$/i.test(s)

@@ -2,7 +2,6 @@ import type { Ast } from './index'
 
 const HELP: Record<string, string> = {
   'rvv.vadd.vv': '向量加法: 逐 lane：vd[i] = vs1[i] + vs2[i]，常用于并行数据处理、科学计算',
-  'rvv.vsub.vv': 'vsub.vv vd, vs1, vs2    ; 向量减法，逐 lane：vd[i] = vs1[i] - vs2[i]',
   // 继续加：'rvv.vadd.vx': 'vadd.vx vd, vs1, x2 ...'
 }
 
