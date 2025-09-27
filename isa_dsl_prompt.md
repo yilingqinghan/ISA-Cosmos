@@ -1,106 +1,62 @@
-你是“指令可视化 DSL 生成器”。我会给你指令信息，你需要产出一个 TypeScript 文件，把汇编 AST 转成我项目中的 DSL 字符串。请严格遵守下面的“输出要求”。你可以按照指令类型（算术/IO/内存/栈/跳转等）自由设计步骤数量与叙事风格，只要遵循 DSL 语法与坐标约束即可。
+已知：
 
-========================
-【输入（请在心中读取并代入到输出）】
+VSETIVLI
+使用立即数设置向量长度和类型，将AVL设置为5位无符号立即数
+VSETIVLI rd, uimm, vtypei
+二进制编码：
+rd[4:0] uimm[4:0] vtypei[9:0] 1010111
+操作步骤：
+1. vtype = encode_vtypei(vtypei)
+2. vl = set_vl(uimm, vtype.vlmul, vtype.vsew, vtype.vta, vtype.vma)
+3. rd = vl (如果rd≠x0)
+用法说明：
+用于设置固定长度的向量操作
+适用于已知向量长度的情况
+示例代码：
+vsetivli t0, 16, e32m2 # 设置vl=16，32位元素宽度，LMUL=2
+vsetivli t0, 8, e16m1 # 设置vl=8，16位元素宽度，LMUL=1
+可能的异常：
+如果vtypei中包含保留值，则产生非法指令异常
 
-请完成rvv的vmul.vv
+使用场景：
+固定长度向量处理
+小向量操作优化
+注意： uimm的范围为0-31，适用于小型向量操作
 
-========================
-【DSL 语法（必须遵循）】
-1) step(id,"名称")
-   - 定义一个步骤/场景，后续 appear/blink/disappear 使用该 stepId 控制出现/动画。
-   - 步骤数量与名称完全由你决定：可以是 2 步、5 步、甚至更多。
+请你继续参考vadd的实现，完成这个新指令的typescript书写：
+参考指令:
 
-2) label(id,x,y,"文字")
-   - 小黑底圆角签，承载短文案（如寄存器名、提示字）。
-   - x/y 为网格坐标（单位 u，前端 1u≈96px，AutoFit 会缩放）。
-
-3) rect(id,w,h,x,y,"文字",color)
-   - 实心矩形，可带内文。常用 color：lightgray / teal / black / #0EA5E9 / #22d3ee（或任意 HEX）。
-   - 用于寄存器槽、内存槽、端口盒、栈帧块等。
-
-4) group(id,x,y,w,h,dotted|solid)
-   - 框选区域（常用 dotted），用于 VRF 顶行包围框、端口区域、栈帧边界等。
-
-5) line(id,x1,y1,x2,y2,width,color)
-   - 直线，常用于时间线/对齐线/总线辅助线。
-
-6) arrow(id,x1,y1,x2,y2,width,"文字",above,color,start?,end?)
-   - 箭头，默认只要 end=true 即可绘制终点箭头。
-   - 文字可留空（""）；above 表示文字在上/下（true/false）。
-
-7) appear(id[,id2...], stepId)
-   - 在某步骤出现；可一次列出多个 id。
-
-8) blink(id[,id2...], stepId, times, periodMs)
-   - 在该步骤让元素闪烁（用于强调）。
-
-9) disappear(id[,id2...], stepId)
-   - 在某步骤消隐。
-
-【坐标与可视范围】
-- 坐标单位 u；1u≈96px；前端会自动等比缩放。
-- 安全可视区域（建议）：x ∈ [2.0, 11.5]，y ∈ [-0.5, 5.0]。
-- 建议在内容四周预留少量空间（~0.2–0.4u），避免贴边。
-
-【ID 命名】
-- 由字母/数字/下划线组成（如 rf_v0, port_in, sp_arrow, a_1）。
-- 保证同一 DSL 文本中唯一。
-
-【设计自由】
-- 你可以根据指令类型自由设计叙事：算术可 s_载入→s_对齐→s_计算→s_写回；栈可 s_帧展开→sp 变化→读写回退；跳转可 s_pc 时间线→条件标注→目标高亮等。
-- 步骤数量不设限；鼓励“让用户喜欢”的讲解动效（适度 blink、箭头引导、分组半透明）。
-- 同一场景可使用多条 appear/blink/disappear 控制元素。
-
-========================
-【输出要求（非常重要）】
-1) 只输出一个 TypeScript 代码块，顶部以“文件路径注释”开头：
-   // src/lang/[arch]/[opcode].ts
-
-2) 文件内必须：
-   - import type { AsmAst } from '../types'
-   - 导出 const USAGE = "[opcode].[form] vd, vs1, vs2  ; 简短中文语义"
-     * 若该形态不是 3 操作数（例如内存或栈），请替换为准确格式，如：
-       PUSH xN       /  POP xN
-       CALL label    /  RET
-       JMP label     /  BNE label, rs1, rs2
-       LOAD vd, [addr] / STORE [addr], vs1
-   - 导出函数：
-     export function [arch][OpcodePascal]ToDsl(ast: AsmAst): string
-     说明：
-     * 从 ast.operands 里容错取出所需操作数（不足时给合理默认，如 vd=v0、vs1=v1、vs2=v2、sp=x2 等）。
-     * 你可以在函数里生成演示值（例如 1,2,3 / 10,11,12），或画空槽结合箭头/说明。
-     * 返回值是完整的多行 DSL 字符串（以 \n 连接）。
-   - 允许在顶部定义布局常量（例如寄存器行/端口/栈帧的几何）、小工具函数（如寄存器索引转 x 坐标）。
-
-3) 只用上述 DSL 原语；不要使用我未列出的指令（例如 text/vec4/square 若我未声明支持）。
-
-4) 坐标数值请给出具体数字（不要写 TODO/占位），确保落在可视安全范围。
-
-5) 不要修改其它文件，不要输出解释性文字。只产出一个 TS 文件代码块。
-
-========================
-【设计参考（不同指令家族的建议元素组合，仅供启发，不是硬性要求）】
-- 向量算术（add/mul/and/xor/...）：
-  * 顶部 VRF 32 寄存器行（可选），高亮用到的寄存器；箭头指向放大区；
-  * 放大区三行：源/源/目的；横线 + 运算符（可用 label 写“×”“+”等）；写回目的；
-- IO / 端口：
-  * 左右各一个 group 作为 in/out 端口，端口框内用 rect 表示数据槽；中间用 arrow 表示数据流；
-- 内存 LOAD/STORE：
-  * 右侧画 memory 区域（group），地址/数据用 label/rect；LOAD 用箭头 memory→寄存器；STORE 相反；
-- 栈 PUSH/POP/CALL/RET：
-  * 底部画栈帧 group，多层 rect 叠放；SP（栈指针）用 label + arrow 表示移动方向；PUSH 增加一格，POP 减少一格；
-  * CALL：把返回地址 rect 推入栈；RET：从栈顶弹出，箭头回到 PC；
-- 跳转/条件分支：
-  * 上方画 PC 时间线（line），当前 PC label；画条件 label（如 “rs1==rs2?”）；箭头指向目标 label 或保持不变；可用 dotted 表示未 taken 分支。
-
-========================
-【One-Shot 示例（算术类；但你在别的指令类型上可自由发挥步骤与布局）】
-请先学习下面“示例代码”的结构风格与 DSL 用法，然后生成我在“输出目标”里要求的文件。
-
-```ts
+```typescript
 // src/lang/rvv/vadd.ts
 import type { AsmAst } from '../types'
+// src/lang/rvv/vmul.ts
+import { registerHandler, registerInstr, registerUsage, registerMiniDoc } from '../registry'
+import type { InstrSpec } from '../core'
+// 1) 用法（供 Logs 打印）
+registerUsage('rvv.vadd.vv', 'vadd.vv vd, vs1, vs2  ; 向量加法：vd[i] = vs1[i] + vs2[i]')
+
+// key 使用 "arch.opcode.form"
+registerMiniDoc('rvv.vadd.vv', {
+  usage: 'vadd.vv vd, vs1, vs2 ；向量加法：vd[i] = vs1[i] + vs2[i]',
+  scenarios: ['向量数组加法', '并行数据处理', '科学计算'],
+  notes: ['元素宽度由 vtype.vsew 决定', '支持掩码 vm'],
+  exceptions: ['无']
+})
+
+// 2) 语法规格（供解析与操作数校验）
+const spec: InstrSpec = {
+  opcode: 'vadd',
+  forms: {
+    vv: { operands: [
+      { kind:'vreg', role:'vd'  },
+      { kind:'vreg', role:'vs1' },
+      { kind:'vreg', role:'vs2' },
+    ] }
+  }
+}
+registerInstr('rvv', spec)
+
+
 
 // 顶排 32 个寄存器的几何（单位：你的 DSL 坐标单位）
 const REG_START_X = 2.60;     // v0 的 x
@@ -226,12 +182,9 @@ appear(z0, z1, z2, z3, s4)
 blink(z0, z1, z2, z3, s4, 2, 300)
 `
 }
+
+
+registerHandler('rvv:vadd.vv', rvvVaddToDsl)
 ```
 
-（示例结束。你在其它指令类型上可以自由发挥步骤数与布局，只要用到我列出的 DSL 原语并遵守坐标/ID 规则即可。）
-
-========================
-【输出目标】
-	•	仅输出一个 TypeScript 代码块，路径注释必须是：// src/lang/[arch]/[opcode].ts
-	•	导出 const USAGE 与导出函数 [arch][OpcodePascal]ToDsl(ast: AsmAst)
-	•	其余自由发挥（步骤数量、元素组合、箭头/高亮/分组等）。
+请直接给出代码即可，不需要解释和注释
