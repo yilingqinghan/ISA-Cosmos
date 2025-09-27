@@ -278,15 +278,15 @@ vsetvli.ri x1, x10, e32m2
   return (
     <div className="left-root" style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 120px', gap:8, height:'100%'}}>
       {/* 主列：编辑器 + Usage + Logs */}
-      <div className="left-main" style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:8}}>
+      <div className="left-main" style={{flex:1, minWidth:0, display:'grid', gridTemplateRows:'minmax(160px,1fr) minmax(200px,1.2fr) minmax(120px,0.8fr)', gap:8, height:'100%'}}>
         {/* 上：编辑器 */}
-        <div className="left-top nice-card" style={{height:'40%'}}>
+        <div className="left-top nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
           <div className="panel-toolbar">
             <div className="panel-title">Editor</div>
             <div className="grow" />
             <button className="btn" onClick={handleRun}>Run</button>
           </div>
-          <div className="editor-wrap">
+          <div className="editor-wrap" style={{flex:1, minHeight:0}}>
             <Editor height="100%" defaultLanguage="asm" value={code}
                     onChange={v=>setCode(v??'')} onMount={onMount}
                     options={{ minimap:{enabled:false}, automaticLayout:true, fontSize:13,
@@ -294,12 +294,12 @@ vsetvli.ri x1, x10, e32m2
           </div>
         </div>
 
-        <div className="left-mid nice-card" style={{height:'40%', minHeight: 160}}>
+        <div className="left-mid nice-card" style={{display:'flex', flexDirection:'column', minHeight:160}}>
           <div className="panel-toolbar">
             <div className="panel-title">Usage</div>
             <div className="grow" />
           </div>
-          <div className="usage-wrap" style={{padding:'8px 10px', overflow:'auto', height:'calc(100% - 40px)'}}>
+          <div className="usage-wrap" style={{padding:'8px 10px', overflow:'auto', flex:1, minHeight:0}}>
             <div className="usage-all" style={{display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr', gap:10}}>
               <div style={{gridColumn:'1 / -1', padding:8, border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc'}}>
                 <div style={{fontSize:12, fontWeight:600, color:'#0f172a', marginBottom:6}}>说明</div>
@@ -331,13 +331,13 @@ vsetvli.ri x1, x10, e32m2
         </div>
 
         {/* 下：日志/提示 */}
-        <div className="left-bottom nice-card" style={{height:'20%', minHeight: 120}}>
+        <div className="left-bottom nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
           <div className="panel-toolbar">
             <div className="panel-title">Logs</div>
             <div className="grow" />
             <button className="btn" onClick={()=>window.localStorage.DEBUG_DSL='1'}>Enable DSL Debug</button>
           </div>
-          <div className="log-wrap">
+          <div className="log-wrap" style={{flex:1, overflow:'auto', minHeight:0}}>
             {logs.length === 0 ? (
               <div className="log-empty">暂无日志。运行后会在此显示解析步骤 / 提示。</div>
             ) : (
