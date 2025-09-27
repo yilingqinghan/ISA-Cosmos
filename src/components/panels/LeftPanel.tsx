@@ -24,7 +24,7 @@ vsetvli.ri x1, x10, e32m2
   const count = (arr?: string[]) => arr?.length ?? 0
 
   const pillStyle: React.CSSProperties = {
-    fontSize:11,
+    fontSize:10,
     padding:'1px 6px',
     borderRadius:999,
     background:'#0f172a0d',
@@ -278,7 +278,7 @@ vsetvli.ri x1, x10, e32m2
   return (
     <div className="left-root" style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 120px', gap:8, height:'100%'}}>
       {/* 主列：编辑器 + Usage */}
-      <div className="left-main" style={{flex:1, minWidth:0, display:'grid', gridTemplateRows:'minmax(160px,1fr) minmax(200px,1fr)', gap:8, height:'100%'}}>
+      <div className="left-main" style={{flex:1, minWidth:0, display:'grid', gridTemplateRows:'minmax(180px,1.4fr) minmax(120px,0.8fr)', gap:8, height:'100%'}}>
         {/* 上：编辑器 */}
         <div className="left-top nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
           <div className="panel-toolbar">
@@ -294,34 +294,34 @@ vsetvli.ri x1, x10, e32m2
           </div>
         </div>
 
-        <div className="left-mid nice-card" style={{display:'flex', flexDirection:'column', minHeight:160}}>
+        <div className="left-mid nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
           <div className="panel-toolbar">
             <div className="panel-title">Usage</div>
             <div className="grow" />
           </div>
-          <div className="usage-wrap" style={{padding:'8px 10px', overflow:'auto', flex:1, minHeight:0}}>
+          <div className="usage-wrap" style={{padding:'8px 10px', overflow:'auto', flex:1, minHeight:0, fontSize:12}}>
             <div className="usage-all" style={{display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr', gap:10}}>
               <div style={{gridColumn:'1 / -1', padding:8, border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc'}}>
-                <div style={{fontSize:12, fontWeight:600, color:'#0f172a', marginBottom:6}}>说明</div>
+                <div style={{fontSize:11, fontWeight:600, color:'#0f172a', marginBottom:6}}>说明</div>
                 {doc.usage ? <p style={{lineHeight:1.6, margin:0}}>{doc.usage}</p> : <p className="muted" style={{margin:0}}>无</p>}
               </div>
               <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
                 <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                  <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>场景</div>
+                  <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>场景</div>
                   <span style={pillStyle}>{count(doc.scenarios)}</span>
                 </div>
                 <FancyList items={doc.scenarios} icon="💡" empty="暂无典型场景" />
               </div>
               <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
                 <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                  <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>注意</div>
+                  <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>注意</div>
                   <span style={pillStyle}>{count(doc.notes)}</span>
                 </div>
                 <FancyList items={doc.notes} icon="⚠️" empty="暂无注意事项" tone="warn" />
               </div>
               <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
                 <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                  <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>异常</div>
+                  <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>异常</div>
                   <span style={pillStyle}>{count(doc.exceptions)}</span>
                 </div>
                 <FancyList items={doc.exceptions} icon="⛔" empty="暂无已知异常" tone="danger" />
