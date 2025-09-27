@@ -130,7 +130,7 @@ function FmtText({
 
 export default function CanvasKitPanel() {
   const [showGrid, setShowGrid] = useState(true);
-  const { arch, opcode, form, pushLog, clearLogs, dslOverride } = useApp()
+  const { arch, opcode, form, pushLog, clearLogs, dslOverride, logs } = useApp()
   const [dsl, setDsl] = useState('')
   const [doc, setDoc] = useState<DSLDoc>({ steps:[], shapes:[], anims:[], packOn:[], packOff:[] })
   const [stepIdx, setStepIdx] = useState(0)
@@ -527,7 +527,7 @@ export default function CanvasKitPanel() {
   }
 
   return (
-    <div className="canvas-root">
+    <div className="canvas-root" style={{display:'flex', flexDirection:'column', height:'100%'}}>
       <div className="canvas-toolbar">
         <div className="chip step-chip">步骤：{Math.min(stepIdx+1, Math.max(1, doc.steps.length))}/{Math.max(doc.steps.length,1)} · {stepName || '—'}</div>
 
@@ -592,20 +592,44 @@ export default function CanvasKitPanel() {
         </Toolbar>
       </div>
 
-      <KitStage
-        contentSize={{ width: 1200, height: 900 }}
-        zoom={zoom}
-        showGrid={showGrid}
-        gridStyle={{
-          spacing: 0.2,
-          majorEvery: 5,
-          strokeWidth: 0.5,
-          color: "#EEF2F7",
-          majorColor: "#E5E7EB"
-        }}
-      >
-        <Content/>
-      </KitStage>
+      <div style={{flex:1, minHeight:0}}>
+        <KitStage
+          contentSize={{ width: 1200, height: 900 }}
+          zoom={zoom}
+          showGrid={showGrid}
+          gridStyle={{
+            spacing: 0.2,
+            majorEvery: 5,
+            strokeWidth: 0.5,
+            color: "#EEF2F7",
+            majorColor: "#E5E7EB"
+          }}
+        >
+          <Content/>
+        </KitStage>
+      </div>
+
+      <div className="canvas-logs" style={{borderTop:'1px solid #e5e7eb', background:'#fff', height:180}}>
+        <div style={{display:'flex', alignItems:'center', height:36, padding:'0 8px', gap:8}}>
+          <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>Logs</div>
+          <div style={{flex:1}} />
+          <button className="btn" onClick={()=>clearLogs()} style={{marginLeft:6}}>清空</button>
+        </div>
+        <div style={{height:144, overflow:'auto', padding:'6px 10px'}}>
+          {(!logs || logs.length===0) ? (
+            <div style={{fontSize:12, color:'#64748b'}}>暂无日志。运行后会在此显示解析步骤 / 提示。</div>
+          ) : (
+            <ul style={{listStyle:'none', padding:0, margin:0, fontSize:12, color:'#334155'}}>
+              {logs.map((l, i)=>(
+                <li key={i} style={{display:'flex', gap:6, padding:'3px 0'}}>
+                  <span style={{width:6, height:6, borderRadius:6, background:'#0ea5e9', marginTop:7}} />
+                  <span style={{lineHeight:1.5}}>{l}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

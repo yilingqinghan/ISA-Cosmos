@@ -7,7 +7,7 @@ import { usageOf } from '../../lang/help'
 import { astToDsl } from '../../lang/toDSL'
 
 export default function LeftPanel() {
-  const { arch, logs, pushLog, setDslOverride } = useApp()
+  const { arch, pushLog, setDslOverride } = useApp()
   const [code, setCode] = useState(`vadd.vv v0, v1, v2
 vmul.vv v3, v4, v5
 vsetvli.ri x1, x10, e32m2
@@ -277,8 +277,8 @@ vsetvli.ri x1, x10, e32m2
 
   return (
     <div className="left-root" style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 120px', gap:8, height:'100%'}}>
-      {/* 主列：编辑器 + Usage + Logs */}
-      <div className="left-main" style={{flex:1, minWidth:0, display:'grid', gridTemplateRows:'minmax(160px,1fr) minmax(200px,1.2fr) minmax(120px,0.8fr)', gap:8, height:'100%'}}>
+      {/* 主列：编辑器 + Usage */}
+      <div className="left-main" style={{flex:1, minWidth:0, display:'grid', gridTemplateRows:'minmax(160px,1fr) minmax(200px,1fr)', gap:8, height:'100%'}}>
         {/* 上：编辑器 */}
         <div className="left-top nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
           <div className="panel-toolbar">
@@ -330,25 +330,6 @@ vsetvli.ri x1, x10, e32m2
           </div>
         </div>
 
-        {/* 下：日志/提示 */}
-        <div className="left-bottom nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
-          <div className="panel-toolbar">
-            <div className="panel-title">Logs</div>
-            <div className="grow" />
-            <button className="btn" onClick={()=>window.localStorage.DEBUG_DSL='1'}>Enable DSL Debug</button>
-          </div>
-          <div className="log-wrap" style={{flex:1, overflow:'auto', minHeight:0}}>
-            {logs.length === 0 ? (
-              <div className="log-empty">暂无日志。运行后会在此显示解析步骤 / 提示。</div>
-            ) : (
-              <ul className="log-list">
-                {logs.map((l, i)=>(
-                  <li key={i}><span className="dot" />{l}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* 右侧：指令目录（可独立滚动） */}
