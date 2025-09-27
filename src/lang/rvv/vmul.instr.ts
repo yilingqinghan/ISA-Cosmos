@@ -1,10 +1,15 @@
 // src/lang/rvv/vmul.ts
 import type { AsmAst } from '../types'
-import { registerHandler, registerInstr, registerUsage } from '../registry'
+import { registerHandler, registerInstr, registerUsage, registerMiniDoc } from '../registry'
 import type { InstrSpec } from '../core'
 // 1) 用法（供 Logs 打印）
 registerUsage('rvv.vmul.vv', 'vmul.vv vd, vs1, vs2  ; 向量乘法：vd[i] = vs1[i] * vs2[i]')
-
+registerMiniDoc('rvv.vmul.vv', {
+  usage: 'vmul.vv vd, vs1, vs2 ；向量乘法：vd[i] = vs1[i] × vs2[i]',
+  scenarios: ['点乘/卷积等逐元素乘法', '并行数值计算'],
+  notes: ['注意溢出行为与目标 SEW', '支持掩码 vm'],
+  exceptions: ['无']
+})
 // 2) 语法规格（供解析与操作数校验）
 const spec: InstrSpec = {
   opcode: 'vmul',

@@ -1,10 +1,18 @@
 // src/lang/rvv/vadd.ts
 import type { AsmAst } from '../types'
 // src/lang/rvv/vmul.ts
-import { registerHandler, registerInstr, registerUsage } from '../registry'
+import { registerHandler, registerInstr, registerUsage, registerMiniDoc } from '../registry'
 import type { InstrSpec } from '../core'
 // 1) 用法（供 Logs 打印）
 registerUsage('rvv.vadd.vv', 'vadd.vv vd, vs1, vs2  ; 向量加法：vd[i] = vs1[i] + vs2[i]')
+
+// key 使用 "arch.opcode.form"
+registerMiniDoc('rvv.vadd.vv', {
+  usage: 'vadd.vv vd, vs1, vs2 ；向量加法：vd[i] = vs1[i] + vs2[i]',
+  scenarios: ['向量数组加法', '并行数据处理', '科学计算'],
+  notes: ['元素宽度由 vtype.vsew 决定', '支持掩码 vm'],
+  exceptions: ['无']
+})
 
 // 2) 语法规格（供解析与操作数校验）
 const spec: InstrSpec = {
