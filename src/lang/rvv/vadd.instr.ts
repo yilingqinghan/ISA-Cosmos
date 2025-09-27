@@ -1,5 +1,25 @@
 // src/lang/rvv/vadd.ts
 import type { AsmAst } from '../types'
+// src/lang/rvv/vmul.ts
+import { registerHandler, registerInstr, registerUsage } from '../registry'
+import type { InstrSpec } from '../core'
+// 1) 用法（供 Logs 打印）
+registerUsage('rvv.vadd.vv', 'vadd.vv vd, vs1, vs2  ; 向量加法：vd[i] = vs1[i] + vs2[i]')
+
+// 2) 语法规格（供解析与操作数校验）
+const spec: InstrSpec = {
+  opcode: 'vadd',
+  forms: {
+    vv: { operands: [
+      { kind:'vreg', role:'vd'  },
+      { kind:'vreg', role:'vs1' },
+      { kind:'vreg', role:'vs2' },
+    ] }
+  }
+}
+registerInstr('rvv', spec)
+
+
 
 // 顶排 32 个寄存器的几何（单位：你的 DSL 坐标单位）
 const REG_START_X = 2.60;     // v0 的 x
@@ -125,3 +145,6 @@ appear(z0, z1, z2, z3, s4)
 blink(z0, z1, z2, z3, s4, 2, 300)
 `
 }
+
+
+registerHandler('rvv:vadd.vv', rvvVaddToDsl)

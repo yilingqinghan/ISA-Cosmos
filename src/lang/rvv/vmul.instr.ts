@@ -1,5 +1,23 @@
 // src/lang/rvv/vmul.ts
 import type { AsmAst } from '../types'
+import { registerHandler, registerInstr, registerUsage } from '../registry'
+import type { InstrSpec } from '../core'
+// 1) 用法（供 Logs 打印）
+registerUsage('rvv.vmul.vv', 'vmul.vv vd, vs1, vs2  ; 向量乘法：vd[i] = vs1[i] * vs2[i]')
+
+// 2) 语法规格（供解析与操作数校验）
+const spec: InstrSpec = {
+  opcode: 'vmul',
+  forms: {
+    vv: { operands: [
+      { kind:'vreg', role:'vd'  },
+      { kind:'vreg', role:'vs1' },
+      { kind:'vreg', role:'vs2' },
+    ] }
+  }
+}
+registerInstr('rvv', spec)
+
 
 const REG_START_X = 2.60
 const REG_STEP    = 0.31
@@ -100,3 +118,5 @@ appear(z0, z1, z2, z3, s4)
 blink(z0, z1, z2, z3, s4, 2, 300)
 `
 }
+
+registerHandler('rvv:vmul.vv', rvvVmulToDsl)
