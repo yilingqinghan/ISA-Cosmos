@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import KitStage from '../../canvas-kit/KitStage'
-import { fetchDSL } from '../../utils/fetchDSL'
 import { parseDSL, DSLDoc, DSLShape } from '../../utils/parse'
 import { Group, Rect, Text, Line } from 'react-konva'
 import { useApp } from '../../context'
@@ -140,7 +139,6 @@ export default function CanvasKitPanel() {
   const fmtSnap = useFormat()
   useEffect(() => {
     if (dslOverride) { setDsl(dslOverride.text); return }
-    fetchDSL({ arch, opcode, form }).then(({ text }) => setDsl(text))
   // 依赖 rev，确保同一文本也会重新解析渲染
   }, [dslOverride?.rev, arch, opcode, form])
   // --- Debug toggle and logger ---
