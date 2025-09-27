@@ -19,6 +19,16 @@ vsetvli.ri x1, x10, e32m2
 
   const [doc, setDoc] = useState<{ usage?: string; scenarios?: string[]; notes?: string[]; exceptions?: string[] }>({})
 
+  const count = (arr?: string[]) => arr?.length ?? 0
+
+  const pillStyle: React.CSSProperties = {
+    fontSize:11,
+    padding:'1px 6px',
+    borderRadius:999,
+    background:'#0f172a0d',
+    border:'1px solid #cbd5e1'
+  }
+
   // 生成演示代码：opcode.form + 占位操作数（根据 operands 类型/role）
   function buildSample(op: string, form: string, operands?: {kind:string; role?:string}[]) {
     const picks: Record<string, string> = { vd:'v0', vs1:'v1', vs2:'v2' }
@@ -174,18 +184,33 @@ vsetvli.ri x1, x10, e32m2
             <div className="grow" />
           </div>
           <div className="usage-wrap" style={{padding:'8px 10px', overflow:'auto', height:'calc(100% - 40px)'}}>
-            <Section title="用法说明">
-              {doc.usage ? <p>{doc.usage}</p> : <p className="muted">无</p>}
-            </Section>
-            <Section title="使用场景">
-              <List items={doc.scenarios}/>
-            </Section>
-            <Section title="注意">
-              <List items={doc.notes}/>
-            </Section>
-            <Section title="可能的异常">
-              <List items={doc.exceptions}/>
-            </Section>
+            <div className="usage-all" style={{display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr', gap:10}}>
+              <div style={{gridColumn:'1 / -1', padding:8, border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc'}}>
+                <div style={{fontSize:12, fontWeight:600, color:'#0f172a', marginBottom:6}}>说明</div>
+                {doc.usage ? <p style={{lineHeight:1.6, margin:0}}>{doc.usage}</p> : <p className="muted" style={{margin:0}}>无</p>}
+              </div>
+              <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
+                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                  <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>场景</div>
+                  <span style={pillStyle}>{count(doc.scenarios)}</span>
+                </div>
+                <FancyList items={doc.scenarios} icon="💡" empty="暂无典型场景" />
+              </div>
+              <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
+                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                  <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>注意</div>
+                  <span style={pillStyle}>{count(doc.notes)}</span>
+                </div>
+                <FancyList items={doc.notes} icon="⚠️" empty="暂无注意事项" tone="warn" />
+              </div>
+              <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
+                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                  <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>异常</div>
+                  <span style={pillStyle}>{count(doc.exceptions)}</span>
+                </div>
+                <FancyList items={doc.exceptions} icon="⛔" empty="暂无已知异常" tone="danger" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -250,4 +275,20 @@ function Section({title, children}:{title:string; children:React.ReactNode}){
 function List({items}:{items?:string[]}) {
   if (!items || items.length===0) return <p className="muted">无</p>
   return <ul style={{paddingLeft:18, margin:'4px 0'}}>{items.map((s,i)=><li key={i}>{s}</li>)}</ul>
+}
+
+function FancyList({items, icon, empty, tone}:{items?:string[]; icon:string; empty?:string; tone?:'base'|'warn'|'danger'}) {
+  const bg = tone==='warn' ? 'rgba(245, 158, 11, 0.10)' : tone==='danger' ? 'rgba(239, 68, 68, 0.10)' : 'rgba(59, 130, 246, 0.08)'
+  const border = tone==='warn' ? 'rgba(245, 158, 11, 0.35)' : tone==='danger' ? 'rgba(239, 68, 68, 0.35)' : 'rgba(59, 130, 246, 0.35)'
+  if (!items || items.length===0) return <p className="muted">{empty || '无'}</p>
+  return (
+    <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
+      {items.map((s,i)=>(
+        <li key={i} style={{display:'flex', gap:8, padding:'8px 10px', borderRadius:8, background:bg, border:`1px solid ${border}`}}>
+          <span style={{flex:'0 0 auto'}}>{icon}</span>
+          <div style={{lineHeight:1.55}}>{s}</div>
+        </li>
+      ))}
+    </ul>
+  )
 }
