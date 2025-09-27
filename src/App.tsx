@@ -10,7 +10,7 @@ export default function App(){
     <AppProvider>
       <div className="app-shell">
         <NavBar />
-        <main className="app-main">
+        <main className="app-main" style={{ overflow: 'hidden' }}>
           <div className="container page-main">
             <div className="split-host">
               <SplitLayout columns={[36, 64]} minPx={[320, 520]}>
