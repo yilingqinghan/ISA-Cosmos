@@ -16,6 +16,7 @@ vsetvli.ri x1, x10, e32m2
   const monacoRef = useRef<typeof monaco|null>(null)
   const widgets = useRef<monaco.editor.IContentWidget[]>([])
   const decoIds = useRef<string[]>([])
+  const runFocusDecoIds = useRef<string[]>([])
 
   const [doc, setDoc] = useState<{ usage?: string; scenarios?: string[]; notes?: string[]; exceptions?: string[] }>({})
 
@@ -78,6 +79,7 @@ vsetvli.ri x1, x10, e32m2
     widgets.current.forEach(w=>ed.removeContentWidget(w))
     widgets.current = []
     if (decoIds.current.length) { ed.deltaDecorations(decoIds.current, []); decoIds.current=[] }
+    if (runFocusDecoIds.current.length) { ed.deltaDecorations(runFocusDecoIds.current, []); runFocusDecoIds.current = [] }
   }
 
   const showDiagnostics = (errs: ParseError[])=>{
@@ -114,6 +116,31 @@ vsetvli.ri x1, x10, e32m2
     decoIds.current = ed.deltaDecorations(decoIds.current, decos)
   }
 
+  // 找到从某行之后的下一条“有效指令行”（跳过空行和注释）
+  function nextMeaningfulLine(startLine: number) {
+    const ed = editorRef.current
+    const model = ed?.getModel()
+    if (!model) return startLine
+    const total = model.getLineCount()
+    for (let l = startLine + 1; l <= total; l++) {
+      const t = model.getLineContent(l).trim()
+      if (t && !/^(\/\/|#|;)/.test(t)) return l
+    }
+    return Math.min(total, startLine + 1)
+  }
+  // 选中并“高亮”某一整行（用选择区+可选行装饰）
+  function highlightLine(line: number) {
+    const ed = editorRef.current, m = monacoRef.current
+    const model = ed?.getModel()
+    if (!ed || !m || !model) return
+    const maxCol = model.getLineMaxColumn(line)
+    ed.setSelection(new m.Selection(line, 1, line, maxCol))
+    ed.revealLineInCenter(line)
+    runFocusDecoIds.current = ed.deltaDecorations(runFocusDecoIds.current, [
+      { range: new m.Range(line, 1, line, 1), options: { isWholeLine: true, className: 'run-focus-line' } }
+    ])
+  }
+
   const onMount:OnMount = (ed, m)=>{
     pushLog('Editor ready ✔')
     editorRef.current = ed; monacoRef.current = m
@@ -122,22 +149,41 @@ vsetvli.ri x1, x10, e32m2
 
   const handleRun = ()=>{
     clearDiagnostics()
-    const { ast, errors } = parseAsm(arch, editorRef.current?.getValue() || '')
-    if (errors.length) {
-      showDiagnostics(errors)
+    const ed = editorRef.current, m = monacoRef.current
+    const model = ed?.getModel()
+    if (!ed || !m || !model) return
+    const pos = ed.getPosition() || { lineNumber: 1, column: 1 }
+    const lineNo = pos.lineNumber
+    const raw = model.getLineContent(lineNo)
+    const lineText = raw.trim()
+  
+    // 空行/注释：不解析，直接跳到下一条有效指令
+    if (!lineText || /^(\/\/|#|;)/.test(lineText)) {
+      const next = nextMeaningfulLine(lineNo)
+      highlightLine(next)
+      pushLog('↷ 跳过空行/注释，已定位到下一行')
       setDslOverride(null)
-      pushLog(`❌ 语法/语义错误：${errors[0].message}`)
       return
     }
-    // 通过：把 AST 转为 DSL，交给右侧画布（rev 避免“同值不更新”）
+  
+    const { ast, errors } = parseAsm(arch, lineText)
+    if (errors.length) {
+      const mapped = errors.map(e => ({ ...e, line: lineNo + (e.line - 1) }))
+      showDiagnostics(mapped)
+      setDslOverride(null)
+      pushLog(`❌ 第 ${lineNo}:${errors[0].col} 行：${errors[0].message}`)
+      highlightLine(lineNo)
+      return
+    }
+  
+    // 仅播放当前行
     const dsl = astToDsl(ast!)
     setDslOverride({ text: dsl, rev: Date.now() })
     pushLog(`✅ 已解析：${ast!.opcode}.${ast!.form} ${ast!.operands.join(', ')}`)
-
-    // 收集用法/说明，尽量宽松兼容各种返回结构
+  
+    // 用法/说明（延续原单条逻辑）
     let info: any = null
     try {
-      // 允许两种签名：usageOf(ast) 或 usageOf(arch, opcode, form)
       info = (usageOf as any)(ast!) ?? (usageOf as any)(ast!.arch, ast!.opcode, ast!.form)
     } catch {}
     const usageText = getUsage(ast!) || info?.usage || info?.desc || ''
@@ -147,9 +193,12 @@ vsetvli.ri x1, x10, e32m2
       notes: info?.notes || info?.notice || info?.attentions || [],
       exceptions: info?.exceptions || info?.exception || [],
     })
-
     const u = getUsage(ast!)
     if (u) pushLog(`ℹ️ 用法：${u}`)
+  
+    // 自动跳到下一条有效指令并高亮
+    const next = nextMeaningfulLine(lineNo)
+    highlightLine(next)
   }
 
   // 顶部导航的 Run 也可以触发
