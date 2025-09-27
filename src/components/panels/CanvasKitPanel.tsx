@@ -156,7 +156,7 @@ export default function CanvasKitPanel() {
     try { pushLog(line.length > 400 ? line.slice(0, 400) + ' …' : line) } catch {}
   }
 
-  const [playing, setPlaying] = useState(true)
+  const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
   const stepStartRef = useRef<number>(performance.now())
   const [clock, setClock] = useState(0)
