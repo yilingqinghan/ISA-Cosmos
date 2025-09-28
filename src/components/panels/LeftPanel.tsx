@@ -20,6 +20,10 @@ vsetvli.ri x1, x10, e32m2
   const runExecDecoIds = useRef<string[]>([])
 
   const [doc, setDoc] = useState<{ usage?: string; scenarios?: string[]; notes?: string[]; exceptions?: string[] }>({})
+  const [editorTheme, setEditorTheme] = useState<'isa-light' | 'solarized-light' | 'solarized-dark' | 'vs-dark'>('isa-light')
+  const [editorFont, setEditorFont] = useState<'Fira'|'JetBrains'|'System'>('Fira')
+  const [editorFontSize, setEditorFontSize] = useState(13)
+  const [editorControlsHidden, setEditorControlsHidden] = useState(false)
 
   const count = (arr?: string[]) => arr?.length ?? 0
 
@@ -178,7 +182,13 @@ vsetvli.ri x1, x10, e32m2
         'editorCursor.foreground': '#0f172a'
       }
     })
-    m.editor.setTheme('isa-light')
+    m.editor.defineTheme('solarized-light', { base: 'vs', inherit: true, rules: [], colors: {
+      'editor.background': '#fdf6e3','editor.foreground': '#657b83','editor.lineHighlightBackground': '#eee8d5','editorLineNumber.foreground': '#93a1a1','editorLineNumber.activeForeground': '#586e75','editorGutter.background': '#fdf6e3','editor.selectionBackground': '#eee8d599','editor.inactiveSelectionBackground': '#eee8d566','editorIndentGuide.background': '#eee8d5','editorIndentGuide.activeBackground': '#93a1a1','scrollbarSlider.background': '#93a1a180','scrollbarSlider.hoverBackground': '#93a1a1aa','scrollbarSlider.activeBackground': '#657b83aa','editorCursor.foreground': '#268bd2'
+    } })
+    m.editor.defineTheme('solarized-dark', { base: 'vs-dark', inherit: true, rules: [], colors: {
+      'editor.background': '#002b36','editor.foreground': '#93a1a1','editor.lineHighlightBackground': '#073642','editorLineNumber.foreground': '#586e75','editorLineNumber.activeForeground': '#93a1a1','editorGutter.background': '#002b36','editor.selectionBackground': '#07364299','editor.inactiveSelectionBackground': '#07364266','editorIndentGuide.background': '#073642','editorIndentGuide.activeBackground': '#586e75','scrollbarSlider.background': '#586e7580','scrollbarSlider.hoverBackground': '#586e75aa','scrollbarSlider.activeBackground': '#93a1a1aa','editorCursor.foreground': '#268bd2'
+    } })
+    m.editor.setTheme(editorTheme)
     ed.updateOptions({
       glyphMargin:true,
       lineDecorationsWidth:14,
@@ -194,6 +204,11 @@ vsetvli.ri x1, x10, e32m2
       rulers: [80],
     })
   }
+
+  useEffect(()=>{
+    const m = monacoRef.current
+    if (m) { try { m.editor.setTheme(editorTheme) } catch {} }
+  }, [editorTheme])
 
   useEffect(() => {
     if (document.getElementById('isa-monaco-style')) return
@@ -275,22 +290,56 @@ vsetvli.ri x1, x10, e32m2
     return ()=>window.removeEventListener('app/run', h)
   },[])
 
+  // removed dynamic rows; use fixed template rows below
+
   return (
     <div className="left-root" style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 120px', gap:8, height:'100%'}}>
       {/* 主列：编辑器 + Usage */}
-      <div className="left-main" style={{flex:1, minWidth:0, display:'grid', gridTemplateRows:'minmax(180px,1.4fr) minmax(120px,0.8fr)', gap:8, height:'100%'}}>
+      <div className="left-main" style={{flex:1, minWidth:0, display:'grid', gridTemplateRows: 'minmax(180px,1.4fr) minmax(120px,0.8fr)', gap:8, height:'100%'}}>
         {/* 上：编辑器 */}
         <div className="left-top nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
           <div className="panel-toolbar">
             <div className="panel-title">Editor</div>
             <div className="grow" />
-            <button className="btn" onClick={handleRun}>Run</button>
+            {editorControlsHidden ? (
+              <>
+                <button title="显示编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(false)}>⋯</button>
+                <button className="btn" onClick={handleRun}>Run</button>
+              </>
+            ) : (
+              <>
+                <button title="浅色 (Isa)" className="btn" onClick={()=>setEditorTheme('isa-light')}>◻︎</button>
+                <button title="Solarized Light" className="btn" onClick={()=>setEditorTheme('solarized-light')}>☀️</button>
+                <button title="Solarized Dark" className="btn" onClick={()=>setEditorTheme('solarized-dark')}>🌙</button>
+                <button title="VS Dark" className="btn" onClick={()=>setEditorTheme('vs-dark')}>⬛</button>
+                <span style={{width:6}} />
+                <button title="Fira Code" className="btn" onClick={()=>setEditorFont('Fira')}>F</button>
+                <button title="JetBrains Mono" className="btn" onClick={()=>setEditorFont('JetBrains')}>J</button>
+                <button title="System Mono" className="btn" onClick={()=>setEditorFont('System')}>Sys</button>
+                <span style={{width:6}} />
+                <button title="字号变小" className="btn" onClick={()=>setEditorFontSize(s=>Math.max(10, s-1))}>A−</button>
+                <button title="字号变大" className="btn" onClick={()=>setEditorFontSize(s=>Math.min(22, s+1))}>A＋</button>
+                <button title="重置字号" className="btn" onClick={()=>setEditorFontSize(13)}>A</button>
+                <span style={{width:6}} />
+                <button title="隐藏编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(true)}>—</button>
+                <button className="btn" onClick={handleRun}>Run</button>
+              </>
+            )}
           </div>
           <div className="editor-wrap" style={{flex:1, minHeight:0}}>
             <Editor height="100%" defaultLanguage="asm" value={code}
                     onChange={v=>setCode(v??'')} onMount={onMount}
-                    options={{ minimap:{enabled:false}, automaticLayout:true, fontSize:13,
-                      fontFamily:`'Fira Code','JetBrains Mono',monospace`, theme:'vs-light' }} />
+                    theme={editorTheme}
+                    options={{
+                      minimap: { enabled: false },
+                      automaticLayout: true,
+                      fontSize: editorFontSize,
+                      fontFamily: editorFont === 'Fira'
+                        ? `'Fira Code','JetBrains Mono','SFMono-Regular','Menlo','Consolas','Liberation Mono','ui-monospace',monospace`
+                        : editorFont === 'JetBrains'
+                        ? `'JetBrains Mono','Fira Code','SFMono-Regular','Menlo','Consolas','Liberation Mono','ui-monospace',monospace`
+                        : `'SFMono-Regular','Menlo','Consolas','Liberation Mono','ui-monospace',monospace`,
+                    }} />
           </div>
         </div>
 

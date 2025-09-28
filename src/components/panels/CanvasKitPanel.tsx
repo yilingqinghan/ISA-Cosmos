@@ -161,6 +161,8 @@ export default function CanvasKitPanel() {
   const [regOpen, setRegOpen] = useState(true)
   const [regWide, setRegWide] = useState(false)
   const panelWidth = regWide ? 360 : 240
+  const [hotkeyOpen, setHotkeyOpen] = useState(true)
+  const [toolbarVisible, setToolbarVisible] = useState(true)
 
   // ==== Icon button styles ====
   const iconBtn: React.CSSProperties = {
@@ -358,6 +360,68 @@ export default function CanvasKitPanel() {
     return map
   },[vecGroups])
   useEffect(()=>{ dbg('mode =', fmtSnap.base, 'hidden-lanes=', laneIdToVec.size) }, [fmtSnap.base, laneIdToVec])
+  // ========== 全局快捷键 ==========
+  useEffect(() => {
+    const isTypingTarget = (el: EventTarget|null) => {
+      if (!(el instanceof HTMLElement)) return false
+      const tag = el.tagName.toLowerCase()
+      const editable = el.getAttribute('contenteditable')
+      return tag === 'input' || tag === 'textarea' || tag === 'select' || editable === 'true'
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (isTypingTarget(e.target)) return
+      switch (e.key) {
+        case ' ': // 空格 播放/暂停
+          e.preventDefault()
+          setPlaying(p => { const np = !p; if (np) stepStartRef.current = performance.now(); return np })
+          break
+        case 'ArrowLeft': // 上一步
+          e.preventDefault()
+          setStepIdx(i => Math.max(0, i - 1))
+          stepStartRef.current = performance.now()
+          break
+        case 'ArrowRight': // 下一步
+          e.preventDefault()
+          setStepIdx(i => Math.min((doc.steps.length || 1) - 1, i + 1))
+          stepStartRef.current = performance.now()
+          break
+        case '+':
+        case '=': // 放大
+          setZoom(z => Math.min(2, +(z + 0.25).toFixed(2)))
+          break
+        case '-': // 缩小
+          setZoom(z => Math.max(0.5, +(z - 0.25).toFixed(2)))
+          break
+        case 'g':
+        case 'G': // 网格
+          setShowGrid(s => !s)
+          break
+        case 'r':
+        case 'R': // 复位
+          setResetTick(t => t + 1)
+          break
+        case 's':
+        case 'S': // 寄存器面板
+          setRegOpen(o => !o)
+          break
+        case 't':
+        case 'T': // 工具条显隐
+          setToolbarVisible(v => !v)
+          break
+        case 'h':
+        case 'H': // 快捷键帮助
+          setHotkeyOpen(o => !o)
+          break
+        case '1': setSpeed(0.5); break
+        case '2': setSpeed(1); break
+        case '3': setSpeed(2); break
+        case '4': setSpeed(4); break
+        default: break
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [doc.steps.length])
   useEffect(()=>{
     if (!debugOn) return;
     // 找出所有 id 属于 v0 家族的 rect
@@ -596,102 +660,172 @@ export default function CanvasKitPanel() {
         >
           <div>步骤：{Math.min(stepIdx+1, Math.max(1, doc.steps.length))}/{Math.max(doc.steps.length,1)} · {stepName || '—'}</div>
         </div>
+        {toolbarVisible && (
+          <div
+            className="canvas-toolbar floating"
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: 12,
+              transform: 'translateX(-50%)',
+              zIndex: 10,
+              maxWidth: 'min(96%, 1100px)',
+              borderRadius: 20,
+              background: '#ffffff',
+              boxShadow: '0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
+              border: '1px solid #e5e7eb',
+              padding: '6px 10px',
+              paddingLeft: 64,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              pointerEvents: 'auto'
+            }}
+          >
+            {/* <div className="chip step-chip">步骤：{Math.min(stepIdx+1, Math.max(1, doc.steps.length))}/{Math.max(doc.steps.length,1)} · {stepName || '—'}</div> */}
+            <button title={playing ? '暂停' : '播放'} className="btn icon" style={iconBtn} onClick={()=>{
+              setPlaying(p=>{ const np = !p; if (np) stepStartRef.current = performance.now(); return np })
+            }}>
+              <span style={iconText}>{playing ? '⏸' : '▶'}</span>
+            </button>
+            <button title="上一步" className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.max(0,i-1)); stepStartRef.current = performance.now() }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <button title="下一步" className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.min((doc.steps.length||1)-1,i+1)); stepStartRef.current = performance.now() }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+            <label className="switch" title="播放速度" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6}}>
+              <span style={iconText}>⚡</span>
+              <select className="select" value={String(speed)} onChange={e=>setSpeed(Number(e.target.value))} style={{height:28}}>
+                <option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
+              </select>
+            </label>
+            <label className="switch" title="缩放" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6}}>
+              <span style={iconText}>🔍</span>
+              <select className="select" value={String(zoom)} onChange={e=>setZoom(parseFloat(e.target.value))} style={{height:28}}>
+                <option value="0.75">75%</option><option value="1">100%</option>
+                <option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option>
+              </select>
+            </label>
+            <button title="复位" className="btn icon" style={{...iconBtn, marginLeft:6}} onClick={()=>setResetTick(t=>t+1)}>
+              <span style={iconText}>⟲</span>
+            </button>
+            <button title="显示/隐藏网格" className="btn icon" style={iconBtn} onClick={()=>setShowGrid(s=>!s)}>
+              <span style={iconText}>#</span>
+            </button>
+            <button title="切换 DSL 调试日志" className="btn icon" style={iconBtn} onClick={()=>{
+              setDebugOn(v=>!v);
+              if (!debugOn) clearLogs();
+              dbg('--- DSL debug enabled ---')
+            }}>
+              <span style={iconText}>📝</span>
+            </button>
+            <button title="切换调试模式" className="btn icon" style={iconBtn} onClick={()=>setDebug(d=>!d)}>
+              <span style={iconText}>🧪</span>
+            </button>
+            <button title={regOpen ? '关闭寄存器面板' : '打开寄存器面板'} className="btn icon" style={iconBtn} onClick={()=>setRegOpen(o=>!o)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                <line x1="10" y1="4" x2="10" y2="20"></line>
+              </svg>
+            </button>
+            {/* Inline format controls */}
+            <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6, marginLeft:8}}>
+              <span className="label-muted" title="数制">⑩</span>
+              <Select
+                value={fmtSnap.base}
+                onChange={(e)=>formatStore.setBase(e.target.value as any)}
+                className="select"
+              >
+                <option value="dec">10 进制</option>
+                <option value="hex">16 进制</option>
+              </Select>
+            </div>
+            <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6}}>
+              <span className="label-muted" title="Hex 位数">HEX</span>
+              <Select
+                value={String(fmtSnap.hexDigits)}
+                onChange={(e)=>formatStore.setHexDigits(parseInt(e.target.value))}
+                className="select"
+              >
+                <option value="2">2</option>
+                <option value="4">4</option>
+                <option value="8">8</option>
+              </Select>
+            </div>
+            {/* 收起工具条按钮（图钉） */}
+            <button title="隐藏工具条 (T)" className="btn icon" style={{...iconBtn, marginLeft:6}} onClick={()=>setToolbarVisible(false)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </button>
+          </div>
+        )}
+        {!toolbarVisible && (
+          <button
+            title="显示工具条 (T)"
+            onClick={()=>setToolbarVisible(true)}
+            style={{
+              position:'absolute',
+              left:'50%',
+              top: 10,
+              transform:'translateX(-50%)',
+              zIndex: 10,
+              height: 26,
+              padding:'0 10px',
+              borderRadius: 13,
+              border:'1px solid #e5e7eb',
+              background:'#ffffff',
+              boxShadow:'0 4px 12px rgba(0,0,0,0.12)',
+              fontSize:12,
+              cursor:'pointer'
+            }}
+          >工具条</button>
+        )}
         <div
-          className="canvas-toolbar floating"
+          className="hotkey-cheatsheet"
           style={{
-            position: 'absolute',
-            left: '50%',
-            top: 12,
-            transform: 'translateX(-50%)',
-            zIndex: 10,
-            maxWidth: 'min(96%, 1100px)',
-            borderRadius: 20,
-            background: '#ffffff',
-            boxShadow: '0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
-            border: '1px solid #e5e7eb',
-            padding: '6px 10px',
-            paddingLeft: 64,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            pointerEvents: 'auto'
+            position:'absolute',
+            left: 12,
+            bottom: 12, // 避开底部 180px 日志
+            zIndex: 9,
+            background:'#ffffff',
+            border:'1px solid #e5e7eb',
+            borderRadius: 12,
+            boxShadow:'0 8px 20px rgba(0,0,0,0.12)',
+            overflow:'hidden',
+            minWidth: 180,
+            pointerEvents:'auto'
           }}
         >
-          {/* <div className="chip step-chip">步骤：{Math.min(stepIdx+1, Math.max(1, doc.steps.length))}/{Math.max(doc.steps.length,1)} · {stepName || '—'}</div> */}
-          <button title={playing ? '暂停' : '播放'} className="btn icon" style={iconBtn} onClick={()=>{
-            setPlaying(p=>{ const np = !p; if (np) stepStartRef.current = performance.now(); return np })
-          }}>
-            <span style={iconText}>{playing ? '⏸' : '▶'}</span>
-          </button>
-          <button title="上一步" className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.max(0,i-1)); stepStartRef.current = performance.now() }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-          </button>
-          <button title="下一步" className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.min((doc.steps.length||1)-1,i+1)); stepStartRef.current = performance.now() }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </button>
-          <label className="switch" title="播放速度" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6}}>
-            <span style={iconText}>⚡</span>
-            <select className="select" value={String(speed)} onChange={e=>setSpeed(Number(e.target.value))} style={{height:28}}>
-              <option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
-            </select>
-          </label>
-          <label className="switch" title="缩放" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6}}>
-            <span style={iconText}>🔍</span>
-            <select className="select" value={String(zoom)} onChange={e=>setZoom(parseFloat(e.target.value))} style={{height:28}}>
-              <option value="0.75">75%</option><option value="1">100%</option>
-              <option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option>
-            </select>
-          </label>
-          <button title="复位" className="btn icon" style={{...iconBtn, marginLeft:6}} onClick={()=>setResetTick(t=>t+1)}>
-            <span style={iconText}>⟲</span>
-          </button>
-          <button title="显示/隐藏网格" className="btn icon" style={iconBtn} onClick={()=>setShowGrid(s=>!s)}>
-            <span style={iconText}>#</span>
-          </button>
-          <button title="切换 DSL 调试日志" className="btn icon" style={iconBtn} onClick={()=>{
-            setDebugOn(v=>!v);
-            if (!debugOn) clearLogs();
-            dbg('--- DSL debug enabled ---')
-          }}>
-            <span style={iconText}>📝</span>
-          </button>
-          <button title="切换调试模式" className="btn icon" style={iconBtn} onClick={()=>setDebug(d=>!d)}>
-            <span style={iconText}>🧪</span>
-          </button>
-          <button title={regOpen ? '关闭寄存器面板' : '打开寄存器面板'} className="btn icon" style={iconBtn} onClick={()=>setRegOpen(o=>!o)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-              <line x1="10" y1="4" x2="10" y2="20"></line>
-            </svg>
-          </button>
-          {/* Inline format controls */}
-          <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6, marginLeft:8}}>
-            <span className="label-muted" title="数制">⑩</span>
-            <Select
-              value={fmtSnap.base}
-              onChange={(e)=>formatStore.setBase(e.target.value as any)}
-              className="select"
-            >
-              <option value="dec">10 进制</option>
-              <option value="hex">16 进制</option>
-            </Select>
+          <div style={{display:'flex', alignItems:'center', height:30, padding:'0 8px', gap:8, borderBottom:'1px solid #eef2f7'}}>
+            <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>快捷键</div>
+            <div style={{flex:1}} />
+            <button
+              title={hotkeyOpen ? '收起 (H)' : '展开 (H)'}
+              onClick={()=>setHotkeyOpen(o=>!o)}
+              style={{width:22, height:22, borderRadius:11, border:'1px solid #e5e7eb', background:'#fff', cursor:'pointer'}}
+            >{hotkeyOpen ? '−' : '＋'}</button>
           </div>
-          <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6}}>
-            <span className="label-muted" title="Hex 位数">HEX</span>
-            <Select
-              value={String(fmtSnap.hexDigits)}
-              onChange={(e)=>formatStore.setHexDigits(parseInt(e.target.value))}
-              className="select"
-            >
-              <option value="2">2</option>
-              <option value="4">4</option>
-              <option value="8">8</option>
-            </Select>
-          </div>
+          {hotkeyOpen && (
+            <div style={{padding:'8px 10px', fontSize:12, color:'#334155'}}>
+              <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gridTemplateColumns:'auto auto', columnGap:10, rowGap:6}}>
+                <li><b>Space</b> 播放/暂停</li>
+                <li><b>←/→</b> 上/下一步</li>
+                <li><b>+/−</b> 缩放</li>
+                <li><b>1/2/3/4</b> 0.5×/1×/2×/4×</li>
+                <li><b>G</b> 网格</li>
+                <li><b>R</b> 复位</li>
+                <li><b>S</b> 寄存器抽屉</li>
+                <li><b>T</b> 工具条显示/隐藏</li>
+                <li><b>H</b> 收起/展开本卡片</li>
+              </ul>
+            </div>
+          )}
         </div>
         {regOpen && (
           <div
