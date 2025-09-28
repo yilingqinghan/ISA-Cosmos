@@ -159,6 +159,8 @@ export default function CanvasKitPanel() {
   const stepStartRef = useRef<number>(performance.now())
   const [clock, setClock] = useState(0)
   const [regOpen, setRegOpen] = useState(true)
+  const [regWide, setRegWide] = useState(false)
+  const panelWidth = regWide ? 360 : 240
 
   // ==== Icon button styles ====
   const iconBtn: React.CSSProperties = {
@@ -695,15 +697,34 @@ export default function CanvasKitPanel() {
           <div
             className="reg-panel"
             style={{
-              position:'absolute', right: 12, top: 60, bottom: 12, width: 280, zIndex: 12,
+              position:'absolute', right: 12, top: 60, bottom: 12, width: panelWidth, zIndex: 12,
               background:'#ffffff', border:'1px solid #e5e7eb', borderRadius: 14,
               boxShadow:'0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
-              overflow:'hidden', display:'flex', flexDirection:'column'
+              overflow:'hidden', display:'flex', flexDirection:'column',
+              transition:'width .18s ease'
             }}
           >
             <div style={{height:36, display:'flex', alignItems:'center', padding:'0 10px', gap:8, borderBottom:'1px solid #eef2f7'}}>
               <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>寄存器</div>
               <div style={{flex:1}} />
+              <button
+                className="btn icon"
+                title={regWide ? '收窄面板' : '展开面板'}
+                style={{width:24, height:24, borderRadius:12, padding:0, border:'1px solid #e5e7eb', background:'#fff'}}
+                onClick={()=>setRegWide(w=>!w)}
+              >
+                {regWide ? (
+                  // collapse icon
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                ) : (
+                  // expand icon
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                )}
+              </button>
               <button className="btn icon" title="关闭" style={{width:24, height:24, borderRadius:12, padding:0, border:'1px solid #e5e7eb', background:'#fff'}} onClick={()=>setRegOpen(false)}>×</button>
             </div>
             <div style={{flex:1, minHeight:0, overflow:'auto', padding:'8px 10px', fontSize:12, color:'#334155'}}>
@@ -750,6 +771,33 @@ export default function CanvasKitPanel() {
               )}
             </div>
           </div>
+        )}
+        {!regOpen && (
+          <button
+            title="打开寄存器面板"
+            onClick={()=>setRegOpen(true)}
+            style={{
+              position:'absolute',
+              right: 8,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 12,
+              width: 20,
+              height: 72,
+              borderRadius: 12,
+              border: '1px solid #e5e7eb',
+              background:'#ffffff',
+              boxShadow:'0 4px 12px rgba(0,0,0,0.12)',
+              display:'flex',
+              alignItems:'center',
+              justifyContent:'center',
+              cursor:'pointer'
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
         )}
         <KitStage
           contentSize={{ width: 1200, height: 900 }}
