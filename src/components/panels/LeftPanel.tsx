@@ -20,10 +20,21 @@ vsetvli.ri x1, x10, e32m2
   const runExecDecoIds = useRef<string[]>([])
 
   const [doc, setDoc] = useState<{ usage?: string; scenarios?: string[]; notes?: string[]; exceptions?: string[] }>({})
-  const [editorTheme, setEditorTheme] = useState<'isa-light' | 'solarized-light' | 'solarized-dark' | 'vs-dark'>('isa-light')
-  const [editorFont, setEditorFont] = useState<'Fira'|'JetBrains'|'System'>('Fira')
-  const [editorFontSize, setEditorFontSize] = useState(13)
-  const [editorControlsHidden, setEditorControlsHidden] = useState(false)
+  const [editorTheme, setEditorTheme] = useState<'isa-light' | 'solarized-light' | 'solarized-dark' | 'vs-dark'>(()=> {
+    try { return (localStorage.getItem('isa.editorTheme') as any) || 'isa-light' } catch { return 'isa-light' }
+  })
+  const [editorFont, setEditorFont] = useState<'Fira'|'JetBrains'|'System'>(()=> {
+    try { return (localStorage.getItem('isa.editorFont') as any) || 'Fira' } catch { return 'Fira' }
+  })
+  const [editorFontSize, setEditorFontSize] = useState(()=>{
+    try { const v = parseInt(localStorage.getItem('isa.editorFontSize')||''); return Number.isFinite(v) ? v : 13 } catch { return 13 }
+  })
+  const [editorControlsHidden, setEditorControlsHidden] = useState(()=>{
+    try {
+      const v = localStorage.getItem('isa.editorControlsHidden');
+      return v ? v === '1' : true; // 默认隐藏
+    } catch { return true }
+  })
 
   const count = (arr?: string[]) => arr?.length ?? 0
 
@@ -226,6 +237,12 @@ vsetvli.ri x1, x10, e32m2
     const m = monacoRef.current
     if (m) { try { m.editor.setTheme(editorTheme) } catch {} }
   }, [editorTheme])
+
+  // 将设置持久化到浏览器
+  useEffect(()=>{ try { localStorage.setItem('isa.editorTheme', editorTheme) } catch {} }, [editorTheme])
+  useEffect(()=>{ try { localStorage.setItem('isa.editorFont', editorFont) } catch {} }, [editorFont])
+  useEffect(()=>{ try { localStorage.setItem('isa.editorFontSize', String(editorFontSize)) } catch {} }, [editorFontSize])
+  useEffect(()=>{ try { localStorage.setItem('isa.editorControlsHidden', editorControlsHidden ? '1' : '0') } catch {} }, [editorControlsHidden])
 
   useEffect(()=>{
     // 全局引入等宽字体（仅注入一次）
