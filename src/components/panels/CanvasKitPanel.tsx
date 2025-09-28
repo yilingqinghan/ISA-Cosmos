@@ -158,6 +158,7 @@ export default function CanvasKitPanel() {
   const [speed, setSpeed] = useState(1)
   const stepStartRef = useRef<number>(performance.now())
   const [clock, setClock] = useState(0)
+  const [regOpen, setRegOpen] = useState(true)
 
   // ==== Icon button styles ====
   const iconBtn: React.CSSProperties = {
@@ -279,6 +280,32 @@ export default function CanvasKitPanel() {
     const summary = vecGroups.map(g => ({ base: g.baseId, lanes: g.lanes.map(l=>l.id) }))
     dbg('vecGroups =', summary)
   }, [vecGroups])
+
+  // ===== 寄存器快照（用于右侧面板显示） =====
+  const vectorRegs = useMemo(() => {
+    // Map baseId -> lane values (按 lanes 顺序)
+    const map = new Map<string, string[]>()
+    vecGroups.forEach(g => {
+      const vals = g.lanes.map(l => String(l.text ?? ''))
+      map.set(g.baseId, vals)
+    })
+    return map
+  }, [vecGroups])
+
+  const scalarRegs = useMemo(() => {
+    // 收集 x0..x31 等标量寄存器（从 shapes 的 text 提取）
+    const map = new Map<string, string>()
+    for (const s of doc.shapes) {
+      if (s.kind === 'rect' && /^x\d+$/.test(s.id)) {
+        map.set(s.id, String(s.text ?? ''))
+      }
+      // 若 DSL 用 label/text 表示 xN，也尝试兼容
+      if ((s.kind === 'label' || s.kind === 'text') && /^x\d+$/.test(s.text ?? '')) {
+        // 下一步可在 DSL 里约定：同坐标附近的 rect/text 联动；目前先略过
+      }
+    }
+    return map
+  }, [doc.shapes])
 
   // 过渡
   const elapsedInCurrentStep = () => (performance.now() - stepStartRef.current) * speed
@@ -633,6 +660,12 @@ export default function CanvasKitPanel() {
           <button title="切换调试模式" className="btn icon" style={iconBtn} onClick={()=>setDebug(d=>!d)}>
             <span style={iconText}>🧪</span>
           </button>
+          <button title={regOpen ? '关闭寄存器面板' : '打开寄存器面板'} className="btn icon" style={iconBtn} onClick={()=>setRegOpen(o=>!o)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+              <line x1="10" y1="4" x2="10" y2="20"></line>
+            </svg>
+          </button>
           {/* Inline format controls */}
           <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6, marginLeft:8}}>
             <span className="label-muted" title="数制">⑩</span>
@@ -658,6 +691,66 @@ export default function CanvasKitPanel() {
             </Select>
           </div>
         </div>
+        {regOpen && (
+          <div
+            className="reg-panel"
+            style={{
+              position:'absolute', right: 12, top: 60, bottom: 12, width: 280, zIndex: 12,
+              background:'#ffffff', border:'1px solid #e5e7eb', borderRadius: 14,
+              boxShadow:'0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
+              overflow:'hidden', display:'flex', flexDirection:'column'
+            }}
+          >
+            <div style={{height:36, display:'flex', alignItems:'center', padding:'0 10px', gap:8, borderBottom:'1px solid #eef2f7'}}>
+              <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>寄存器</div>
+              <div style={{flex:1}} />
+              <button className="btn icon" title="关闭" style={{width:24, height:24, borderRadius:12, padding:0, border:'1px solid #e5e7eb', background:'#fff'}} onClick={()=>setRegOpen(false)}>×</button>
+            </div>
+            <div style={{flex:1, minHeight:0, overflow:'auto', padding:'8px 10px', fontSize:12, color:'#334155'}}>
+              {/* 标量寄存器 */}
+              <div style={{marginBottom:10, fontWeight:600, color:'#0f172a'}}>标量（x）</div>
+              {scalarRegs.size === 0 ? (
+                <div style={{color:'#64748b'}}>暂无（DSL 中未发现 xN）</div>
+              ) : (
+                <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gridTemplateColumns:'1fr 1fr', gap:6}}>
+                  {Array.from(scalarRegs.entries()).sort((a,b)=>parseInt(a[0].slice(1)) - parseInt(b[0].slice(1))).map(([k,v])=>(
+                    <li key={k} style={{display:'flex', alignItems:'center', gap:6, border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 8px', background:'#f8fafc'}}>
+                      <span style={{fontWeight:700}}>{k}</span>
+                      <span style={{marginLeft:'auto'}}>{fmt(v, fmtSnap.base, fmtSnap.hexDigits)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* 向量寄存器 */}
+              <div style={{margin:'12px 0 8px', fontWeight:600, color:'#0f172a'}}>向量（v）</div>
+              {vectorRegs.size === 0 ? (
+                <div style={{color:'#64748b'}}>暂无（DSL 中未发现 v 组）</div>
+              ) : (
+                <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
+                  {Array.from(vectorRegs.entries()).sort((a,b)=>parseInt(a[0].slice(1)) - parseInt(b[0].slice(1))).map(([base, lanes])=>{
+                    const merged = '0x' + lanes.map(v => fmt(v, 'hex', fmtSnap.hexDigits).replace(/^0x/i, '')).join('')
+                    return (
+                      <li key={base} style={{border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 8px', background:'#ffffff'}}>
+                        <div style={{display:'flex', alignItems:'center', gap:8}}>
+                          <span style={{fontWeight:700}}>{base}</span>
+                          <span style={{fontSize:11, color:'#475569', padding:'2px 6px', border:'1px solid #e5e7eb', borderRadius:999}}>VL{lanes.length}</span>
+                        </div>
+                        <div style={{marginTop:6, fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'}}>
+                          {fmtSnap.base === 'hex'
+                            ? <div style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{merged}</div>
+                            : <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:4}}>
+                                {lanes.map((v,i)=><span key={i} style={{textAlign:'right'}}>{fmt(v, fmtSnap.base, fmtSnap.hexDigits)}</span>)}
+                              </div>}
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
         <KitStage
           contentSize={{ width: 1200, height: 900 }}
           zoom={zoom}
