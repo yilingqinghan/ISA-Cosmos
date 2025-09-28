@@ -253,13 +253,13 @@ vsetvli.ri x1, x10, e32m2
     /* 错误气泡的基础样式（你已有），这里微调一点阴影/圆角以显得更高级 */
     .err-bubble { background:#fff; border:1px solid #fecaca; color:#991b1b; padding:4px 8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.06); font-size:12px; }
     /* glyph 红点在 Monaco 左侧栏已经启用，这里不强行覆盖 */
-    /* 主题色圆点按钮 */
-    .theme-btn { padding: 4px !important; }
-    .theme-dot {
-      width: 16px; height: 16px; border-radius: 999px; display:inline-block;
-      border: 1px solid rgba(0,0,0,0.28);
+    /* 主题色圆形按钮（按钮自身着色）*/
+    .theme-btn {
+      width: 18px; height: 18px; border-radius: 999px; padding: 0 !important;
+      border: 1px solid rgba(0,0,0,0.28); display: inline-flex; align-items: center; justify-content: center;
+      min-width: 18px; /* 覆盖 .btn 的最小宽度 */
     }
-    .theme-dot.active { outline: 2px solid #2563eb; outline-offset: 1px; }
+    .theme-btn.active { outline: 2px solid #2563eb; outline-offset: 1px; }
     `
     document.head.appendChild(style)
   }, [])
@@ -345,18 +345,34 @@ vsetvli.ri x1, x10, e32m2
             ) : (
               <>
                 <span className="muted" style={{fontSize:11, marginRight:6}}>主题</span>
-                <button title="浅色 (Isa)" className="btn theme-btn" onClick={()=>setEditorTheme('isa-light')} aria-label="Isa Light">
-                  <span className={`theme-dot ${editorTheme==='isa-light'?'active':''}`} style={{background:'#38bdf8', borderColor:'#38bdf8'}} />
-                </button>
-                <button title="Solarized Light" className="btn theme-btn" onClick={()=>setEditorTheme('solarized-light')} aria-label="Solarized Light">
-                  <span className={`theme-dot ${editorTheme==='solarized-light'?'active':''}`} style={{background:'#268bd2', borderColor:'#268bd2'}} />
-                </button>
-                <button title="Solarized Dark" className="btn theme-btn" onClick={()=>setEditorTheme('solarized-dark')} aria-label="Solarized Dark">
-                  <span className={`theme-dot ${editorTheme==='solarized-dark'?'active':''}`} style={{background:'#073642', borderColor:'#073642'}} />
-                </button>
-                <button title="VS Dark" className="btn theme-btn" onClick={()=>setEditorTheme('vs-dark')} aria-label="VS Dark">
-                  <span className={`theme-dot ${editorTheme==='vs-dark'?'active':''}`} style={{background:'#1e1e1e', borderColor:'#1e1e1e'}} />
-                </button>
+                <button
+                  title="浅色 (Isa)"
+                  className={`btn theme-btn ${editorTheme==='isa-light'?'active':''}`}
+                  onClick={()=>setEditorTheme('isa-light')}
+                  aria-label="Isa Light"
+                  style={{background:'#FBFCFD', borderColor:'#94a3b8'}}
+                />
+                <button
+                  title="Solarized Light"
+                  className={`btn theme-btn ${editorTheme==='solarized-light'?'active':''}`}
+                  onClick={()=>setEditorTheme('solarized-light')}
+                  aria-label="Solarized Light"
+                  style={{background:'#fdf6e3', borderColor:'#d9cbb2'}}
+                />
+                <button
+                  title="Solarized Dark"
+                  className={`btn theme-btn ${editorTheme==='solarized-dark'?'active':''}`}
+                  onClick={()=>setEditorTheme('solarized-dark')}
+                  aria-label="Solarized Dark"
+                  style={{background:'#002b36', borderColor:'#0b3942'}}
+                />
+                <button
+                  title="VS Dark"
+                  className={`btn theme-btn ${editorTheme==='vs-dark'?'active':''}`}
+                  onClick={()=>setEditorTheme('vs-dark')}
+                  aria-label="VS Dark"
+                  style={{background:'#1e1e1e', borderColor:'#3a3a3a'}}
+                />
                 <span style={{width:6}} />
                 <span className="muted" style={{fontSize:11, marginRight:6}}>字体</span>
                 <select aria-label="选择字体" className="btn" value={editorFont} onChange={(e)=>setEditorFont(e.target.value as any)} style={{padding:'2px 8px'}}>
@@ -367,7 +383,7 @@ vsetvli.ri x1, x10, e32m2
                 <span style={{width:6}} />
                 <button title="字号变小" className="btn" onClick={()=>setEditorFontSize(s=>Math.max(10, s-1))}>－</button>
                 <button title="字号变大" className="btn" onClick={()=>setEditorFontSize(s=>Math.min(22, s+1))}>＋</button>
-                <button title="重置字号" className="btn" onClick={()=>setEditorFontSize(13)}>A</button>
+                <button title="重置为默认设置" className="btn" onClick={()=>{ setEditorTheme('isa-light'); setEditorFont('Fira'); setEditorFontSize(13); }}>重置</button>
                 <span style={{width:6}} />
                 <button title="隐藏编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(true)}>—</button>
                 <button className="btn" onClick={handleRun}>Run</button>
