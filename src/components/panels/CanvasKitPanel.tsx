@@ -166,7 +166,7 @@ export default function CanvasKitPanel() {
 
   // ==== Icon button styles ====
   const iconBtn: React.CSSProperties = {
-    width: 28, height: 28, minWidth: 28, minHeight: 28,
+    width: 32, height: 32, minWidth: 32, minHeight: 32,
     borderRadius: '50%',
     display: 'inline-flex',
     alignItems: 'center', justifyContent: 'center',
@@ -671,23 +671,23 @@ export default function CanvasKitPanel() {
             style={{
               position: 'absolute',
               left: '50%',
-              top: 72,
+              top: 84,
               transform: 'translateX(-50%)',
               zIndex: 10,
               width: 'min(96vw, 1100px)',
               maxWidth: '100%',
-              borderRadius: 20,
+              borderRadius: 24,
               background: '#ffffff',
               boxShadow: '0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
               border: '1px solid #e5e7eb',
-              padding: '6px 10px',
-              paddingLeft: 12,
+              padding: '10px 14px',
+              paddingLeft: 14,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
+              justifyContent: 'space-between',
+              gap: 10,
               flexWrap: 'wrap',
-              rowGap: 8,
+              rowGap: 10,
               pointerEvents: 'auto'
             }}
           >
@@ -709,13 +709,13 @@ export default function CanvasKitPanel() {
             </button>
             <label className="switch" title="播放速度" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6, flexShrink:0}}>
               <span style={iconText}>⚡</span>
-              <select className="select" value={String(speed)} onChange={e=>setSpeed(Number(e.target.value))} style={{height:28}}>
+              <select className="select" value={String(speed)} onChange={e=>setSpeed(Number(e.target.value))} style={{height:32}}>
                 <option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
               </select>
             </label>
             <label className="switch" title="缩放" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6, flexShrink:0}}>
               <span style={iconText}>🔍</span>
-              <select className="select" value={String(zoom)} onChange={e=>setZoom(parseFloat(e.target.value))} style={{height:28}}>
+              <select className="select" value={String(zoom)} onChange={e=>setZoom(parseFloat(e.target.value))} style={{height:32}}>
                 <option value="0.75">75%</option><option value="1">100%</option>
                 <option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option>
               </select>
@@ -784,7 +784,7 @@ export default function CanvasKitPanel() {
               top: 10,
               transform:'translateX(-50%)',
               zIndex: 10,
-              height: 26,
+              height: 28,
               padding:'0 10px',
               borderRadius: 13,
               border:'1px solid #e5e7eb',
