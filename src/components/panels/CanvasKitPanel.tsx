@@ -166,8 +166,8 @@ export default function CanvasKitPanel() {
 
   // ==== Icon button styles ====
   const iconBtn: React.CSSProperties = {
-    width: 32, height: 32, minWidth: 32, minHeight: 32,
-    borderRadius: '50%',
+    width: 36, height: 28, minWidth: 36, minHeight: 28,
+    borderRadius: 8,
     display: 'inline-flex',
     alignItems: 'center', justifyContent: 'center',
     border: '1px solid #e5e7eb',
@@ -176,8 +176,7 @@ export default function CanvasKitPanel() {
     cursor: 'pointer',
     fontSize: 12,
     padding: 0,
-    flex: '0 0 auto',
-    aspectRatio: '1 / 1'
+    flex: '0 0 auto'
   }
   const iconText: React.CSSProperties = { lineHeight: '1', fontSize: 12 }
   const iconGap: React.CSSProperties = { width: 6 }
@@ -653,7 +652,7 @@ export default function CanvasKitPanel() {
             zIndex: 11,
             background:'#1f2937',
             color:'#fff',
-            borderRadius: 24,
+            borderRadius: 14,
             padding:'10px 16px',
             boxShadow:'0 8px 20px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.10)',
             border:'1px solid #0f172a1a',
@@ -784,9 +783,9 @@ export default function CanvasKitPanel() {
               top: 10,
               transform:'translateX(-50%)',
               zIndex: 10,
-              height: 28,
-              padding:'0 10px',
-              borderRadius: 13,
+              height: 30,
+              padding:'0 12px',
+              borderRadius: 8,
               border:'1px solid #e5e7eb',
               background:'#ffffff',
               boxShadow:'0 4px 12px rgba(0,0,0,0.12)',
@@ -817,7 +816,7 @@ export default function CanvasKitPanel() {
             <button
               title={hotkeyOpen ? '收起 (H)' : '展开 (H)'}
               onClick={()=>setHotkeyOpen(o=>!o)}
-              style={{width:22, height:22, borderRadius:11, border:'1px solid #e5e7eb', background:'#fff', cursor:'pointer'}}
+              style={{width:28, height:24, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', cursor:'pointer'}}
             >{hotkeyOpen ? '−' : '＋'}</button>
           </div>
           {hotkeyOpen && (
@@ -853,7 +852,7 @@ export default function CanvasKitPanel() {
               <button
                 className="btn icon"
                 title={regWide ? '收窄面板' : '展开面板'}
-                style={{width:24, height:24, borderRadius:12, padding:0, border:'1px solid #e5e7eb', background:'#fff'}}
+                style={{width:28, height:24, borderRadius:8, padding:0, border:'1px solid #e5e7eb', background:'#fff'}}
                 onClick={()=>setRegWide(w=>!w)}
               >
                 {regWide ? (
@@ -868,7 +867,7 @@ export default function CanvasKitPanel() {
                   </svg>
                 )}
               </button>
-              <button className="btn icon" title="关闭" style={{width:24, height:24, borderRadius:12, padding:0, border:'1px solid #e5e7eb', background:'#fff'}} onClick={()=>setRegOpen(false)}>×</button>
+              <button className="btn icon" title="关闭" style={{width:28, height:24, borderRadius:8, padding:0, border:'1px solid #e5e7eb', background:'#fff'}} onClick={()=>setRegOpen(false)}>×</button>
             </div>
             <div style={{flex:1, minHeight:0, overflow:'auto', padding:'8px 10px', fontSize:12, color:'#334155'}}>
               {/* 标量寄存器 */}
@@ -927,7 +926,7 @@ export default function CanvasKitPanel() {
               zIndex: 12,
               width: 20,
               height: 72,
-              borderRadius: 12,
+              borderRadius: 10,
               border: '1px solid #e5e7eb',
               background:'#ffffff',
               boxShadow:'0 4px 12px rgba(0,0,0,0.12)',
