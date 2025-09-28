@@ -352,11 +352,11 @@ vsetvli.ri x1, x10, e32m2
       <LeftNotch inline />
 
       {/* 主体区域占满剩余空间，不与刘海重叠 */}
-      <div className="left-root" style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) 120px', gap:8, flex:'1 1 auto', minHeight:0 }}>
+      <div className="left-root" style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) 120px', gap:8, flex:'1 1 auto', minHeight:0, minWidth:0 }}>
         {/* 主列：编辑器 + Usage */}
-        <div className="left-main" style={{flex:1, minWidth:0, display:'grid', gridTemplateRows: 'minmax(180px,1.4fr) minmax(120px,0.8fr)', gap:8, minHeight:0}}>
+        <div className="left-main" style={{flex:1, minWidth:0, display:'grid', gridTemplateRows: 'minmax(180px,1.4fr) minmax(120px,0.8fr)', gap:8, minHeight:0, overflow:'hidden'}}>
           {/* 上：编辑器 */}
-          <div className="left-top nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
+          <div className="left-top nice-card" style={{display:'flex', flexDirection:'column', minHeight:120, minWidth:0, overflow:'hidden'}}>
             <div className="panel-toolbar">
               <div className="panel-title">Editor</div>
               <div className="grow" />
@@ -413,7 +413,7 @@ vsetvli.ri x1, x10, e32m2
                 </>
               )}
             </div>
-            <div className="editor-wrap" style={{flex:1, minHeight:0}}>
+            <div className="editor-wrap" style={{flex:1, minHeight:0, minWidth:0, overflow:'hidden'}}>
               <Editor height="100%" defaultLanguage="asm" value={code}
                       onChange={v=>setCode(v??'')} onMount={onMount}
                       theme={editorTheme}
@@ -426,7 +426,7 @@ vsetvli.ri x1, x10, e32m2
             </div>
           </div>
 
-          <div className="left-mid nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
+          <div className="left-mid nice-card" style={{display:'flex', flexDirection:'column', minHeight:120, minWidth:0, overflow:'hidden'}}>
             <div className="panel-toolbar">
               <div className="panel-title">Usage</div>
               <div className="grow" />
@@ -465,7 +465,7 @@ vsetvli.ri x1, x10, e32m2
         </div>
 
         {/* 右侧：指令目录（可独立滚动） */}
-        <aside className="left-catalog nice-card" style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
+        <aside className="left-catalog nice-card" style={{display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0}}>
           <div className="panel-toolbar">
             <div className="panel-title">指令目录</div>
             <div className="grow" />
