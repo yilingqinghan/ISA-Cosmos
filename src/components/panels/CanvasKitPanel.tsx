@@ -166,7 +166,6 @@ export default function CanvasKitPanel() {
   const [speed, setSpeed] = useState(1)
   const stepStartRef = useRef<number>(performance.now())
   const [clock, setClock] = useState(0)
-  const [regOpen, setRegOpen] = useState(true)
   const [regWide, setRegWide] = useState(false)
   const panelWidth = regWide ? 360 : 240
   const [hotkeyOpen, setHotkeyOpen] = useState(true)
@@ -180,7 +179,6 @@ export default function CanvasKitPanel() {
       if (typeof p.showGrid === 'boolean') setShowGrid(!!p.showGrid)
       if (typeof p.speed === 'number') setSpeed(Math.max(0.25, Math.min(8, p.speed)))
       if (typeof p.zoom === 'number') setZoom(Math.max(0.5, Math.min(2, p.zoom)))
-      if (typeof p.regOpen === 'boolean') setRegOpen(!!p.regOpen)
       if (typeof p.regWide === 'boolean') setRegWide(!!p.regWide)
       if (typeof p.toolbarVisible === 'boolean') setToolbarVisible(!!p.toolbarVisible)
       if (typeof p.hotkeyOpen === 'boolean') setHotkeyOpen(!!p.hotkeyOpen)
@@ -198,11 +196,11 @@ export default function CanvasKitPanel() {
   useEffect(()=>{
     const id = setTimeout(()=>{
       writeJSON(PREFS_KEY, {
-        showGrid, speed, zoom, regOpen, regWide, toolbarVisible, hotkeyOpen, debugOn
+        showGrid, speed, zoom, regWide, toolbarVisible, hotkeyOpen, debugOn
       })
     }, 200)
     return ()=> clearTimeout(id)
-  }, [showGrid, speed, zoom, regOpen, regWide, toolbarVisible, hotkeyOpen, debugOn])
+  }, [showGrid, speed, zoom, regWide, toolbarVisible, hotkeyOpen, debugOn])
 
   // Persist format (base/hexDigits) when changed
   useEffect(()=>{
@@ -445,10 +443,6 @@ export default function CanvasKitPanel() {
         case 'r':
         case 'R': // 复位
           setResetTick(t => t + 1)
-          break
-        case 's':
-        case 'S': // 寄存器面板
-          setRegOpen(o => !o)
           break
         case 't':
         case 'T': // 工具条显隐
@@ -719,7 +713,7 @@ export default function CanvasKitPanel() {
               transform: 'translateX(-50%)',
               zIndex: 10,
               width: 'min(96vw, 1100px)',
-              maxWidth: '100%',
+              maxWidth: '70%',
               borderRadius: 24,
               background: '#ffffff',
               boxShadow: '0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
@@ -774,7 +768,7 @@ export default function CanvasKitPanel() {
               setDebugOn(v=>{
                 const nv = !v
                 // write immediately so刷新后也记住
-                writeJSON(PREFS_KEY, { showGrid, speed, zoom, regOpen, regWide, toolbarVisible, hotkeyOpen, debugOn: nv })
+                writeJSON(PREFS_KEY, { showGrid, speed, zoom, regWide, toolbarVisible, hotkeyOpen, debugOn: nv })
                 return nv
               });
               if (!debugOn) clearLogs();
@@ -784,12 +778,6 @@ export default function CanvasKitPanel() {
             </button>
             <button title="切换调试模式" className="btn icon" style={iconBtn} onClick={()=>setDebug(d=>!d)}>
               <span style={iconText}>🧪</span>
-            </button>
-            <button title={regOpen ? '关闭寄存器面板' : '打开寄存器面板'} className="btn icon" style={iconBtn} onClick={()=>setRegOpen(o=>!o)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                <line x1="10" y1="4" x2="10" y2="20"></line>
-              </svg>
             </button>
             {/* Inline format controls */}
             <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6, marginLeft:8, flexShrink:0}}>
@@ -885,112 +873,6 @@ export default function CanvasKitPanel() {
             </div>
           )}
         </div>
-        {regOpen && (
-          <div
-            className="reg-panel"
-            style={{
-              position:'absolute', right: 12, top: 60, bottom: 12, width: panelWidth, zIndex: 12,
-              background:'#ffffff', border:'1px solid #e5e7eb', borderRadius: 14,
-              boxShadow:'0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
-              overflow:'hidden', display:'flex', flexDirection:'column',
-              transition:'width .18s ease'
-            }}
-          >
-            <div style={{height:36, display:'flex', alignItems:'center', padding:'0 10px', gap:8, borderBottom:'1px solid #eef2f7'}}>
-              <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>寄存器</div>
-              <div style={{flex:1}} />
-              <button
-                className="btn icon"
-                title={regWide ? '收窄面板' : '展开面板'}
-                style={{width:28, height:24, borderRadius:8, padding:0, border:'1px solid #e5e7eb', background:'#fff'}}
-                onClick={()=>setRegWide(w=>!w)}
-              >
-                {regWide ? (
-                  // collapse icon
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                  </svg>
-                ) : (
-                  // expand icon
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                )}
-              </button>
-              <button className="btn icon" title="关闭" style={{width:28, height:24, borderRadius:8, padding:0, border:'1px solid #e5e7eb', background:'#fff'}} onClick={()=>setRegOpen(false)}>×</button>
-            </div>
-            <div style={{flex:1, minHeight:0, overflow:'auto', padding:'8px 10px', fontSize:12, color:'#334155'}}>
-              {/* 标量寄存器 */}
-              <div style={{marginBottom:10, fontWeight:600, color:'#0f172a'}}>标量（x）</div>
-              {scalarRegs.size === 0 ? (
-                <div style={{color:'#64748b'}}>暂无（DSL 中未发现 xN）</div>
-              ) : (
-                <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gridTemplateColumns:'1fr 1fr', gap:6}}>
-                  {Array.from(scalarRegs.entries()).sort((a,b)=>parseInt(a[0].slice(1)) - parseInt(b[0].slice(1))).map(([k,v])=>(
-                    <li key={k} style={{display:'flex', alignItems:'center', gap:6, border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 8px', background:'#f8fafc'}}>
-                      <span style={{fontWeight:700}}>{k}</span>
-                      <span style={{marginLeft:'auto'}}>{fmt(v, fmtSnap.base, fmtSnap.hexDigits)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {/* 向量寄存器 */}
-              <div style={{margin:'12px 0 8px', fontWeight:600, color:'#0f172a'}}>向量（v）</div>
-              {vectorRegs.size === 0 ? (
-                <div style={{color:'#64748b'}}>暂无（DSL 中未发现 v 组）</div>
-              ) : (
-                <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
-                  {Array.from(vectorRegs.entries()).sort((a,b)=>parseInt(a[0].slice(1)) - parseInt(b[0].slice(1))).map(([base, lanes])=>{
-                    const merged = '0x' + lanes.map(v => fmt(v, 'hex', fmtSnap.hexDigits).replace(/^0x/i, '')).join('')
-                    return (
-                      <li key={base} style={{border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 8px', background:'#ffffff'}}>
-                        <div style={{display:'flex', alignItems:'center', gap:8}}>
-                          <span style={{fontWeight:700}}>{base}</span>
-                          <span style={{fontSize:11, color:'#475569', padding:'2px 6px', border:'1px solid #e5e7eb', borderRadius:999}}>VL{lanes.length}</span>
-                        </div>
-                        <div style={{marginTop:6, fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'}}>
-                          {fmtSnap.base === 'hex'
-                            ? <div style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{merged}</div>
-                            : <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:4}}>
-                                {lanes.map((v,i)=><span key={i} style={{textAlign:'right'}}>{fmt(v, fmtSnap.base, fmtSnap.hexDigits)}</span>)}
-                              </div>}
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </div>
-          </div>
-        )}
-        {!regOpen && (
-          <button
-            title="打开寄存器面板"
-            onClick={()=>setRegOpen(true)}
-            style={{
-              position:'absolute',
-              right: 8,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              zIndex: 12,
-              width: 20,
-              height: 72,
-              borderRadius: 10,
-              border: '1px solid #e5e7eb',
-              background:'#ffffff',
-              boxShadow:'0 4px 12px rgba(0,0,0,0.12)',
-              display:'flex',
-              alignItems:'center',
-              justifyContent:'center',
-              cursor:'pointer'
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </button>
-        )}
         <KitStage
           contentSize={{ width: 1200, height: 900 }}
           zoom={zoom}
@@ -1031,22 +913,98 @@ export default function CanvasKitPanel() {
           <button className="btn" onClick={()=>clearLogs()} style={{marginLeft:6}}>清空</button>
         </div>
         {logsOpen && (
-          <div style={{height:144, overflow:'auto', padding:'6px 10px'}}>
-            {(!logs || logs.length===0) ? (
-              <div style={{fontSize:12, color:'#64748b'}}>暂无日志。运行后会在此显示解析步骤 / 提示。</div>
-            ) : (
-              <ul style={{listStyle:'none', padding:0, margin:0, fontSize:12, color:'#334155'}}>
-                {logs.map((l, i)=>(
-                  <li key={i} style={{display:'flex', gap:6, padding:'3px 0'}}>
-                    <span style={{width:6, height:6, borderRadius:6, background:'#0ea5e9', marginTop:7}} />
-                    <span style={{lineHeight:1.5}}>{l}</span>
-                  </li>
-                ))}
-              </ul>
+          <div style={{display:'flex', height:144}}>
+            {/* Left: Logs (50% or 100% when reg pane closed) */}
+            <div style={{flex: '0 0 50%' , overflow:'auto', padding:'6px 10px'}}>
+              {(!logs || logs.length===0) ? (
+                <div style={{fontSize:12, color:'#64748b'}}>暂无日志。运行后会在此显示解析步骤 / 提示。</div>
+              ) : (
+                <ul style={{listStyle:'none', padding:0, margin:0, fontSize:12, color:'#334155'}}>
+                  {logs.map((l, i)=>(
+                    <li key={i} style={{display:'flex', gap:6, padding:'3px 0'}}>
+                      <span style={{width:6, height:6, borderRadius:6, background:'#0ea5e9', marginTop:7}} />
+                      <span style={{lineHeight:1.5}}>{l}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {/* Right: Embedded Register Pane (50%) */}
+            {(
+              <div style={{
+                flex:'0 0 50%',
+                borderLeft:'1px solid #e5e7eb',
+                padding:'6px 10px',
+                overflow:'auto',
+                fontSize:12,
+                color:'#334155',
+                background:'#ffffff'
+              }}>
+                <div style={{marginBottom:6, display:'flex', alignItems:'center', gap:8}}>
+                  <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>寄存器</div>
+                  <div style={{flex:1}} />
+                  <button
+                    className="btn icon"
+                    title={regWide ? '收窄面板' : '展开面板'}
+                    style={{width:28, height:24, borderRadius:8, padding:0, border:'1px solid #e5e7eb', background:'#fff'}}
+                    onClick={()=>setRegWide(w=>!w)}
+                  >
+                    {regWide ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                      </svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                {/* 标量寄存器 */}
+                <div style={{marginBottom:10, fontWeight:600, color:'#0f172a'}}>标量（x）</div>
+                {scalarRegs.size === 0 ? (
+                  <div style={{color:'#64748b'}}>暂无（DSL 中未发现 xN）</div>
+                ) : (
+                  <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gridTemplateColumns:'1fr 1fr', gap:6}}>
+                    {Array.from(scalarRegs.entries()).sort((a,b)=>parseInt(a[0].slice(1)) - parseInt(b[0].slice(1))).map(([k,v])=>(
+                      <li key={k} style={{display:'flex', alignItems:'center', gap:6, border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 8px', background:'#f8fafc'}}>
+                        <span style={{fontWeight:700}}>{k}</span>
+                        <span style={{marginLeft:'auto'}}>{fmt(v, fmtSnap.base, fmtSnap.hexDigits)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {/* 向量寄存器 */}
+                <div style={{margin:'12px 0 8px', fontWeight:600, color:'#0f172a'}}>向量（v）</div>
+                {vectorRegs.size === 0 ? (
+                  <div style={{color:'#64748b'}}>暂无（DSL 中未发现 v 组）</div>
+                ) : (
+                  <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
+                    {Array.from(vectorRegs.entries()).sort((a,b)=>parseInt(a[0].slice(1)) - parseInt(b[0].slice(1))).map(([base, lanes])=>{
+                      const merged = '0x' + lanes.map(v => fmt(v, 'hex', fmtSnap.hexDigits).replace(/^0x/i, '')).join('')
+                      return (
+                        <li key={base} style={{border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 8px', background:'#ffffff'}}>
+                          <div style={{display:'flex', alignItems:'center', gap:8}}>
+                            <span style={{fontWeight:700}}>{base}</span>
+                            <span style={{fontSize:11, color:'#475569', padding:'2px 6px', border:'1px solid #e5e7eb', borderRadius:999}}>VL{lanes.length}</span>
+                          </div>
+                          <div style={{marginTop:6, fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'}}>
+                            {fmtSnap.base === 'hex'
+                              ? <div style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{merged}</div>
+                              : <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:4}}>
+                                  {lanes.map((v,i)=><span key={i} style={{textAlign:'right'}}>{fmt(v, fmtSnap.base, fmtSnap.hexDigits)}</span>)}
+                                </div>}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
             )}
           </div>
         )}
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
