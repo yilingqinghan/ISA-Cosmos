@@ -35,6 +35,14 @@ vsetvli.ri x1, x10, e32m2
     border:'1px solid #cbd5e1'
   }
 
+  function computeFontFamily(font: 'Fira'|'JetBrains'|'System') {
+    return font === 'Fira'
+      ? `'Fira Code','JetBrains Mono','SFMono-Regular','Menlo','Consolas','Liberation Mono','ui-monospace',monospace`
+      : font === 'JetBrains'
+      ? `'JetBrains Mono','Fira Code','SFMono-Regular','Menlo','Consolas','Liberation Mono','ui-monospace',monospace`
+      : `'SFMono-Regular','Menlo','Consolas','Liberation Mono','ui-monospace',monospace`
+  }
+
   // 生成演示代码：opcode.form + 占位操作数（根据 operands 类型/role）
   function buildSample(op: string, form: string, operands?: {kind:string; role?:string}[]) {
     const picks: Record<string, string> = { vd:'v0', vs1:'v1', vs2:'v2' }
@@ -202,13 +210,34 @@ vsetvli.ri x1, x10, e32m2
       fontLigatures: true,
       mouseWheelZoom: true,
       rulers: [80],
+      fontFamily: computeFontFamily(editorFont),
+      fontSize: editorFontSize,
     })
   }
+  useEffect(()=>{
+    const ed = editorRef.current
+    const m = monacoRef.current as any
+    if (!ed) return
+    ed.updateOptions({ fontFamily: computeFontFamily(editorFont), fontSize: editorFontSize })
+    try { m?.editor?.remeasureFonts?.() } catch {}
+  }, [editorFont, editorFontSize])
 
   useEffect(()=>{
     const m = monacoRef.current
     if (m) { try { m.editor.setTheme(editorTheme) } catch {} }
   }, [editorTheme])
+
+  useEffect(()=>{
+    // 全局引入等宽字体（仅注入一次）
+    if (document.getElementById('isa-fonts')) return
+    const style = document.createElement('style')
+    style.id = 'isa-fonts'
+    style.textContent = `
+      /* 按需加载 Fira Code / JetBrains Mono（配合 computeFontFamily 使用） */
+      @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    `
+    document.head.appendChild(style)
+  }, [])
 
   useEffect(() => {
     if (document.getElementById('isa-monaco-style')) return
@@ -224,6 +253,13 @@ vsetvli.ri x1, x10, e32m2
     /* 错误气泡的基础样式（你已有），这里微调一点阴影/圆角以显得更高级 */
     .err-bubble { background:#fff; border:1px solid #fecaca; color:#991b1b; padding:4px 8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.06); font-size:12px; }
     /* glyph 红点在 Monaco 左侧栏已经启用，这里不强行覆盖 */
+    /* 主题色圆点按钮 */
+    .theme-btn { padding: 4px !important; }
+    .theme-dot {
+      width: 16px; height: 16px; border-radius: 999px; display:inline-block;
+      border: 1px solid rgba(0,0,0,0.28);
+    }
+    .theme-dot.active { outline: 2px solid #2563eb; outline-offset: 1px; }
     `
     document.head.appendChild(style)
   }, [])
@@ -308,17 +344,29 @@ vsetvli.ri x1, x10, e32m2
               </>
             ) : (
               <>
-                <button title="浅色 (Isa)" className="btn" onClick={()=>setEditorTheme('isa-light')}>◻︎</button>
-                <button title="Solarized Light" className="btn" onClick={()=>setEditorTheme('solarized-light')}>☀️</button>
-                <button title="Solarized Dark" className="btn" onClick={()=>setEditorTheme('solarized-dark')}>🌙</button>
-                <button title="VS Dark" className="btn" onClick={()=>setEditorTheme('vs-dark')}>⬛</button>
+                <span className="muted" style={{fontSize:11, marginRight:6}}>主题</span>
+                <button title="浅色 (Isa)" className="btn theme-btn" onClick={()=>setEditorTheme('isa-light')} aria-label="Isa Light">
+                  <span className={`theme-dot ${editorTheme==='isa-light'?'active':''}`} style={{background:'#38bdf8', borderColor:'#38bdf8'}} />
+                </button>
+                <button title="Solarized Light" className="btn theme-btn" onClick={()=>setEditorTheme('solarized-light')} aria-label="Solarized Light">
+                  <span className={`theme-dot ${editorTheme==='solarized-light'?'active':''}`} style={{background:'#268bd2', borderColor:'#268bd2'}} />
+                </button>
+                <button title="Solarized Dark" className="btn theme-btn" onClick={()=>setEditorTheme('solarized-dark')} aria-label="Solarized Dark">
+                  <span className={`theme-dot ${editorTheme==='solarized-dark'?'active':''}`} style={{background:'#073642', borderColor:'#073642'}} />
+                </button>
+                <button title="VS Dark" className="btn theme-btn" onClick={()=>setEditorTheme('vs-dark')} aria-label="VS Dark">
+                  <span className={`theme-dot ${editorTheme==='vs-dark'?'active':''}`} style={{background:'#1e1e1e', borderColor:'#1e1e1e'}} />
+                </button>
                 <span style={{width:6}} />
-                <button title="Fira Code" className="btn" onClick={()=>setEditorFont('Fira')}>F</button>
-                <button title="JetBrains Mono" className="btn" onClick={()=>setEditorFont('JetBrains')}>J</button>
-                <button title="System Mono" className="btn" onClick={()=>setEditorFont('System')}>Sys</button>
+                <span className="muted" style={{fontSize:11, marginRight:6}}>字体</span>
+                <select aria-label="选择字体" className="btn" value={editorFont} onChange={(e)=>setEditorFont(e.target.value as any)} style={{padding:'2px 8px'}}>
+                  <option value="Fira">Fira Code</option>
+                  <option value="JetBrains">JetBrains Mono</option>
+                  <option value="System">系统等宽</option>
+                </select>
                 <span style={{width:6}} />
-                <button title="字号变小" className="btn" onClick={()=>setEditorFontSize(s=>Math.max(10, s-1))}>A−</button>
-                <button title="字号变大" className="btn" onClick={()=>setEditorFontSize(s=>Math.min(22, s+1))}>A＋</button>
+                <button title="字号变小" className="btn" onClick={()=>setEditorFontSize(s=>Math.max(10, s-1))}>－</button>
+                <button title="字号变大" className="btn" onClick={()=>setEditorFontSize(s=>Math.min(22, s+1))}>＋</button>
                 <button title="重置字号" className="btn" onClick={()=>setEditorFontSize(13)}>A</button>
                 <span style={{width:6}} />
                 <button title="隐藏编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(true)}>—</button>
@@ -334,11 +382,7 @@ vsetvli.ri x1, x10, e32m2
                       minimap: { enabled: false },
                       automaticLayout: true,
                       fontSize: editorFontSize,
-                      fontFamily: editorFont === 'Fira'
-                        ? `'Fira Code','JetBrains Mono','SFMono-Regular','Menlo','Consolas','Liberation Mono','ui-monospace',monospace`
-                        : editorFont === 'JetBrains'
-                        ? `'JetBrains Mono','Fira Code','SFMono-Regular','Menlo','Consolas','Liberation Mono','ui-monospace',monospace`
-                        : `'SFMono-Regular','Menlo','Consolas','Liberation Mono','ui-monospace',monospace`,
+                      fontFamily: computeFontFamily(editorFont),
                     }} />
           </div>
         </div>
