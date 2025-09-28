@@ -11,7 +11,7 @@ export function LeftNotch({ inline = false }: { inline?: boolean }) {
     border: '1px solid #e2e8f0',
     borderTop: 'none',
     borderRadius: '0 0 14px 14px',
-    background: 'rgba(245,248,255,0.9)',
+    background: 'rgba(230,238,255,0.9)',
     backdropFilter: 'saturate(180%) blur(8px)',
     WebkitBackdropFilter: 'saturate(180%) blur(8px)',
     boxShadow: '0 8px 16px rgba(0,0,0,0.06)'
@@ -45,14 +45,14 @@ export function RightNotch({ inline = false }: { inline?: boolean }) {
     padding:'6px 12px',
     border:'1px solid #e2e8f0', borderTop:'none',
     borderRadius:'0 0 14px 14px',
-    background:'rgba(245,248,255,0.9)',
+    background:'rgba(230,238,255,0.9)',
     backdropFilter:'saturate(180%) blur(8px)',
     WebkitBackdropFilter:'saturate(180%) blur(8px)',
     boxShadow:'0 8px 16px rgba(0,0,0,0.06)'
   }
   const floating: React.CSSProperties = {
     position:'absolute', top:0, right:0, zIndex:2,
-    minWidth:'520px', width:'fit-content', justifyContent:'flex-end', pointerEvents:'auto'
+    minWidth:'660px', width:'fit-content', justifyContent:'flex-end', pointerEvents:'auto'
   }
   const inlineStyle: React.CSSProperties = {
     position:'static', minWidth:'auto', justifyContent:'flex-end',
