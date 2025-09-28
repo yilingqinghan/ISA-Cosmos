@@ -7,6 +7,14 @@ import { Select } from "@ui/Select";
 import { useFormat, fmt, formatStore } from '../../state/formatStore'
 import { RightNotch } from '../nav/NavBar'
 
+// ---- LocalStorage helpers for UI prefs ----
+const PREFS_KEY = 'isaViz.canvas.prefs.v1'
+const FORMAT_KEY = 'isaViz.format.v1'
+function readJSON<T>(k:string): T | null {
+  try { const raw = localStorage.getItem(k); return raw ? JSON.parse(raw) as T : null } catch { return null }
+}
+function writeJSON(k:string, v:any){ try { localStorage.setItem(k, JSON.stringify(v)) } catch {} }
+
 // ---- Lane/Vec 结构 ----
 type LaneRect = { id:string; x:number; y:number; w:number; h:number; text?:string; color?:string }
 type VecGroup = { baseId:string; lanes: LaneRect[]; box?: {x:number;y:number;w:number;h:number} }
@@ -163,6 +171,42 @@ export default function CanvasKitPanel() {
   const panelWidth = regWide ? 360 : 240
   const [hotkeyOpen, setHotkeyOpen] = useState(true)
   const [toolbarVisible, setToolbarVisible] = useState(true)
+
+  // Restore UI prefs on mount
+  useEffect(()=>{
+    const p = readJSON<any>(PREFS_KEY)
+    if (p) {
+      if (typeof p.showGrid === 'boolean') setShowGrid(!!p.showGrid)
+      if (typeof p.speed === 'number') setSpeed(Math.max(0.25, Math.min(8, p.speed)))
+      if (typeof p.zoom === 'number') setZoom(Math.max(0.5, Math.min(2, p.zoom)))
+      if (typeof p.regOpen === 'boolean') setRegOpen(!!p.regOpen)
+      if (typeof p.regWide === 'boolean') setRegWide(!!p.regWide)
+      if (typeof p.toolbarVisible === 'boolean') setToolbarVisible(!!p.toolbarVisible)
+      if (typeof p.hotkeyOpen === 'boolean') setHotkeyOpen(!!p.hotkeyOpen)
+      if (typeof p.debugOn === 'boolean') setDebugOn(!!p.debugOn)
+    }
+    // restore format (base / hexDigits)
+    const f = readJSON<any>(FORMAT_KEY)
+    if (f) {
+      if (f.base === 'dec' || f.base === 'hex') formatStore.setBase(f.base)
+      if (typeof f.hexDigits === 'number' && [2,4,8].includes(f.hexDigits)) formatStore.setHexDigits(f.hexDigits)
+    }
+  },[])
+
+  // Persist UI prefs when changed (debounced)
+  useEffect(()=>{
+    const id = setTimeout(()=>{
+      writeJSON(PREFS_KEY, {
+        showGrid, speed, zoom, regOpen, regWide, toolbarVisible, hotkeyOpen, debugOn
+      })
+    }, 200)
+    return ()=> clearTimeout(id)
+  }, [showGrid, speed, zoom, regOpen, regWide, toolbarVisible, hotkeyOpen, debugOn])
+
+  // Persist format (base/hexDigits) when changed
+  useEffect(()=>{
+    writeJSON(FORMAT_KEY, { base: fmtSnap.base, hexDigits: fmtSnap.hexDigits })
+  }, [fmtSnap.base, fmtSnap.hexDigits])
 
   // ==== Icon button styles ====
   const iconBtn: React.CSSProperties = {
@@ -726,9 +770,14 @@ export default function CanvasKitPanel() {
               <span style={iconText}>#</span>
             </button>
             <button title="切换 DSL 调试日志" className="btn icon" style={iconBtn} onClick={()=>{
-              setDebugOn(v=>!v);
+              setDebugOn(v=>{
+                const nv = !v
+                // write immediately so刷新后也记住
+                writeJSON(PREFS_KEY, { showGrid, speed, zoom, regOpen, regWide, toolbarVisible, hotkeyOpen, debugOn: nv })
+                return nv
+              });
               if (!debugOn) clearLogs();
-              dbg('--- DSL debug enabled ---')
+              dbg('--- DSL debug toggled ---')
             }}>
               <span style={iconText}>📝</span>
             </button>
