@@ -159,6 +159,22 @@ export default function CanvasKitPanel() {
   const stepStartRef = useRef<number>(performance.now())
   const [clock, setClock] = useState(0)
 
+  // ==== Icon button styles ====
+  const iconBtn: React.CSSProperties = {
+    width: 28, height: 28,
+    borderRadius: '50%',
+    display: 'inline-flex',
+    alignItems: 'center', justifyContent: 'center',
+    border: '1px solid #e5e7eb',
+    background: '#ffffff',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+    cursor: 'pointer',
+    fontSize: 12,
+    padding: 0
+  }
+  const iconText: React.CSSProperties = { lineHeight: '1', fontSize: 12 }
+  const iconGap: React.CSSProperties = { width: 6 }
+
   useEffect(()=>{
     const d = parseDSL(dsl)
     setDoc(d); setStepIdx(0); stepStartRef.current = performance.now(); setResetTick(t=>t+1)
@@ -528,47 +544,98 @@ export default function CanvasKitPanel() {
 
   return (
     <div className="canvas-root" style={{display:'flex', flexDirection:'column', height:'100%'}}>
-      <div className="canvas-toolbar">
-        <div className="chip step-chip">步骤：{Math.min(stepIdx+1, Math.max(1, doc.steps.length))}/{Math.max(doc.steps.length,1)} · {stepName || '—'}</div>
-
-        <button className="btn" onClick={()=>{
-          setPlaying(p=>{ const np = !p; if (np) stepStartRef.current = performance.now(); return np })
-        }}>{playing ? '暂停' : '播放'}</button>
-
-        <button className="btn" onClick={()=>{ setStepIdx(i=>Math.max(0,i-1)); stepStartRef.current = performance.now() }}>上一步</button>
-        <button className="btn" onClick={()=>{ setStepIdx(i=>Math.min((doc.steps.length||1)-1,i+1)); stepStartRef.current = performance.now() }}>下一步</button>
-
-        <label className="switch" style={{marginLeft:8}}>
-          <span style={{marginRight:6,color:'#475569'}}>速度</span>
-          <select className="select" value={String(speed)} onChange={e=>setSpeed(Number(e.target.value))}>
-            <option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
-          </select>
-        </label>
-
-        <label className="switch" style={{marginLeft:8}}>
-          <span style={{marginRight:6,color:'#475569'}}>缩放</span>
-          <select className="select" value={String(zoom)} onChange={e=>setZoom(parseFloat(e.target.value))}>
-            <option value="0.75">75%</option><option value="1">100%</option>
-            <option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option>
-          </select>
-        </label>
-
-        <button className="btn" onClick={()=>setResetTick(t=>t+1)} style={{marginLeft:6}}>复位</button>
-        <button className="btn" onClick={()=>setShowGrid(s=>!s)}>坐标</button>
-        <button className="btn" onClick={()=>{
-          setDebugOn(v=>!v);
-          if (!debugOn) clearLogs();
-          dbg('--- DSL debug enabled ---')
-        }}>
-          {debugOn ? '日志: 开' : '日志: 关'}
-        </button>
-        <button className="btn" onClick={()=>setDebug(d=>!d)}>
-          调试: {debug ? '开' : '关'}
-        </button>
-
-        <Toolbar floating>
-          <ToolbarGroup>
-            <span className="label-muted">数制</span>
+      <div style={{position:'relative', flex:1, minHeight:0, overflow:'hidden'}}>
+        {/* Step floating badge */}
+        <div
+          className="step-floating"
+          style={{
+            position:'absolute',
+            left: 16,
+            top: 12,
+            zIndex: 11,
+            background:'#1f2937',
+            color:'#fff',
+            borderRadius: 24,
+            padding:'10px 16px',
+            boxShadow:'0 8px 20px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.10)',
+            border:'1px solid #0f172a1a',
+            fontSize:14,
+            lineHeight:1.2,
+            whiteSpace:'nowrap',
+            pointerEvents:'none'
+          }}
+        >
+          <div>步骤：{Math.min(stepIdx+1, Math.max(1, doc.steps.length))}/{Math.max(doc.steps.length,1)} · {stepName || '—'}</div>
+        </div>
+        <div
+          className="canvas-toolbar floating"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: 12,
+            transform: 'translateX(-50%)',
+            zIndex: 10,
+            maxWidth: 'min(96%, 1100px)',
+            borderRadius: 20,
+            background: '#ffffff',
+            boxShadow: '0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
+            border: '1px solid #e5e7eb',
+            padding: '6px 10px',
+            paddingLeft: 64,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            pointerEvents: 'auto'
+          }}
+        >
+          {/* <div className="chip step-chip">步骤：{Math.min(stepIdx+1, Math.max(1, doc.steps.length))}/{Math.max(doc.steps.length,1)} · {stepName || '—'}</div> */}
+          <button title={playing ? '暂停' : '播放'} className="btn icon" style={iconBtn} onClick={()=>{
+            setPlaying(p=>{ const np = !p; if (np) stepStartRef.current = performance.now(); return np })
+          }}>
+            <span style={iconText}>{playing ? '⏸' : '▶'}</span>
+          </button>
+          <button title="上一步" className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.max(0,i-1)); stepStartRef.current = performance.now() }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <button title="下一步" className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.min((doc.steps.length||1)-1,i+1)); stepStartRef.current = performance.now() }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+          <label className="switch" title="播放速度" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6}}>
+            <span style={iconText}>⚡</span>
+            <select className="select" value={String(speed)} onChange={e=>setSpeed(Number(e.target.value))} style={{height:28}}>
+              <option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
+            </select>
+          </label>
+          <label className="switch" title="缩放" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6}}>
+            <span style={iconText}>🔍</span>
+            <select className="select" value={String(zoom)} onChange={e=>setZoom(parseFloat(e.target.value))} style={{height:28}}>
+              <option value="0.75">75%</option><option value="1">100%</option>
+              <option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option>
+            </select>
+          </label>
+          <button title="复位" className="btn icon" style={{...iconBtn, marginLeft:6}} onClick={()=>setResetTick(t=>t+1)}>
+            <span style={iconText}>⟲</span>
+          </button>
+          <button title="显示/隐藏网格" className="btn icon" style={iconBtn} onClick={()=>setShowGrid(s=>!s)}>
+            <span style={iconText}>#</span>
+          </button>
+          <button title="切换 DSL 调试日志" className="btn icon" style={iconBtn} onClick={()=>{
+            setDebugOn(v=>!v);
+            if (!debugOn) clearLogs();
+            dbg('--- DSL debug enabled ---')
+          }}>
+            <span style={iconText}>📝</span>
+          </button>
+          <button title="切换调试模式" className="btn icon" style={iconBtn} onClick={()=>setDebug(d=>!d)}>
+            <span style={iconText}>🧪</span>
+          </button>
+          {/* Inline format controls */}
+          <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6, marginLeft:8}}>
+            <span className="label-muted" title="数制">⑩</span>
             <Select
               value={fmtSnap.base}
               onChange={(e)=>formatStore.setBase(e.target.value as any)}
@@ -577,8 +644,9 @@ export default function CanvasKitPanel() {
               <option value="dec">10 进制</option>
               <option value="hex">16 进制</option>
             </Select>
-
-            <span className="label-muted">Hex 宽度</span>
+          </div>
+          <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6}}>
+            <span className="label-muted" title="Hex 位数">HEX</span>
             <Select
               value={String(fmtSnap.hexDigits)}
               onChange={(e)=>formatStore.setHexDigits(parseInt(e.target.value))}
@@ -588,11 +656,8 @@ export default function CanvasKitPanel() {
               <option value="4">4</option>
               <option value="8">8</option>
             </Select>
-          </ToolbarGroup>
-        </Toolbar>
-      </div>
-
-      <div style={{flex:1, minHeight:0}}>
+          </div>
+        </div>
         <KitStage
           contentSize={{ width: 1200, height: 900 }}
           zoom={zoom}
@@ -608,7 +673,6 @@ export default function CanvasKitPanel() {
           <Content/>
         </KitStage>
       </div>
-
       <div className="canvas-logs" style={{borderTop:'1px solid #e5e7eb', background:'#fff', height:180}}>
         <div style={{display:'flex', alignItems:'center', height:36, padding:'0 8px', gap:8}}>
           <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>Logs</div>
