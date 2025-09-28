@@ -367,7 +367,6 @@ vsetvli.ri x1, x10, e32m2
                 </>
               ) : (
                 <>
-                  <span className="muted" style={{fontSize:11, marginRight:6}}>主题</span>
                   <button
                     title="浅色 (Isa)"
                     className={`btn theme-btn ${editorTheme==='isa-light'?'active':''}`}
@@ -397,7 +396,6 @@ vsetvli.ri x1, x10, e32m2
                     style={{background:'#1e1e1e', borderColor:'#3a3a3a'}}
                   />
                   <span style={{width:6}} />
-                  <span className="muted" style={{fontSize:11, marginRight:6}}>字体</span>
                   <select aria-label="选择字体" className="btn" value={editorFont} onChange={(e)=>setEditorFont(e.target.value as any)} style={{padding:'2px 8px'}}>
                     <option value="Fira">Fira Code</option>
                     <option value="JetBrains">JetBrains Mono</option>
