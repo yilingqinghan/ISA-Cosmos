@@ -36,6 +36,7 @@ vsetvli.ri x1, x10, e32m2
       return v ? v === '1' : true; // 默认隐藏
     } catch { return true }
   })
+  const [activeKey, setActiveKey] = useState<string|null>(null)
 
   const count = (arr?: string[]) => arr?.length ?? 0
 
@@ -278,6 +279,40 @@ vsetvli.ri x1, x10, e32m2
       min-width: 18px; /* 覆盖 .btn 的最小宽度 */
     }
     .theme-btn.active { outline: 2px solid #2563eb; outline-offset: 1px; }
+    /* 左侧指令目录：悬停/点击“抽出”动画与分隔线 */
+    .left-catalog .catalog-scroll ul li.catalog-item {
+      position: relative;
+      transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+      border: 1px solid transparent;
+    }
+    .left-catalog .catalog-scroll ul li.catalog-item:hover {
+      transform: translateX(6px);
+      background: #f1f5f9; /* slate-100 */
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border-color: #cbd5e1; /* slate-300 */
+    }
+    .left-catalog .catalog-scroll ul li.catalog-item.active {
+      transform: translateX(8px);
+      background: #e0f2fe; /* sky-100 */
+      border-color: #7dd3fc; /* sky-300 */
+      box-shadow: 0 2px 10px rgba(14,165,233,0.18);
+    }
+    .left-catalog .catalog-scroll ul li.catalog-item::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 8px; bottom: 8px;
+      width: 3px; border-radius: 3px;
+      background: transparent;
+      transition: background-color 160ms ease, transform 160ms ease;
+      transform: scaleY(0.5);
+    }
+    .left-catalog .catalog-scroll ul li.catalog-item:hover::before,
+    .left-catalog .catalog-scroll ul li.catalog-item.active::before {
+      background: #38bdf8; /* sky-400 */
+      transform: scaleY(1);
+    }
+    /* 分界线：每个指令项之间的细分隔线（不影响第一个） */
+    .left-catalog ul li + li { border-top: 1px dashed #e5e7eb; }
     `
     document.head.appendChild(style)
   }, [])
@@ -473,15 +508,21 @@ vsetvli.ri x1, x10, e32m2
               <div key={group.arch} style={{marginBottom:12}}>
                 <div style={{fontSize:12, fontWeight:700, color:'#0f172a', margin:'6px 0'}}>{group.arch.toUpperCase()}</div>
                 <ul style={{listStyle:'none', padding:0, margin:0}}>
-                  {group.items.map(it => (
-                    <li key={`${it.arch}:${it.opcode}.${it.form}`} style={{display:'flex', alignItems:'center', gap:8, padding:'4px 4px', borderRadius:6, cursor:'pointer', fontSize:12}}
-                        onClick={()=>setCode(it.sample)}
-                    >
-                      <span style={{fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize:12}}>
-                        {it.opcode}.{it.form}
-                      </span>
-                    </li>
-                  ))}
+                  {group.items.map(it => {
+                    const keyStr = `${it.arch}:${it.opcode}.${it.form}`
+                    return (
+                      <li
+                        key={keyStr}
+                        className={`catalog-item ${activeKey===keyStr ? 'active' : ''}`}
+                        style={{display:'flex', alignItems:'center', gap:8, padding:'6px 6px', borderRadius:6, cursor:'pointer', fontSize:12}}
+                        onClick={() => { setCode(it.sample); setActiveKey(keyStr); }}
+                      >
+                        <span style={{fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize:12}}>
+                          {it.opcode}.{it.form}
+                        </span>
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             ))}

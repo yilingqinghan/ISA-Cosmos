@@ -818,7 +818,7 @@ export default function CanvasKitPanel() {
             style={{
               position:'absolute',
               left:'50%',
-              top: 10,
+              top: 80,
               transform:'translateX(-50%)',
               zIndex: 10,
               height: 30,
