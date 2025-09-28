@@ -3,9 +3,9 @@ import KitStage from '../../canvas-kit/KitStage'
 import { parseDSL, DSLDoc, DSLShape } from '../../utils/parse'
 import { Group, Rect, Text, Line } from 'react-konva'
 import { useApp } from '../../context'
-import { Toolbar, ToolbarGroup } from '@ui/Toolbar';
 import { Select } from "@ui/Select";
 import { useFormat, fmt, formatStore } from '../../state/formatStore'
+import { RightNotch } from '../nav/NavBar'
 
 // ---- Lane/Vec 结构 ----
 type LaneRect = { id:string; x:number; y:number; w:number; h:number; text?:string; color?:string }
@@ -637,7 +637,10 @@ export default function CanvasKitPanel() {
 
   return (
     <div className="canvas-root" style={{display:'flex', flexDirection:'column', height:'100%'}}>
-      <div style={{position:'relative', flex:1, minHeight:0, overflow:'hidden'}}>
+      <div style={{position:'relative', flex:1, minHeight:0, overflow:'visible'}}>
+        <div style={{position:'absolute', top:0, right:0, zIndex:12, pointerEvents:'auto'}}>
+          <RightNotch />
+        </div>
         {/* Step floating badge */}
         <div
           className="step-floating"

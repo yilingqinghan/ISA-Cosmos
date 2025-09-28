@@ -5,6 +5,7 @@ import { parseAsm, type ParseError } from '../../lang'
 import { getUsage, getInstrs } from '../../lang/registry'
 import { usageOf } from '../../lang/help'
 import { astToDsl } from '../../lang/toDSL'
+import { LeftNotch } from '../nav/NavBar'
 
 export default function LeftPanel() {
   const { arch, pushLog, setDslOverride } = useApp()
@@ -346,143 +347,149 @@ vsetvli.ri x1, x10, e32m2
   // removed dynamic rows; use fixed template rows below
 
   return (
-    <div className="left-root" style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) 120px', gap:8, height:'100%'}}>
-      {/* 主列：编辑器 + Usage */}
-      <div className="left-main" style={{flex:1, minWidth:0, display:'grid', gridTemplateRows: 'minmax(180px,1.4fr) minmax(120px,0.8fr)', gap:8, height:'100%'}}>
-        {/* 上：编辑器 */}
-        <div className="left-top nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
-          <div className="panel-toolbar">
-            <div className="panel-title">Editor</div>
-            <div className="grow" />
-            {editorControlsHidden ? (
-              <>
-                <button title="显示编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(false)}>⋯</button>
-                <button className="btn" onClick={handleRun}>Run</button>
-              </>
-            ) : (
-              <>
-                <span className="muted" style={{fontSize:11, marginRight:6}}>主题</span>
-                <button
-                  title="浅色 (Isa)"
-                  className={`btn theme-btn ${editorTheme==='isa-light'?'active':''}`}
-                  onClick={()=>setEditorTheme('isa-light')}
-                  aria-label="Isa Light"
-                  style={{background:'#FBFCFD', borderColor:'#94a3b8'}}
-                />
-                <button
-                  title="Solarized Light"
-                  className={`btn theme-btn ${editorTheme==='solarized-light'?'active':''}`}
-                  onClick={()=>setEditorTheme('solarized-light')}
-                  aria-label="Solarized Light"
-                  style={{background:'#fdf6e3', borderColor:'#d9cbb2'}}
-                />
-                <button
-                  title="Solarized Dark"
-                  className={`btn theme-btn ${editorTheme==='solarized-dark'?'active':''}`}
-                  onClick={()=>setEditorTheme('solarized-dark')}
-                  aria-label="Solarized Dark"
-                  style={{background:'#002b36', borderColor:'#0b3942'}}
-                />
-                <button
-                  title="VS Dark"
-                  className={`btn theme-btn ${editorTheme==='vs-dark'?'active':''}`}
-                  onClick={()=>setEditorTheme('vs-dark')}
-                  aria-label="VS Dark"
-                  style={{background:'#1e1e1e', borderColor:'#3a3a3a'}}
-                />
-                <span style={{width:6}} />
-                <span className="muted" style={{fontSize:11, marginRight:6}}>字体</span>
-                <select aria-label="选择字体" className="btn" value={editorFont} onChange={(e)=>setEditorFont(e.target.value as any)} style={{padding:'2px 8px'}}>
-                  <option value="Fira">Fira Code</option>
-                  <option value="JetBrains">JetBrains Mono</option>
-                  <option value="System">系统等宽</option>
-                </select>
-                <span style={{width:6}} />
-                <button title="字号变小" className="btn" onClick={()=>setEditorFontSize(s=>Math.max(10, s-1))}>－</button>
-                <button title="字号变大" className="btn" onClick={()=>setEditorFontSize(s=>Math.min(22, s+1))}>＋</button>
-                <button title="重置为默认设置" className="btn" onClick={()=>{ setEditorTheme('isa-light'); setEditorFont('Fira'); setEditorFontSize(13); }}>↺</button>
-                <span style={{width:6}} />
-                <button title="隐藏编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(true)}>—</button>
-                <button className="btn" onClick={handleRun}>Run</button>
-              </>
-            )}
-          </div>
-          <div className="editor-wrap" style={{flex:1, minHeight:0}}>
-            <Editor height="100%" defaultLanguage="asm" value={code}
-                    onChange={v=>setCode(v??'')} onMount={onMount}
-                    theme={editorTheme}
-                    options={{
-                      minimap: { enabled: false },
-                      automaticLayout: true,
-                      fontSize: editorFontSize,
-                      fontFamily: computeFontFamily(editorFont),
-                    }} />
-          </div>
-        </div>
+    <div className="left-panel" style={{ display:'flex', flexDirection:'column', height:'100%', minHeight:0 }}>
+      {/* 顶部内联的左侧刘海（不重叠） */}
+      <LeftNotch inline />
 
-        <div className="left-mid nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
-          <div className="panel-toolbar">
-            <div className="panel-title">Usage</div>
-            <div className="grow" />
+      {/* 主体区域占满剩余空间，不与刘海重叠 */}
+      <div className="left-root" style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) 120px', gap:8, flex:'1 1 auto', minHeight:0 }}>
+        {/* 主列：编辑器 + Usage */}
+        <div className="left-main" style={{flex:1, minWidth:0, display:'grid', gridTemplateRows: 'minmax(180px,1.4fr) minmax(120px,0.8fr)', gap:8, minHeight:0}}>
+          {/* 上：编辑器 */}
+          <div className="left-top nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
+            <div className="panel-toolbar">
+              <div className="panel-title">Editor</div>
+              <div className="grow" />
+              {editorControlsHidden ? (
+                <>
+                  <button title="显示编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(false)}>⋯</button>
+                  <button className="btn" onClick={handleRun}>Run</button>
+                </>
+              ) : (
+                <>
+                  <span className="muted" style={{fontSize:11, marginRight:6}}>主题</span>
+                  <button
+                    title="浅色 (Isa)"
+                    className={`btn theme-btn ${editorTheme==='isa-light'?'active':''}`}
+                    onClick={()=>setEditorTheme('isa-light')}
+                    aria-label="Isa Light"
+                    style={{background:'#FBFCFD', borderColor:'#94a3b8'}}
+                  />
+                  <button
+                    title="Solarized Light"
+                    className={`btn theme-btn ${editorTheme==='solarized-light'?'active':''}`}
+                    onClick={()=>setEditorTheme('solarized-light')}
+                    aria-label="Solarized Light"
+                    style={{background:'#fdf6e3', borderColor:'#d9cbb2'}}
+                  />
+                  <button
+                    title="Solarized Dark"
+                    className={`btn theme-btn ${editorTheme==='solarized-dark'?'active':''}`}
+                    onClick={()=>setEditorTheme('solarized-dark')}
+                    aria-label="Solarized Dark"
+                    style={{background:'#002b36', borderColor:'#0b3942'}}
+                  />
+                  <button
+                    title="VS Dark"
+                    className={`btn theme-btn ${editorTheme==='vs-dark'?'active':''}`}
+                    onClick={()=>setEditorTheme('vs-dark')}
+                    aria-label="VS Dark"
+                    style={{background:'#1e1e1e', borderColor:'#3a3a3a'}}
+                  />
+                  <span style={{width:6}} />
+                  <span className="muted" style={{fontSize:11, marginRight:6}}>字体</span>
+                  <select aria-label="选择字体" className="btn" value={editorFont} onChange={(e)=>setEditorFont(e.target.value as any)} style={{padding:'2px 8px'}}>
+                    <option value="Fira">Fira Code</option>
+                    <option value="JetBrains">JetBrains Mono</option>
+                    <option value="System">系统等宽</option>
+                  </select>
+                  <span style={{width:6}} />
+                  <button title="字号变小" className="btn" onClick={()=>setEditorFontSize(s=>Math.max(10, s-1))}>－</button>
+                  <button title="字号变大" className="btn" onClick={()=>setEditorFontSize(s=>Math.min(22, s+1))}>＋</button>
+                  <button title="重置为默认设置" className="btn" onClick={()=>{ setEditorTheme('isa-light'); setEditorFont('Fira'); setEditorFontSize(13); }}>↺</button>
+                  <span style={{width:6}} />
+                  <button title="隐藏编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(true)}>—</button>
+                  <button className="btn" onClick={handleRun}>Run</button>
+                </>
+              )}
+            </div>
+            <div className="editor-wrap" style={{flex:1, minHeight:0}}>
+              <Editor height="100%" defaultLanguage="asm" value={code}
+                      onChange={v=>setCode(v??'')} onMount={onMount}
+                      theme={editorTheme}
+                      options={{
+                        minimap: { enabled: false },
+                        automaticLayout: true,
+                        fontSize: editorFontSize,
+                        fontFamily: computeFontFamily(editorFont),
+                      }} />
+            </div>
           </div>
-          <div className="usage-wrap" style={{padding:'8px 10px', overflow:'auto', flex:1, minHeight:0, fontSize:12}}>
-            <div className="usage-all" style={{display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr', gap:10}}>
-              <div style={{gridColumn:'1 / -1', padding:8, border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc'}}>
-                <div style={{fontSize:11, fontWeight:600, color:'#0f172a', marginBottom:6}}>说明</div>
-                {doc.usage ? <p style={{lineHeight:1.6, margin:0}}>{doc.usage}</p> : <p className="muted" style={{margin:0}}>无</p>}
-              </div>
-              <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
-                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                  <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>场景</div>
-                  <span style={pillStyle}>{count(doc.scenarios)}</span>
+
+          <div className="left-mid nice-card" style={{display:'flex', flexDirection:'column', minHeight:120}}>
+            <div className="panel-toolbar">
+              <div className="panel-title">Usage</div>
+              <div className="grow" />
+            </div>
+            <div className="usage-wrap" style={{padding:'8px 10px', overflow:'auto', flex:1, minHeight:0, fontSize:12}}>
+              <div className="usage-all" style={{display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr', gap:10}}>
+                <div style={{gridColumn:'1 / -1', padding:8, border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc'}}>
+                  <div style={{fontSize:11, fontWeight:600, color:'#0f172a', marginBottom:6}}>说明</div>
+                  {doc.usage ? <p style={{lineHeight:1.6, margin:0}}>{doc.usage}</p> : <p className="muted" style={{margin:0}}>无</p>}
                 </div>
-                <FancyList items={doc.scenarios} icon="💡" empty="暂无典型场景" />
-              </div>
-              <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
-                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                  <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>注意</div>
-                  <span style={pillStyle}>{count(doc.notes)}</span>
+                <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
+                  <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                    <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>场景</div>
+                    <span style={pillStyle}>{count(doc.scenarios)}</span>
+                  </div>
+                  <FancyList items={doc.scenarios} icon="💡" empty="暂无典型场景" />
                 </div>
-                <FancyList items={doc.notes} icon="⚠️" empty="暂无注意事项" tone="warn" />
-              </div>
-              <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
-                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                  <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>异常</div>
-                  <span style={pillStyle}>{count(doc.exceptions)}</span>
+                <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
+                  <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                    <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>注意</div>
+                    <span style={pillStyle}>{count(doc.notes)}</span>
+                  </div>
+                  <FancyList items={doc.notes} icon="⚠️" empty="暂无注意事项" tone="warn" />
                 </div>
-                <FancyList items={doc.exceptions} icon="⛔" empty="暂无已知异常" tone="danger" />
+                <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
+                  <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                    <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>异常</div>
+                    <span style={pillStyle}>{count(doc.exceptions)}</span>
+                  </div>
+                  <FancyList items={doc.exceptions} icon="⛔" empty="暂无已知异常" tone="danger" />
+                </div>
               </div>
             </div>
           </div>
+
         </div>
 
+        {/* 右侧：指令目录（可独立滚动） */}
+        <aside className="left-catalog nice-card" style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
+          <div className="panel-toolbar">
+            <div className="panel-title">指令目录</div>
+            <div className="grow" />
+          </div>
+          <div className="catalog-scroll" style={{overflow:'auto', padding:'6px 8px', height:'calc(100% - 40px)'}}>
+            {catalog.map(group => (
+              <div key={group.arch} style={{marginBottom:12}}>
+                <div style={{fontSize:12, fontWeight:700, color:'#0f172a', margin:'6px 0'}}>{group.arch.toUpperCase()}</div>
+                <ul style={{listStyle:'none', padding:0, margin:0}}>
+                  {group.items.map(it => (
+                    <li key={`${it.arch}:${it.opcode}.${it.form}`} style={{display:'flex', alignItems:'center', gap:8, padding:'4px 4px', borderRadius:6, cursor:'pointer', fontSize:12}}
+                        onClick={()=>setCode(it.sample)}
+                    >
+                      <span style={{fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize:12}}>
+                        {it.opcode}.{it.form}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </aside>
       </div>
-
-      {/* 右侧：指令目录（可独立滚动） */}
-      <aside className="left-catalog nice-card" style={{display:'flex', flexDirection:'column', overflow:'hidden'}}>
-        <div className="panel-toolbar">
-          <div className="panel-title">指令目录</div>
-          <div className="grow" />
-        </div>
-        <div className="catalog-scroll" style={{overflow:'auto', padding:'6px 8px', height:'calc(100% - 40px)'}}>
-          {catalog.map(group => (
-            <div key={group.arch} style={{marginBottom:12}}>
-              <div style={{fontSize:12, fontWeight:700, color:'#0f172a', margin:'6px 0'}}>{group.arch.toUpperCase()}</div>
-              <ul style={{listStyle:'none', padding:0, margin:0}}>
-                {group.items.map(it => (
-                  <li key={`${it.arch}:${it.opcode}.${it.form}`} style={{display:'flex', alignItems:'center', gap:8, padding:'4px 4px', borderRadius:6, cursor:'pointer', fontSize:12}}
-                      onClick={()=>setCode(it.sample)}
-                  >
-                    <span style={{fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize:12}}>
-                      {it.opcode}.{it.form}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </aside>
     </div>
   )
 }
