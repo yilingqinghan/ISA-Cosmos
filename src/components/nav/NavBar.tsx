@@ -32,6 +32,25 @@ export function LeftNotch({ inline = false }: { inline?: boolean }) {
           <div className="brand-title">ISA Cosmos</div>
           <div className="brand-sub">RISC-V · ARM · LoongArch</div>
         </div>
+        <div
+          className="brand-slogan"
+          style={{
+            fontFamily: "'Brush Script MT', 'Pacifico', 'Segoe Script', 'Comic Sans MS', cursive",
+            fontSize: 16,
+            lineHeight: 1,
+            marginLeft: 6,
+            opacity: 0.9,
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            letterSpacing: 0.2,
+            display: 'flex',
+            alignItems: 'center',
+            height: '100%'
+          }}
+          title="Slogan"
+        >
+          ISA, easy to learn!
+        </div>
       </a>
     </div>
   )
