@@ -400,7 +400,7 @@ vsetvli.ri x1, x10, e32m2
                 <span style={{width:6}} />
                 <button title="字号变小" className="btn" onClick={()=>setEditorFontSize(s=>Math.max(10, s-1))}>－</button>
                 <button title="字号变大" className="btn" onClick={()=>setEditorFontSize(s=>Math.min(22, s+1))}>＋</button>
-                <button title="重置为默认设置" className="btn" onClick={()=>{ setEditorTheme('isa-light'); setEditorFont('Fira'); setEditorFontSize(13); }}>重置</button>
+                <button title="重置为默认设置" className="btn" onClick={()=>{ setEditorTheme('isa-light'); setEditorFont('Fira'); setEditorFontSize(13); }}>↺</button>
                 <span style={{width:6}} />
                 <button title="隐藏编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(true)}>—</button>
                 <button className="btn" onClick={handleRun}>Run</button>
