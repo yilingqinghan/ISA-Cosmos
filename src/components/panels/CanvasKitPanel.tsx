@@ -166,7 +166,7 @@ export default function CanvasKitPanel() {
 
   // ==== Icon button styles ====
   const iconBtn: React.CSSProperties = {
-    width: 28, height: 28,
+    width: 28, height: 28, minWidth: 28, minHeight: 28,
     borderRadius: '50%',
     display: 'inline-flex',
     alignItems: 'center', justifyContent: 'center',
@@ -175,7 +175,9 @@ export default function CanvasKitPanel() {
     boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
     cursor: 'pointer',
     fontSize: 12,
-    padding: 0
+    padding: 0,
+    flex: '0 0 auto',
+    aspectRatio: '1 / 1'
   }
   const iconText: React.CSSProperties = { lineHeight: '1', fontSize: 12 }
   const iconGap: React.CSSProperties = { width: 6 }
@@ -672,16 +674,20 @@ export default function CanvasKitPanel() {
               top: 72,
               transform: 'translateX(-50%)',
               zIndex: 10,
-              maxWidth: 'min(96%, 1100px)',
+              width: 'min(96vw, 1100px)',
+              maxWidth: '100%',
               borderRadius: 20,
               background: '#ffffff',
               boxShadow: '0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
               border: '1px solid #e5e7eb',
               padding: '6px 10px',
-              paddingLeft: 64,
+              paddingLeft: 12,
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 8,
+              flexWrap: 'wrap',
+              rowGap: 8,
               pointerEvents: 'auto'
             }}
           >
@@ -701,13 +707,13 @@ export default function CanvasKitPanel() {
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
             </button>
-            <label className="switch" title="播放速度" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6}}>
+            <label className="switch" title="播放速度" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6, flexShrink:0}}>
               <span style={iconText}>⚡</span>
               <select className="select" value={String(speed)} onChange={e=>setSpeed(Number(e.target.value))} style={{height:28}}>
                 <option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
               </select>
             </label>
-            <label className="switch" title="缩放" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6}}>
+            <label className="switch" title="缩放" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6, flexShrink:0}}>
               <span style={iconText}>🔍</span>
               <select className="select" value={String(zoom)} onChange={e=>setZoom(parseFloat(e.target.value))} style={{height:28}}>
                 <option value="0.75">75%</option><option value="1">100%</option>
@@ -737,7 +743,7 @@ export default function CanvasKitPanel() {
               </svg>
             </button>
             {/* Inline format controls */}
-            <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6, marginLeft:8}}>
+            <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6, marginLeft:8, flexShrink:0}}>
               <span className="label-muted" title="数制">⑩</span>
               <Select
                 value={fmtSnap.base}
@@ -748,7 +754,7 @@ export default function CanvasKitPanel() {
                 <option value="hex">16 进制</option>
               </Select>
             </div>
-            <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6}}>
+            <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6, flexShrink:0}}>
               <span className="label-muted" title="Hex 位数">HEX</span>
               <Select
                 value={String(fmtSnap.hexDigits)}
