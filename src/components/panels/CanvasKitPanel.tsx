@@ -171,6 +171,7 @@ export default function CanvasKitPanel() {
   const panelWidth = regWide ? 360 : 240
   const [hotkeyOpen, setHotkeyOpen] = useState(true)
   const [toolbarVisible, setToolbarVisible] = useState(true)
+  const [logsOpen, setLogsOpen] = useState(true)
 
   // Restore UI prefs on mount
   useEffect(()=>{
@@ -1005,26 +1006,46 @@ export default function CanvasKitPanel() {
           <Content/>
         </KitStage>
       </div>
-      <div className="canvas-logs" style={{borderTop:'1px solid #e5e7eb', background:'#fff', height:180}}>
+      <div className="canvas-logs" style={{borderTop:'1px solid #e5e7eb', background:'#fff', height: logsOpen ? 180 : 36, transition:'height .18s ease'}}>
         <div style={{display:'flex', alignItems:'center', height:36, padding:'0 8px', gap:8}}>
           <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>Logs</div>
           <div style={{flex:1}} />
+          <button
+            className="btn icon"
+            title={logsOpen ? '收起日志' : '展开日志'}
+            onClick={()=>setLogsOpen(o=>!o)}
+            style={{width:28, height:24, borderRadius:8, padding:0, border:'1px solid #e5e7eb', background:'#fff'}}
+          >
+            {logsOpen ? (
+              // chevron-down icon
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            ) : (
+              // chevron-up icon
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            )}
+          </button>
           <button className="btn" onClick={()=>clearLogs()} style={{marginLeft:6}}>清空</button>
         </div>
-        <div style={{height:144, overflow:'auto', padding:'6px 10px'}}>
-          {(!logs || logs.length===0) ? (
-            <div style={{fontSize:12, color:'#64748b'}}>暂无日志。运行后会在此显示解析步骤 / 提示。</div>
-          ) : (
-            <ul style={{listStyle:'none', padding:0, margin:0, fontSize:12, color:'#334155'}}>
-              {logs.map((l, i)=>(
-                <li key={i} style={{display:'flex', gap:6, padding:'3px 0'}}>
-                  <span style={{width:6, height:6, borderRadius:6, background:'#0ea5e9', marginTop:7}} />
-                  <span style={{lineHeight:1.5}}>{l}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        {logsOpen && (
+          <div style={{height:144, overflow:'auto', padding:'6px 10px'}}>
+            {(!logs || logs.length===0) ? (
+              <div style={{fontSize:12, color:'#64748b'}}>暂无日志。运行后会在此显示解析步骤 / 提示。</div>
+            ) : (
+              <ul style={{listStyle:'none', padding:0, margin:0, fontSize:12, color:'#334155'}}>
+                {logs.map((l, i)=>(
+                  <li key={i} style={{display:'flex', gap:6, padding:'3px 0'}}>
+                    <span style={{width:6, height:6, borderRadius:6, background:'#0ea5e9', marginTop:7}} />
+                    <span style={{lineHeight:1.5}}>{l}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
