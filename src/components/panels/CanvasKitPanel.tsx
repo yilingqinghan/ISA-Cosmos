@@ -445,7 +445,6 @@ export default function CanvasKitPanel() {
   const stepStartRef = useRef<number>(performance.now())
   const [clock, setClock] = useState(0)
   const [regWide, setRegWide] = useState(false)
-  const panelWidth = regWide ? 360 : 240
   const [hotkeyOpen, setHotkeyOpen] = useState(true)
   const [toolbarVisible, setToolbarVisible] = useState(true)
   const [logsOpen, setLogsOpen] = useState(true)
@@ -466,7 +465,6 @@ export default function CanvasKitPanel() {
     const f = readJSON<any>(FORMAT_KEY)
     if (f) {
       if (f.base === 'dec' || f.base === 'hex') formatStore.setBase(f.base)
-      if (typeof f.hexDigits === 'number' && [2,4,8].includes(f.hexDigits)) formatStore.setHexDigits(f.hexDigits)
     }
   },[])
 
@@ -500,7 +498,6 @@ export default function CanvasKitPanel() {
     flex: '0 0 auto'
   }
   const iconText: React.CSSProperties = { lineHeight: '1', fontSize: 12 }
-  const iconGap: React.CSSProperties = { width: 6 }
 
   useEffect(()=>{
     const d = safeParseDSL(dsl)
@@ -991,7 +988,7 @@ export default function CanvasKitPanel() {
               transform: 'translateX(-50%)',
               zIndex: 10,
               width: 'min(96vw, 1100px)',
-              maxWidth: '70%',
+              maxWidth: '56%',
               borderRadius: 24,
               background: '#ffffff',
               boxShadow: '0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
@@ -1052,18 +1049,6 @@ export default function CanvasKitPanel() {
               >
                 <option value="dec">10 进制</option>
                 <option value="hex">16 进制</option>
-              </Select>
-            </div>
-            <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6, flexShrink:0}}>
-              <span className="label-muted" title="Hex 位数">HEX</span>
-              <Select
-                value={String(fmtSnap.hexDigits)}
-                onChange={(e)=>formatStore.setHexDigits(parseInt(e.target.value))}
-                className="select"
-              >
-                <option value="2">2</option>
-                <option value="4">4</option>
-                <option value="8">8</option>
               </Select>
             </div>
             {/* 收起工具条按钮（图钉） */}
