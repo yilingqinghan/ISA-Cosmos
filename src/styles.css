@@ -1,4 +1,11 @@
 :root { --header-h: 64px; --bg:#f6f8fc; --panel:#fff; --border:#e5eaf4; --muted:#6b7280; --text:#0b1220; --brand:#7c3aed; }
+:root {
+  /* Global scrollbar variables */
+  --scrollbar-size: 10px;
+  --scrollbar-track: #eef2ff;
+  --scrollbar-thumb: #c7d2fe;
+  --scrollbar-thumb-hover: #a5b4fc;
+}
 html,body,#root{height:100%; background:var(--bg); color:var(--text);}
 body{font-family:'Futura','STFangsong','PingFang SC','Microsoft YaHei',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
 
@@ -200,4 +207,40 @@ html, body, #root {
   background:#fff3f3; border:1px solid #ffc9c9; color:#b91c1c;
   padding:4px 8px; border-radius:8px; font-size:12px; white-space:nowrap;
   box-shadow:0 8px 24px rgba(185,28,28,.15); pointer-events:auto; z-index:50;
+}
+
+/* === Global Scrollbar Styling (Vite/React, all pages) === */
+/* Make room for overlay scrollbars and keep layout stable */
+html { scrollbar-gutter: stable both-edges; }
+
+/* Firefox */
+@supports (scrollbar-color: red blue) {
+  html, body, * {
+    scrollbar-width: thin;                        /* auto | thin | none */
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+}
+
+/* WebKit (Chrome / Edge / Safari) */
+::-webkit-scrollbar { width: var(--scrollbar-size); height: var(--scrollbar-size); }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--brand), #9f67ff);
+  border-radius: 999px;
+  border: 2px solid var(--scrollbar-track);      /* creates the pill look */
+}
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #8b5cf6, var(--brand)); }
+
+/* Optional: compact scrollbars inside specific panels only */
+.panel, .log-wrap, .editor-wrap, .canvas-root {
+  scrollbar-width: thin;
+}
+
+/* Dark mode tweak (respects user setting) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --scrollbar-track: color-mix(in srgb, #0b1220 84%, white 16%);
+    --scrollbar-thumb: color-mix(in srgb, #7c3aed 35%, white 65%);
+    --scrollbar-thumb-hover: color-mix(in srgb, #7c3aed 45%, white 55%);
+  }
 }

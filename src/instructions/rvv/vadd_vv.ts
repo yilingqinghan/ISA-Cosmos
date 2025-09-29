@@ -73,7 +73,7 @@ const vaddVV: InstructionModule = {
       { arch: 'ARM NEON', name: 'vaddq_s32', note: '同宽度向量加法', example: 'int32x4_t c = vaddq_s32(a,b);' },
       { arch: 'x86 SSE/AVX', name: 'PADDD/VPADDD', note: '32位打包加', example: '__m128i c = _mm_add_epi32(a,b);' },
     ]
-    ;(doc as any).synonyms = synonyms        // ← 兼容 doc 直挂
+    ;(doc as any).synonyms = synonyms
     return { doc, extras: { synonyms } }
   }
 }
