@@ -339,6 +339,56 @@ export default function CanvasKitPanel() {
   const [stepIdx, setStepIdx] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [resetTick, setResetTick] = useState(0)
+  // —— Pan (drag to move) ——
+  const [pan, setPan] = useState<{x:number;y:number}>({ x: 0, y: 0 })
+  const panRef = useRef<{x:number;y:number}>({ x: 0, y: 0 })
+  const dragRef = useRef<{active:boolean;sx:number;sy:number;px:number;py:number}>({ active:false, sx:0, sy:0, px:0, py:0 })
+  const [isPanning, setIsPanning] = useState(false)
+  const svgRef = useRef<SVGSVGElement|null>(null)
+  // keep panRef in sync with state
+  useEffect(()=>{ panRef.current = pan }, [pan])
+
+  // reset pan when user triggers reset
+  useEffect(()=>{ setPan({x:0,y:0}) }, [resetTick])
+  // Convert screen delta (px) to user units in viewBox, considering zoom
+  function pxToUser(dx:number, dy:number){
+    const el = svgRef.current
+    if (!el) return { ux: 0, uy: 0 }
+    const rect = el.getBoundingClientRect()
+    const ux = dx * (CANVAS_W / rect.width) / zoom
+    const uy = dy * (CANVAS_H / rect.height) / zoom
+    return { ux, uy }
+  }
+
+  const onPointerDown: React.PointerEventHandler<SVGSVGElement> = (e) => {
+    // left or middle button
+    if (e.button !== 0 && e.button !== 1) return
+    try { (e.currentTarget as any).setPointerCapture?.(e.pointerId) } catch {}
+    dragRef.current.active = true
+    dragRef.current.sx = e.clientX
+    dragRef.current.sy = e.clientY
+    dragRef.current.px = panRef.current.x
+    dragRef.current.py = panRef.current.y
+    setIsPanning(true)
+    e.preventDefault()
+  }
+
+  const onPointerMove: React.PointerEventHandler<SVGSVGElement> = (e) => {
+    if (!dragRef.current.active) return
+    const dx = e.clientX - dragRef.current.sx
+    const dy = e.clientY - dragRef.current.sy
+    const { ux, uy } = pxToUser(dx, dy)
+    setPan({ x: dragRef.current.px + ux, y: dragRef.current.py + uy })
+  }
+
+  const endPan = (e?: React.PointerEvent<SVGSVGElement>) => {
+    if (!dragRef.current.active) return
+    dragRef.current.active = false
+    setIsPanning(false)
+    try { e?.currentTarget?.releasePointerCapture?.((e as any).pointerId) } catch {}
+  }
+  const onPointerUp: React.PointerEventHandler<SVGSVGElement> = (e) => { endPan(e) }
+  const onPointerLeave: React.PointerEventHandler<SVGSVGElement> = (e) => { endPan(e) }
   const fmtSnap = useFormat()
   useEffect(() => {
     if (!dslOverride) return
@@ -1079,12 +1129,17 @@ export default function CanvasKitPanel() {
         </div>
         {/* SVG Stage (replaces KitStage) */}
         <svg
+          ref={svgRef}
           className="svg-stage"
           width="100%"
           height="100%"
           viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
           xmlns="http://www.w3.org/2000/svg"
-          style={{ display: 'block' }}
+          style={{ display: 'block', cursor: isPanning ? 'grabbing' : 'grab' }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerLeave}
         >
           <defs>
             {/* Grid patterns */}
@@ -1117,8 +1172,8 @@ export default function CanvasKitPanel() {
 
           {showGrid && <rect x={0} y={0} width={CANVAS_W} height={CANVAS_H} fill="url(#gridMajor)" />}
 
-          {/* zoomed content */}
-          <g transform={`scale(${zoom})`}>
+          {/* zoomed & panned content */}
+          <g transform={`scale(${zoom}) translate(${pan.x} ${pan.y})`}>
             <Content />
           </g>
         </svg>
