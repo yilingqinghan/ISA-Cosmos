@@ -1,10 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react'
 import { useApp } from '../../context'
 import Editor, { OnMount } from '@monaco-editor/react'
-import { parseAsm, type ParseError } from '../../lang'
-import { getUsage, getInstrs } from '../../lang/registry'
-import { usageOf } from '../../lang/help'
-import { astToDsl } from '../../lang/toDSL'
 import { LeftNotch } from '../nav/NavBar'
 
 export default function LeftPanel() {
@@ -80,22 +76,36 @@ vsetvli.ri x1, x10, e32m2
     return `${op}.${form}${args ? ' ' + args : ''}`
   }
 
-  // 当前所有架构的指令目录（按需可扩展到从后端/注册表获取架构列表）
-  const ARCHES = useMemo(() => ['rvv'], [])
-  const catalog = useMemo(() => {
-    return ARCHES.map(archName => {
-      const specs = getInstrs(archName) || []
-      const items = specs.flatMap(sp => {
-        return Object.entries(sp.forms || {}).map(([form, fs]: any) => ({
-          arch: archName,
-          opcode: sp.opcode,
-          form,
-          sample: buildSample(sp.opcode, form, fs?.operands),
-        }))
-      })
-      return { arch: archName, items }
-    })
-  }, [ARCHES])
+  // 指令目录：异步从注册表动态加载
+  const [catalog, setCatalog] = useState<{arch:string; items:{arch:string; opcode:string; form:string; sample:string}[]}[]>([])
+  useEffect(()=>{
+    let cancelled = false
+    ;(async()=>{
+      try {
+        // 动态加载新注册表（不存在时自动回退为空）
+        const modPath = '../../instructions/registry' as string
+        // @ts-ignore
+        const reg: any = await import(/* @vite-ignore */ modPath).catch(()=>null)
+        const instructionRegistry = reg?.instructionRegistry || {}
+        const arches = ['rvv']
+        const cat = arches.map(archName => {
+          const keys = Object.keys(instructionRegistry).filter(k => k.startsWith(archName + '/'))
+          const items = keys.map(k => {
+            const name = k.slice(archName.length + 1)
+            const [opcode, form] = name.split('.')
+            const mod = instructionRegistry[k]
+            const sample: string = mod?.sample || `${opcode}.${form} v0, v1, v2`
+            return { arch: archName, opcode, form, sample }
+          })
+          return { arch: archName, items }
+        })
+        if (!cancelled) setCatalog(cat)
+      } catch {
+        if (!cancelled) setCatalog([])
+      }
+    })()
+    return ()=>{ cancelled = true }
+  }, [])
 
   const clearDiagnostics = ()=>{
     const ed = editorRef.current, m = monacoRef.current
@@ -109,7 +119,8 @@ vsetvli.ri x1, x10, e32m2
     if (runExecDecoIds.current.length) { ed.deltaDecorations(runExecDecoIds.current, []); runExecDecoIds.current = [] }
   }
 
-  const showDiagnostics = (errs: ParseError[])=>{
+  type IDError = { line:number; col:number; message:string }
+  const showDiagnostics = (errs: IDError[])=>{
     const ed = editorRef.current, m = monacoRef.current
     if (!ed || !m) return
     const model = ed.getModel(); if (!model) return
@@ -317,7 +328,69 @@ vsetvli.ri x1, x10, e32m2
     document.head.appendChild(style)
   }, [])
 
-  const handleRun = ()=>{
+  // 轻量语法解析：`opcode.form [operands]`，从 UI 的 arch 推导架构
+  function parseLineToAst(arch: string, lineText: string) {
+    const m = lineText.match(/^([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\s*(.*)$/)
+    if (!m) {
+      const dotIdx = lineText.indexOf('.')
+      const col = dotIdx > 0 ? dotIdx + 1 : Math.max(1, lineText.length)
+      const err: IDError = { line: 1, col, message: '缺少 opcode.form 或格式不正确' }
+      throw err
+    }
+    const opcode = m[1]
+    const form = m[2]
+    const operands = m[3] ? m[3].split(',').map(s=>s.trim()).filter(Boolean) : []
+    return { arch, opcode, form, operands }
+  }
+  // —— 优先走“指令模块 → DSLDoc”，找不到模块时回退到老的文本 DSL ——
+  async function buildDocViaModule(ast: any) {
+    try {
+      // 为了不在模块尚未创建时报编译错误，这里用动态 import + 非字面量路径
+      const modName = '../../instructions/registry' as string
+      // @ts-ignore: Vite/webpack 动态导入——模块不存在时将被捕获
+      const reg: any = await (import(/* @vite-ignore */ modName).catch(() => null))
+      if (!reg) return null
+
+      const key = `${ast.arch}/${ast.opcode}.${ast.form}`
+      const getInstrModule = (reg as any).getInstrModule
+      let mod = typeof getInstrModule === 'function' ? getInstrModule(key) : undefined
+      if (!mod && (reg as any).instructionRegistry) {
+        mod = (reg as any).instructionRegistry[key]
+      }
+      if (!mod || typeof mod.build !== 'function') return null
+
+      const ctx = { /* TODO: 可传 VL/SEW/环境配置等 */ }
+      const doc = await mod.build(ctx)
+      return doc || null
+    } catch (e) {
+      return null
+    }
+  }
+
+  // 从指令模块或注册表里读取迷你文档（Usage/Notes）
+  async function loadMiniDoc(ast: {arch:string; opcode:string; form:string}) {
+    try {
+      const modName = '../../instructions/registry' as string
+      // @ts-ignore
+      const reg: any = await import(/* @vite-ignore */ modName).catch(()=>null)
+      if (!reg) return null
+      const key1 = `${ast.arch}/${ast.opcode}.${ast.form}`
+      const key2 = `${ast.arch}.${ast.opcode}.${ast.form}` // 兼容你以前的 key 书写
+      const getInstrModule = (reg as any).getInstrModule
+      let mod = typeof getInstrModule === 'function' ? getInstrModule(key1) : undefined
+      if (!mod && (reg as any).instructionRegistry) {
+        mod = (reg as any).instructionRegistry[key1]
+      }
+      const meta = mod?.meta || (reg as any).miniDocs?.[key2] || (reg as any).miniDocs?.[key1]
+      if (!meta) return null
+      const { usage, scenarios, notes, exceptions } = meta
+      return { usage: usage||'', scenarios: scenarios||[], notes: notes||[], exceptions: exceptions||[] }
+    } catch {
+      return null
+    }
+  }
+
+  const handleRun = async ()=>{
     clearDiagnostics()
     const ed = editorRef.current, m = monacoRef.current
     const model = ed?.getModel()
@@ -326,47 +399,53 @@ vsetvli.ri x1, x10, e32m2
     const lineNo = pos.lineNumber
     const raw = model.getLineContent(lineNo)
     const lineText = raw.trim()
-  
+
     // 空行/注释：不解析，直接跳到下一条有效指令
     if (!lineText || /^(\/\/|#|;)/.test(lineText)) {
       const next = nextMeaningfulLine(lineNo)
       highlightLine(next)
       pushLog('↷ 跳过空行/注释，已定位到下一行')
-      setDslOverride(null)
+      setDslOverride(null as any)
       return
     }
-  
-    const { ast, errors } = parseAsm(arch, lineText)
-    if (errors.length) {
-      const mapped = errors.map(e => ({ ...e, line: lineNo + (e.line - 1) }))
-      showDiagnostics(mapped)
-      setDslOverride(null)
-      pushLog(`❌ 第 ${lineNo}:${errors[0].col} 行：${errors[0].message}`)
-      highlightLine(lineNo)
-      return
-    }
-  
-    // 仅播放当前行
-    const dsl = astToDsl(ast!)
-    setDslOverride({ text: dsl, rev: Date.now() })
-    markExecutingLine(lineNo)
-    pushLog(`✅ 已解析：${ast!.opcode}.${ast!.form} ${ast!.operands.join(', ')}`)
-  
-    // 用法/说明（延续原单条逻辑）
-    let info: any = null
+
+    // 使用轻量解析器获取 opcode.form
+    let ast: any
     try {
-      info = (usageOf as any)(ast!) ?? (usageOf as any)(ast!.arch, ast!.opcode, ast!.form)
+      ast = parseLineToAst(arch, lineText)
+    } catch (e:any) {
+      const err = e as IDError
+      showDiagnostics([{ line: lineNo, col: err?.col || 1, message: err?.message || '语法错误' }])
+      highlightLine(lineNo)
+      setDslOverride(null as any)
+      return
+    }
+
+    // 仅支持模块渲染；找不到模块则提示
+    let usedModule = false
+    try {
+      const doc = await buildDocViaModule(ast)
+      if (doc) {
+        setDslOverride({ doc, rev: Date.now() } as any)
+        usedModule = true
+        pushLog(`✅ 模块渲染：${ast.opcode}.${ast.form}`)
+        // 加载指令元信息 Usage/Notes 等
+        const meta = await loadMiniDoc(ast)
+        if (meta) setDoc(meta)
+        else setDoc({ usage:'', scenarios:[], notes:[], exceptions:[] })
+      }
     } catch {}
-    const usageText = getUsage(ast!) || info?.usage || info?.desc || ''
-    setDoc({
-      usage: usageText,
-      scenarios: info?.scenarios || info?.scenario || [],
-      notes: info?.notes || info?.notice || info?.attentions || [],
-      exceptions: info?.exceptions || info?.exception || [],
-    })
-    const u = getUsage(ast!)
-    if (u) pushLog(`ℹ️ 用法：${u}`)
-  
+
+    if (!usedModule) {
+      pushLog(`⚠️ 未找到指令模块：${ast.opcode}.${ast.form}`)
+      // 设置一个空的 DSL 字符串，避免下游 parseDSL(undefined) 报错
+      setDslOverride({ text: '', rev: Date.now() } as any)
+      // Usage 清空
+      setDoc({ usage:'', scenarios:[], notes:[], exceptions:[] })
+    }
+
+    markExecutingLine(lineNo)
+
     // 自动跳到下一条有效指令并高亮
     const next = nextMeaningfulLine(lineNo)
     highlightLine(next)
