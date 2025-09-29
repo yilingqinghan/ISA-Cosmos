@@ -3,6 +3,8 @@ import { useApp } from '../../context'
 import Editor, { OnMount } from '@monaco-editor/react'
 import { LeftNotch } from '../nav/NavBar'
 
+
+
 export default function LeftPanel() {
   const { arch, pushLog, setDslOverride } = useApp()
   const [code, setCode] = useState(`vadd.vv v0, v1, v2
@@ -342,15 +344,25 @@ vsetvli.ri x1, x10, e32m2
     const operands = m[3] ? m[3].split(',').map(s=>s.trim()).filter(Boolean) : []
     return { arch, opcode, form, operands }
   }
-  // —— 优先走“指令模块 → DSLDoc”，找不到模块时回退到老的文本 DSL ——
-  async function buildDocViaModule(ast: any) {
+  function parseInlinePayload(rawLine: string): { env?: any; values?: Record<string, any[]> } {
+    // 优先匹配 // { ... }，其次匹配行尾 { ... }
+    const m = rawLine.match(/\/\/\s*(\{[\s\S]*\})\s*$/) || rawLine.match(/(\{[\s\S]*\})\s*$/)
+    if (!m) return {}
     try {
-      // 为了不在模块尚未创建时报编译错误，这里用动态 import + 非字面量路径
+      const obj = JSON.parse(m[1])
+      const env = obj?.env && typeof obj.env === 'object' ? obj.env : undefined
+      const values = obj?.values && typeof obj.values === 'object' ? obj.values : undefined
+      return { env, values }
+    } catch { return {} }
+  }
+  // —— 优先走“指令模块 → DSLDoc”，找不到模块时回退到老的文本 DSL ——
+  async function buildDocViaModule(ast: any, payload?: { env?: any; values?: Record<string, any[]> }) {
+    try {
       const modName = '../../instructions/registry' as string
-      // @ts-ignore: Vite/webpack 动态导入——模块不存在时将被捕获
+      // @ts-ignore: 动态导入——模块不存在时将被捕获
       const reg: any = await (import(/* @vite-ignore */ modName).catch(() => null))
       if (!reg) return null
-
+  
       const key = `${ast.arch}/${ast.opcode}.${ast.form}`
       const getInstrModule = (reg as any).getInstrModule
       let mod = typeof getInstrModule === 'function' ? getInstrModule(key) : undefined
@@ -358,11 +370,19 @@ vsetvli.ri x1, x10, e32m2
         mod = (reg as any).instructionRegistry[key]
       }
       if (!mod || typeof mod.build !== 'function') return null
-
-      const ctx = { /* TODO: 可传 VL/SEW/环境配置等 */ }
+  
+      // —— 组装 BuildCtx ——（类型约束在 src/instructions/types.ts 已定义）
+      const ctx = {
+        arch: ast.arch,
+        opcode: ast.opcode,
+        form: ast.form,
+        operands: ast.operands || [],            // ← 从 Editor 传入的寄存器号等
+        env: { VL: 4, ...(payload?.env || {}) }, // ← 默认 VL=4，可被行内 JSON 覆盖
+        values: payload?.values || undefined,    // ← 行内 JSON 里可传各寄存器 lane 值
+      }
       const doc = await mod.build(ctx)
       return doc || null
-    } catch (e) {
+    } catch {
       return null
     }
   }
@@ -399,6 +419,7 @@ vsetvli.ri x1, x10, e32m2
     const lineNo = pos.lineNumber
     const raw = model.getLineContent(lineNo)
     const lineText = raw.trim()
+    const payload = parseInlinePayload(raw)  // ← 新增
 
     // 空行/注释：不解析，直接跳到下一条有效指令
     if (!lineText || /^(\/\/|#|;)/.test(lineText)) {
@@ -424,7 +445,7 @@ vsetvli.ri x1, x10, e32m2
     // 仅支持模块渲染；找不到模块则提示
     let usedModule = false
     try {
-      const doc = await buildDocViaModule(ast)
+      const doc = await buildDocViaModule(ast, payload)
       if (doc) {
         setDslOverride({ doc, rev: Date.now() } as any)
         usedModule = true
