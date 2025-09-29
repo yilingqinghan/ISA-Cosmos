@@ -1187,7 +1187,7 @@ export default function CanvasKitPanel() {
           </g>
         </svg>
       </div>
-      <div className="canvas-logs" style={{borderTop:'1px solid #e5e7eb', background:'#fff', height: logsOpen ? 180 : 36, transition:'height .18s ease'}}>
+      <div className="canvas-logs" style={{borderTop:'1px solid #e5e7eb', background:'#fff', height: logsOpen ? 260 : 36, transition:'height .18s ease'}}>
         <div style={{display:'flex', alignItems:'center', height:36, padding:'0 8px', gap:8}}>
           <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>Logs</div>
           <div style={{flex:1}} />
@@ -1212,7 +1212,7 @@ export default function CanvasKitPanel() {
           <button className="btn" onClick={()=>clearLogs()} style={{marginLeft:6}}>清空</button>
         </div>
         {logsOpen && (
-          <div style={{display:'flex', height:144}}>
+          <div style={{display:'flex', height:224}}>
             {/* Left: Logs (50% or 100% when reg pane closed) */}
             <div style={{flex: '0 0 50%' , overflow:'auto', padding:'6px 10px'}}>
               {(!logs || logs.length===0) ? (
