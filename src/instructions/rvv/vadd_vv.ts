@@ -1,7 +1,7 @@
-import type { InstructionModule } from '../types';
-import { Timeline } from '../timeline';
+import type { InstructionModule } from '../types'
+import { Timeline } from '../timeline'
 
-const pxIn = (u:number)=>u; // 你的 parse/渲染用“英寸”为单位，这里保持同样的数值体系（CanvasKitPanel 里 PX 会 * 96）
+const px = (u:number)=>u // inches; panel multiplies by 96
 
 export const vaddVV: InstructionModule = {
   id: 'rvv/vadd.vv',
@@ -14,12 +14,13 @@ export const vaddVV: InstructionModule = {
     exceptions: ['无'],
   },
   build() {
-    const shapes = [
-      // 盒子（向量寄存器显示区域）
-      { kind:'group', id:'v1__box', x:pxIn(1), y:pxIn(1), w:pxIn(4), h:pxIn(1) },
-      { kind:'group', id:'v2__box', x:pxIn(1), y:pxIn(2.4), w:pxIn(4), h:pxIn(1) },
-      { kind:'group', id:'v3__box', x:pxIn(8), y:pxIn(1.7), w:pxIn(4), h:pxIn(1) },
-      // lanes（示意 4 lane）
+    const shapes: any[] = [
+      // vector boxes
+      { kind:'group', id:'v1__box', x:px(1), y:px(1),   w:px(4), h:px(1) },
+      { kind:'group', id:'v2__box', x:px(1), y:px(2.4), w:px(4), h:px(1) },
+      { kind:'group', id:'v3__box', x:px(8), y:px(1.7), w:px(4), h:px(1) },
+
+      // lanes (4)
       { kind:'rect', id:'v1[0]', x:1.1, y:1.1, w:0.8, h:0.8, color:'lightgray', text:'1' },
       { kind:'rect', id:'v1[1]', x:2.0, y:1.1, w:0.8, h:0.8, color:'lightgray', text:'2' },
       { kind:'rect', id:'v1[2]', x:2.9, y:1.1, w:0.8, h:0.8, color:'lightgray', text:'3' },
@@ -33,26 +34,25 @@ export const vaddVV: InstructionModule = {
       // ALU
       { kind:'rect', id:'alu', x:6, y:1.6, w:1.4, h:1.2, color:'#0EA5E9', text:'ALU' },
 
-      // 目标 lane 占位（写回时出现）
+      // target lanes (appear later)
       { kind:'rect', id:'v3[0]', x:8.1, y:1.8, w:0.8, h:0.8, color:'lightgray', text:'' },
       { kind:'rect', id:'v3[1]', x:9.0, y:1.8, w:0.8, h:0.8, color:'lightgray', text:'' },
       { kind:'rect', id:'v3[2]', x:9.9, y:1.8, w:0.8, h:0.8, color:'lightgray', text:'' },
       { kind:'rect', id:'v3[3]', x:10.8, y:1.8, w:0.8, h:0.8, color:'lightgray', text:'' },
 
-      // 数据流箭头（示意）
+      // flows
       { kind:'arrow', id:'a_v1_alu', x1:4.6, y1:1.5, x2:6, y2:2.0, color:'#94a3b8', width:2 },
       { kind:'arrow', id:'a_v2_alu', x1:4.6, y1:2.9, x2:6, y2:2.1, color:'#94a3b8', width:2 },
       { kind:'arrow', id:'a_alu_v3', x1:7.4, y1:2.2, x2:8.1, y2:2.2, color:'#94a3b8', width:2 },
-    ] as any;
+    ]
 
     const tl = new Timeline()
       .step('s1', '读取源向量').appear('v1__box').appear('v2__box')
       .step('s2', '送入 ALU').appear('a_v1_alu').appear('a_v2_alu').blink('alu', 3, 240)
       .step('s3', '执行加法').blink('alu', 3, 240)
       .step('s4', '写回 v3').appear('a_alu_v3').appear('v3__box').appear('v3[0]').appear('v3[1]').appear('v3[2]').appear('v3[3]')
-      .step('s5', '完成');
+      .step('s5', '完成')
 
-    // pack 合并 v1/v2/v3（十六进制模式下显示合并条）
-    return tl.build(shapes, ['v1','v2','v3']);
+    return tl.build(shapes, ['v1','v2','v3'])
   }
-};
+}

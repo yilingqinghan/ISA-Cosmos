@@ -1,3 +1,6 @@
+import type { VecGroup, LaneRect, DslOverride } from './panelTypes'
+import { Group, Rect, Text, Line } from '../../svg/primitives'
+import { SvgStage } from '../../svg/SvgStage'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { parseDSL, DSLDoc, DSLShape } from '../../utils/parse'
 import { useApp } from '../../context'
@@ -104,194 +107,6 @@ function safeParseDSL(s?: string | null): DSLDoc {
   try { return s ? parseDSL(s) : EMPTY_DOC } catch { return EMPTY_DOC }
 }
 
-// ===== Lightweight SVG primitives to replace react-konva =====
-const CANVAS_W = 1200;
-const CANVAS_H = 900;
-
-type GroupProps = {
-  x?: number;
-  y?: number;
-  opacity?: number;
-  listening?: boolean;
-  children?: React.ReactNode;
-};
-function Group({ x = 0, y = 0, opacity = 1, listening = true, children }: GroupProps) {
-  return (
-    <g
-      transform={`translate(${x},${y})`}
-      opacity={opacity}
-      pointerEvents={listening === false ? 'none' : undefined}
-    >
-      {children}
-    </g>
-  );
-}
-
-type RectProps = {
-  x?: number;
-  y?: number;
-  width: number;
-  height: number;
-  cornerRadius?: number;
-  fill?: string;
-  stroke?: string;
-  dash?: number[];
-  opacity?: number;
-  listening?: boolean;
-  shadowBlur?: number;
-  shadowColor?: string; // kept for API parity; color comes from filter
-};
-function Rect({
-  x = 0,
-  y = 0,
-  width,
-  height,
-  cornerRadius = 0,
-  fill,
-  stroke,
-  dash,
-  opacity = 1,
-  listening = true,
-  shadowBlur,
-}: RectProps) {
-  const filter = shadowBlur ? 'url(#dropShadow)' : undefined;
-  return (
-    <rect
-      x={x}
-      y={y}
-      width={width}
-      height={height}
-      rx={cornerRadius}
-      ry={cornerRadius}
-      fill={fill}
-      stroke={stroke}
-      strokeDasharray={dash ? dash.join(' ') : undefined}
-      opacity={opacity}
-      filter={filter}
-      pointerEvents={listening === false ? 'none' : undefined}
-    />
-  );
-}
-
-type TextAlign = 'left' | 'center' | 'right';
-type VAlign = 'top' | 'middle' | 'bottom';
-
-type TextProps = {
-  text: string | number;
-  x: number;
-  y: number;
-  width?: number;
-  height?: number;
-  align?: TextAlign;
-  verticalAlign?: VAlign;
-  fontSize?: number;
-  fill?: string;
-  opacity?: number;
-  listening?: boolean;
-  fontFamily?: string;
-};
-function Text({
-  text,
-  x,
-  y,
-  width,
-  height,
-  align = 'left',
-  verticalAlign = 'top',
-  fontSize = 16,
-  fill = '#0f172a',
-  opacity = 1,
-  listening = true,
-  fontFamily,
-}: TextProps) {
-  let tx = x;
-  let ty = y;
-  let textAnchor: 'start' | 'middle' | 'end' = 'start';
-  let dominantBaseline: string = 'text-before-edge';
-
-  if (width != null) {
-    if (align === 'center') {
-      textAnchor = 'middle';
-      tx = x + width / 2;
-    } else if (align === 'right') {
-      textAnchor = 'end';
-      tx = x + width;
-    }
-  }
-  if (height != null) {
-    if (verticalAlign === 'middle') {
-      dominantBaseline = 'middle';
-      ty = y + height / 2;
-    } else if (verticalAlign === 'bottom') {
-      dominantBaseline = 'text-after-edge';
-      ty = y + height;
-    } else {
-      dominantBaseline = 'text-before-edge';
-    }
-  }
-
-  return (
-    <text
-      x={tx}
-      y={ty}
-      textAnchor={textAnchor}
-      dominantBaseline={dominantBaseline}
-      fontSize={fontSize}
-      fill={fill}
-      opacity={opacity}
-      pointerEvents={listening === false ? 'none' : undefined}
-      style={fontFamily ? { fontFamily } : undefined}
-    >
-      {String(text)}
-    </text>
-  );
-}
-
-type LineProps = {
-  points?: number[]; // [x1,y1,x2,y2,...]
-  x1?: number;
-  y1?: number;
-  x2?: number;
-  y2?: number;
-  stroke?: string;
-  strokeWidth?: number;
-  opacity?: number;
-  listening?: boolean;
-  closed?: boolean;
-  fill?: string;
-};
-function Line({
-  points,
-  x1,
-  y1,
-  x2,
-  y2,
-  stroke = '#000',
-  strokeWidth = 2,
-  opacity = 1,
-  listening = true,
-  closed,
-  fill,
-}: LineProps) {
-  const common = {
-    stroke,
-    strokeWidth,
-    opacity,
-    pointerEvents: listening === false ? 'none' : undefined,
-  } as any;
-
-  if (points && points.length >= 4) {
-    const pts = points.reduce((acc: string[], v, i) => {
-      if (i % 2 === 1) acc.push(`${points[i - 1]},${v}`);
-      return acc;
-    }, []).join(' ');
-    if (closed) {
-      return <polygon points={pts} fill={fill} {...common} />;
-    }
-    return <polyline points={pts} fill="none" {...common} />;
-  }
-  return <line x1={x1} y1={y1} x2={x2} y2={y2} {...common} />;
-}
 
 // 动画参数
 const STEP_MS = 1600
@@ -341,17 +156,14 @@ export default function CanvasKitPanel() {
   const [resetTick, setResetTick] = useState(0)
   const fmtSnap = useFormat()
   useEffect(() => {
-    if (!dslOverride) return
-    // 如果提供的是对象文档，直接应用；否则走文本解析
-    // @ts-ignore: 兼容 { doc } | { text }
-    if (dslOverride.doc) {
-      // @ts-ignore
-      const next: DSLDoc = dslOverride.doc
+    const o = dslOverride as unknown as DslOverride | null
+    if (!o) return
+    if ('doc' in o && (o as any).doc) {
+      const next = (o as any).doc as DSLDoc
       setDoc(next); setStepIdx(0); stepStartRef.current = performance.now(); setResetTick(t=>t+1)
       return
     }
-    // @ts-ignore
-    setDsl(dslOverride.text ?? '')
+    setDsl(('text' in o ? (o as any).text : '') ?? '')
   }, [dslOverride?.rev, arch, opcode, form])
   // --- Debug toggle and logger ---
   const [debugOn, setDebugOn] = useState(false)
@@ -1078,50 +890,9 @@ export default function CanvasKitPanel() {
           )}
         </div>
         {/* SVG Stage (replaces KitStage) */}
-        <svg
-          className="svg-stage"
-          width="100%"
-          height="100%"
-          viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ display: 'block' }}
-        >
-          <defs>
-            {/* Grid patterns */}
-            {(() => {
-              const spacing = 0.2 * 96; // spacing in inches to px (same as PX)
-              const majorEvery = 5;
-              return (
-                <>
-                  <pattern id="gridMinor" width={spacing} height={spacing} patternUnits="userSpaceOnUse">
-                  <path d={`M ${spacing} 0 H 0 V ${spacing}`} fill="none" stroke="#EEF2F7" strokeWidth={0.5} shapeRendering="crispEdges" />
-                  </pattern>
-                  <pattern id="gridMajor" width={spacing * majorEvery} height={spacing * majorEvery} patternUnits="userSpaceOnUse">
-                    <rect width="100%" height="100%" fill="url(#gridMinor)" />
-                    <path d={`M ${spacing * majorEvery} 0 H 0 V ${spacing * majorEvery}`} fill="none" stroke="#E5E7EB" strokeWidth={0.5} shapeRendering="crispEdges" />
-                  </pattern>
-                </>
-              );
-            })()}
-
-            {/* Drop shadow filter (used when shadowBlur is set) */}
-            <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.22" />
-            </filter>
-
-            {/* Optional arrow marker (not yet wired, kept for future) */}
-            <marker id="arrow" orient="auto" markerWidth="12" markerHeight="12" refX="9" refY="6">
-              <path d="M0,0 L0,12 L12,6 z" />
-            </marker>
-          </defs>
-
-          {showGrid && <rect x={0} y={0} width={CANVAS_W} height={CANVAS_H} fill="url(#gridMajor)" />}
-
-          {/* zoomed content */}
-          <g transform={`scale(${zoom})`}>
-            <Content />
-          </g>
-        </svg>
+        <SvgStage zoom={zoom} showGrid={showGrid}>
+          <Content />
+        </SvgStage>
       </div>
       <div className="canvas-logs" style={{borderTop:'1px solid #e5e7eb', background:'#fff', height: logsOpen ? 180 : 36, transition:'height .18s ease'}}>
         <div style={{display:'flex', alignItems:'center', height:36, padding:'0 8px', gap:8}}>

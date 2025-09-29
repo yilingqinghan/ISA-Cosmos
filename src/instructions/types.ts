@@ -1,11 +1,16 @@
-import type { DSLDoc } from '../utils/parse';
+import type { DSLDoc } from '../utils/parse'
 
-export interface BuildCtx {
-  // 需要的话可加 VL、SEW、UI 配置等
+export interface InstructionMeta {
+  usage: string
+  scenarios: string[]
+  notes: string[]
+  exceptions: string[]
 }
 
 export interface InstructionModule {
-  id: string;            // 'rvv/vadd.vv'
-  title: string;         // 'vadd.vv'
-  build(ctx: BuildCtx): DSLDoc;   // 直接产出 DSLDoc，避免再反解析
+  id: string            // e.g. 'rvv/vadd.vv'
+  title: string         // display name
+  sample?: string       // optional sample line for catalog/list
+  meta?: InstructionMeta// optional mini doc to show in Usage panel
+  build(ctx: any): DSLDoc   // produce the visual doc directly
 }
