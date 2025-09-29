@@ -441,7 +441,21 @@ vsetvli.ri x1, x10, e32m2
       setDslOverride(null as any)
       return
     }
-
+    // 使用指令集校验器（LeftPanel 不做通用校验）
+    try {
+      // 动态导入注册表入口（不存在时静默忽略）
+      const reg: any = await import(/* @vite-ignore */ '../../instructions/registry').catch(()=>null)
+      const validateWithRegistry = reg?.validateWithRegistry
+      if (typeof validateWithRegistry === 'function') {
+        const verrs = validateWithRegistry(ast) || []
+        if (verrs.length) {
+          showDiagnostics(verrs.map((e:any)=>({ line: lineNo, col: e.col ?? 1, message: e.message })))
+          highlightLine(lineNo)
+          setDslOverride({ text: '', rev: Date.now() } as any)  // 防崩
+          return
+        }
+      }
+    } catch {}
     // 仅支持模块渲染；找不到模块则提示
     let usedModule = false
     try {
@@ -566,6 +580,9 @@ vsetvli.ri x1, x10, e32m2
             </div>
             <div className="usage-wrap" style={{padding:'8px 10px', overflow:'auto', flex:1, minHeight:0, fontSize:12}}>
               <div className="usage-all" style={{display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr', gap:10}}>
+                <div style={{display:'none', marginTop:8, color:'#64748b', fontSize:12}} aria-hidden="true">
+                  提示：我们不检查语法正确性，请自行保证语法正确！
+                </div>
                 <div style={{gridColumn:'1 / -1', padding:8, border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc'}}>
                   <div style={{fontSize:11, fontWeight:600, color:'#0f172a', marginBottom:6}}>说明</div>
                   {doc.usage ? <p style={{lineHeight:1.6, margin:0}}>{doc.usage}</p> : <p className="muted" style={{margin:0}}>无</p>}
