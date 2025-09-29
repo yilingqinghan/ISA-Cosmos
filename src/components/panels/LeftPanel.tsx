@@ -362,7 +362,7 @@ vsetvli.ri x1, x10, e32m2
       // @ts-ignore: 动态导入——模块不存在时将被捕获
       const reg: any = await (import(/* @vite-ignore */ modName).catch(() => null))
       if (!reg) return null
-  
+
       const key = `${ast.arch}/${ast.opcode}.${ast.form}`
       const getInstrModule = (reg as any).getInstrModule
       let mod = typeof getInstrModule === 'function' ? getInstrModule(key) : undefined
@@ -370,7 +370,7 @@ vsetvli.ri x1, x10, e32m2
         mod = (reg as any).instructionRegistry[key]
       }
       if (!mod || typeof mod.build !== 'function') return null
-  
+
       // —— 组装 BuildCtx ——（类型约束在 src/instructions/types.ts 已定义）
       const ctx = {
         arch: ast.arch,
@@ -380,8 +380,19 @@ vsetvli.ri x1, x10, e32m2
         env: { VL: 4, ...(payload?.env || {}) }, // ← 默认 VL=4，可被行内 JSON 覆盖
         values: payload?.values || undefined,    // ← 行内 JSON 里可传各寄存器 lane 值
       }
-      const doc = await mod.build(ctx)
-      return doc || null
+
+      const built = await mod.build(ctx)
+      // 模块可能直接返回 DSLDoc，或返回 { doc: DSLDoc, extras?: any }
+      let doc: any = null
+      let extras: any = undefined
+      if (built && typeof built === 'object' && 'doc' in built) {
+        doc = (built as any).doc
+        extras = (built as any).extras
+      } else {
+        doc = built
+      }
+      if (!doc) return null
+      return { doc, extras }
     } catch {
       return null
     }
@@ -459,9 +470,9 @@ vsetvli.ri x1, x10, e32m2
     // 仅支持模块渲染；找不到模块则提示
     let usedModule = false
     try {
-      const doc = await buildDocViaModule(ast, payload)
-      if (doc) {
-        setDslOverride({ doc, rev: Date.now() } as any)
+      const out = await buildDocViaModule(ast, payload)
+      if (out) {
+        setDslOverride({ doc: out.doc, extras: out.extras, rev: Date.now() } as any)
         usedModule = true
         pushLog(`✅ 模块渲染：${ast.opcode}.${ast.form}`)
         // 加载指令元信息 Usage/Notes 等
