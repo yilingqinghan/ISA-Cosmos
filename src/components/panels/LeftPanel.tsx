@@ -17,6 +17,9 @@ vsetvli.ri x1, x10, e32m2
   const decoIds = useRef<string[]>([])
   const runFocusDecoIds = useRef<string[]>([])
   const runExecDecoIds = useRef<string[]>([])
+  const inlineIssueRef = useRef<HTMLDivElement|null>(null)
+  const inlineIssueLine = useRef<number>(0)
+  const inlineIssueDisposables = useRef<any[]>([])
 
   const [doc, setDoc] = useState<{ usage?: string; scenarios?: string[]; notes?: string[]; exceptions?: string[] }>({})
   const [editorTheme, setEditorTheme] = useState<'isa-light' | 'solarized-light' | 'solarized-dark' | 'vs-dark'>(()=> {
@@ -119,6 +122,55 @@ vsetvli.ri x1, x10, e32m2
     if (decoIds.current.length) { ed.deltaDecorations(decoIds.current, []); decoIds.current=[] }
     if (runFocusDecoIds.current.length) { ed.deltaDecorations(runFocusDecoIds.current, []); runFocusDecoIds.current = [] }
     if (runExecDecoIds.current.length) { ed.deltaDecorations(runExecDecoIds.current, []); runExecDecoIds.current = [] }
+    removeInlineIssue()
+  }
+  function removeInlineIssue() {
+    const ed = editorRef.current
+    const el = inlineIssueRef.current
+    if (ed && el) {
+      try { ed.getDomNode()?.removeChild(el) } catch {}
+    }
+    inlineIssueRef.current = null
+    inlineIssueLine.current = 0
+    inlineIssueDisposables.current.forEach(d=>{ try { d.dispose?.() } catch {} })
+    inlineIssueDisposables.current = []
+  }
+
+  function positionInlineIssue() {
+    const ed = editorRef.current
+    const el = inlineIssueRef.current
+    if (!ed || !el || !inlineIssueLine.current) return
+    const line = inlineIssueLine.current
+    const topForLine = (ed as any).getTopForLineNumber(line) as number
+    const scrollTop = (ed as any).getScrollTop() as number
+    const lineHeight = (ed as any).getOption?.((window as any).monaco.editor.EditorOption.lineHeight) ?? 20
+    const top = Math.round(topForLine - scrollTop + (lineHeight - el.offsetHeight) / 2)
+    el.style.top = `${Math.max(top, 0)}px`
+    el.style.right = '8px'
+  }
+
+  function placeInlineIssue(line:number, message:string, tone:'warn'|'error'='warn') {
+    const ed = editorRef.current
+    if (!ed) return
+    // ensure editor root is positioning context
+    ed.getDomNode()?.classList.add('isa-inline-issue-root')
+    removeInlineIssue()
+
+    const el = document.createElement('div')
+    el.className = `inline-issue ${tone==='error'?'inline-issue--error':'inline-issue--warn'}`
+    el.textContent = message
+    el.style.position = 'absolute'
+    el.style.pointerEvents = 'none'
+    el.style.whiteSpace = 'nowrap'
+    el.style.zIndex = '50'
+    inlineIssueRef.current = el
+    inlineIssueLine.current = line
+    ed.getDomNode()?.appendChild(el)
+
+    // initial pos + follow scroll/resize
+    positionInlineIssue()
+    inlineIssueDisposables.current.push((ed as any).onDidScrollChange?.(()=>positionInlineIssue()))
+    inlineIssueDisposables.current.push((ed as any).onDidLayoutChange?.(()=>positionInlineIssue()))
   }
 
   type IDError = { line:number; col:number; message:string }
@@ -154,6 +206,23 @@ vsetvli.ri x1, x10, e32m2
       widgets.current.push(w)
     })
     decoIds.current = ed.deltaDecorations(decoIds.current, decos)
+  }
+
+  // 以“警告”样式提示（例如：未找到指令模块）
+  const showWarning = (line: number, col: number, message: string) => {
+    const ed = editorRef.current, m = monacoRef.current
+    if (!ed || !m) return
+    const model = ed.getModel(); if (!model) return
+
+    // 仍然打 Warning marker（用于 hover & 概览尺子）
+    m.editor.setModelMarkers(model, 'isa', [{
+      startLineNumber: line, startColumn: col,
+      endLineNumber: line, endColumn: col + 1,
+      severity: m.MarkerSeverity.Warning, message
+    }])
+
+    // Xcode 风格：当前行右侧内联提示（非弹框）
+    placeInlineIssue(line, message, 'warn')
   }
 
   // 给“正在执行”的行加上醒目的装饰（不改变选区）
@@ -284,6 +353,7 @@ vsetvli.ri x1, x10, e32m2
     .monaco-editor .run-exec-leftbar { background: #22c55e; width: 3px; }
     /* 错误气泡的基础样式（你已有），这里微调一点阴影/圆角以显得更高级 */
     .err-bubble { background:#fff; border:1px solid #fecaca; color:#991b1b; padding:4px 8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.06); font-size:12px; }
+    .warn-bubble { background:#fffbeb; border:1px solid #facc15; color:#854d0e; padding:4px 8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.06); font-size:12px; }
     /* glyph 红点在 Monaco 左侧栏已经启用，这里不强行覆盖 */
     /* 主题色圆形按钮（按钮自身着色）*/
     .theme-btn {
@@ -326,6 +396,10 @@ vsetvli.ri x1, x10, e32m2
     }
     /* 分界线：每个指令项之间的细分隔线（不影响第一个） */
     .left-catalog ul li + li { border-top: 1px dashed #e5e7eb; }
+    .isa-inline-issue-root { position: relative; }
+    .inline-issue { font-size:12px; padding:1px 8px; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+    .inline-issue--warn { background:#fffbeb; border:1px solid #facc15; color:#854d0e; }
+    .inline-issue--error { background:#fff5f5; border:1px solid #fda4af; color:#be123c; }
     `
     document.head.appendChild(style)
   }, [])
@@ -483,11 +557,13 @@ vsetvli.ri x1, x10, e32m2
     } catch {}
 
     if (!usedModule) {
-      pushLog(`⚠️ 未找到指令模块：${ast.opcode}.${ast.form}`)
-      // 设置一个空的 DSL 字符串，避免下游 parseDSL(undefined) 报错
+      pushLog(`非法指令或还未受支持ฅ^•ﻌ•^ฅ：${ast.opcode}.${ast.form}`)
       setDslOverride({ text: '', rev: Date.now() } as any)
-      // Usage 清空
       setDoc({ usage:'', scenarios:[], notes:[], exceptions:[] })
+      // 在当前行给出“警告”提示
+      showWarning(lineNo, 1, `非法指令或还未受支持：${ast.opcode}.${ast.form}`)
+      highlightLine(lineNo)
+      return
     }
 
     markExecutingLine(lineNo)

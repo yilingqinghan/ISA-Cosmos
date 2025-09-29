@@ -244,3 +244,59 @@ html { scrollbar-gutter: stable both-edges; }
     --scrollbar-thumb-hover: color-mix(in srgb, #7c3aed 45%, white 55%);
   }
 }
+
+/* 当前将要执行：蓝条 + 淡蓝底（由 highlightLine 设置） */
+.monaco-editor .run-focus-line { background: rgba(14,165,233,0.12); }
+.monaco-editor .run-focus-leftbar { background: #38bdf8; width: 3px; }
+/* 正在执行：绿条 + 淡绿底（由 markExecutingLine 设置） */
+.monaco-editor .run-exec-line { background: rgba(34,197,94,0.14); }
+.monaco-editor .run-exec-leftbar { background: #22c55e; width: 3px; }
+/* 错误气泡的基础样式（你已有），这里微调一点阴影/圆角以显得更高级 */
+.err-bubble { background:#fff; border:1px solid #fecaca; color:#991b1b; padding:4px 8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.06); font-size:12px; }
+.warn-bubble { background:#fffbeb; border:1px solid #facc15; color:#854d0e; padding:4px 8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.06); font-size:12px; }
+/* glyph 红点在 Monaco 左侧栏已经启用，这里不强行覆盖 */
+/* 主题色圆形按钮（按钮自身着色）*/
+.theme-btn {
+  width: 18px; height: 18px; border-radius: 999px; padding: 0 !important;
+  border: 1px solid rgba(0,0,0,0.28); display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; /* 覆盖 .btn 的最小宽度 */
+}
+.theme-btn.active { outline: 2px solid #2563eb; outline-offset: 1px; }
+/* 左侧指令目录：悬停/点击“抽出”动画与分隔线 */
+.left-catalog .catalog-scroll ul li.catalog-item {
+  position: relative;
+  transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  border: 1px solid transparent;
+}
+.left-catalog .catalog-scroll ul li.catalog-item:hover {
+  transform: translateX(6px);
+  background: #f1f5f9; /* slate-100 */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-color: #cbd5e1; /* slate-300 */
+}
+.left-catalog .catalog-scroll ul li.catalog-item.active {
+  transform: translateX(8px);
+  background: #e0f2fe; /* sky-100 */
+  border-color: #7dd3fc; /* sky-300 */
+  box-shadow: 0 2px 10px rgba(14,165,233,0.18);
+}
+.left-catalog .catalog-scroll ul li.catalog-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 3px; border-radius: 3px;
+  background: transparent;
+  transition: background-color 160ms ease, transform 160ms ease;
+  transform: scaleY(0.5);
+}
+.left-catalog .catalog-scroll ul li.catalog-item:hover::before,
+.left-catalog .catalog-scroll ul li.catalog-item.active::before {
+  background: #38bdf8; /* sky-400 */
+  transform: scaleY(1);
+}
+/* 分界线：每个指令项之间的细分隔线（不影响第一个） */
+.left-catalog ul li + li { border-top: 1px dashed #e5e7eb; }
+.isa-inline-issue-root { position: relative; }
+.inline-issue { font-size:12px; padding:1px 8px; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.inline-issue--warn { background:#fffbeb; border:1px solid #facc15; color:#854d0e; }
+.inline-issue--error { background:#fff5f5; border:1px solid #fda4af; color:#be123c; }
