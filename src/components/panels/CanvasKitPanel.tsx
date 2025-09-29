@@ -98,6 +98,9 @@ const COLOR: Record<string,string> = {
 
 const col = (c?:string) => (c && COLOR[c]? COLOR[c] : (c || '#94a3b8'))
 
+// —— Cross‑arch synonyms ——
+export type SynItem = { arch: string; name: string; note?: string; example?: string }
+
 // --- Safe DSL parse helpers ---
 const EMPTY_DOC: DSLDoc = { steps: [], anims: [], shapes: [], packOn: [], packOff: [] }
 function safeParseDSL(s?: string | null): DSLDoc {
@@ -339,6 +342,7 @@ export default function CanvasKitPanel() {
   const [stepIdx, setStepIdx] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [resetTick, setResetTick] = useState(0)
+  const [synonyms, setSynonyms] = useState<SynItem[]>([])
   // —— Pan (drag to move) ——
   const [pan, setPan] = useState<{x:number;y:number}>({ x: 0, y: 0 })
   const panRef = useRef<{x:number;y:number}>({ x: 0, y: 0 })
@@ -397,15 +401,35 @@ export default function CanvasKitPanel() {
     if (dslOverride.doc) {
       // @ts-ignore
       const next: DSLDoc = dslOverride.doc
-      setDoc(next); setStepIdx(0); stepStartRef.current = performance.now(); setResetTick(t=>t+1)
+      setDoc(next)
+      // 尝试从多个来源读取同义指令（模块侧传入）：
+      // 1) dslOverride.extras.synonyms（LeftPanel 透传）
+      // 2) next.synonyms（模块直接挂到 doc 上）
+      // 3) next.extras?.synonyms（某些模块可能把 extras 挂到 doc 内）
+      // @ts-ignore
+      const sx: SynItem[] = (dslOverride.extras?.synonyms as SynItem[])
+        ?? ((next as any).synonyms as SynItem[])
+        ?? ((next as any).extras?.synonyms as SynItem[])
+        ?? []
+      const arr = Array.isArray(sx) ? sx : []
+      setSynonyms(arr)
+      // 调试输出：观察来源与数量
+      dbg('synonyms src =', {
+        fromOverride: !!(dslOverride as any)?.extras?.synonyms,
+        fromDoc: !!(next as any)?.synonyms,
+        fromDocExtras: !!(next as any)?.extras?.synonyms,
+        count: Array.isArray(sx) ? sx.length : 'not-array'
+      })
+      setStepIdx(0); stepStartRef.current = performance.now(); setResetTick(t=>t+1)
       return
     }
     // @ts-ignore
     setDsl(dslOverride.text ?? '')
+    // 保留上一次的同义指令，避免“模块 → 文本覆盖”导致的闪断
   }, [dslOverride?.rev, arch, opcode, form])
-  // --- Debug toggle and logger ---
-  const [debugOn, setDebugOn] = useState(false)
-  const [debug, setDebug] = useState(false);
+  // --- Debug/log always on (expert mode) ---
+  const debugOn = true
+  const debug = true
   const dbg = (...args: any[]) => {
     if (!debugOn) return;
     const line = args.map((x)=> (typeof x === 'string' ? x : JSON.stringify(x))).join(' ')
@@ -436,7 +460,7 @@ export default function CanvasKitPanel() {
       if (typeof p.regWide === 'boolean') setRegWide(!!p.regWide)
       if (typeof p.toolbarVisible === 'boolean') setToolbarVisible(!!p.toolbarVisible)
       if (typeof p.hotkeyOpen === 'boolean') setHotkeyOpen(!!p.hotkeyOpen)
-      if (typeof p.debugOn === 'boolean') setDebugOn(!!p.debugOn)
+      // (debugOn is now a constant, ignore restore)
     }
     // restore format (base / hexDigits)
     const f = readJSON<any>(FORMAT_KEY)
@@ -450,11 +474,11 @@ export default function CanvasKitPanel() {
   useEffect(()=>{
     const id = setTimeout(()=>{
       writeJSON(PREFS_KEY, {
-        showGrid, speed, zoom, regWide, toolbarVisible, hotkeyOpen, debugOn
+        showGrid, speed, zoom, regWide, toolbarVisible, hotkeyOpen
       })
     }, 200)
     return ()=> clearTimeout(id)
-  }, [showGrid, speed, zoom, regWide, toolbarVisible, hotkeyOpen, debugOn])
+  }, [showGrid, speed, zoom, regWide, toolbarVisible, hotkeyOpen])
 
   // Persist format (base/hexDigits) when changed
   useEffect(()=>{
@@ -1018,21 +1042,6 @@ export default function CanvasKitPanel() {
             <button title="显示/隐藏网格" className="btn icon" style={iconBtn} onClick={()=>setShowGrid(s=>!s)}>
               <span style={iconText}>#</span>
             </button>
-            <button title="切换 DSL 调试日志" className="btn icon" style={iconBtn} onClick={()=>{
-              setDebugOn(v=>{
-                const nv = !v
-                // write immediately so刷新后也记住
-                writeJSON(PREFS_KEY, { showGrid, speed, zoom, regWide, toolbarVisible, hotkeyOpen, debugOn: nv })
-                return nv
-              });
-              if (!debugOn) clearLogs();
-              dbg('--- DSL debug toggled ---')
-            }}>
-              <span style={iconText}>📝</span>
-            </button>
-            <button title="切换调试模式" className="btn icon" style={iconBtn} onClick={()=>setDebug(d=>!d)}>
-              <span style={iconText}>🧪</span>
-            </button>
             {/* Inline format controls */}
             <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6, marginLeft:8, flexShrink:0}}>
               <span className="label-muted" title="数制">⑩</span>
@@ -1120,7 +1129,7 @@ export default function CanvasKitPanel() {
                 <li><b>1/2/3/4</b> 0.5×/1×/2×/4×</li>
                 <li><b>G</b> 网格</li>
                 <li><b>R</b> 复位</li>
-                <li><b>S</b> 寄存器抽屉</li>
+                <li><b>S</b> 对比抽屉</li>
                 <li><b>T</b> 工具条显示/隐藏</li>
                 <li><b>H</b> 收起/展开本卡片</li>
               </ul>
@@ -1219,7 +1228,7 @@ export default function CanvasKitPanel() {
                 </ul>
               )}
             </div>
-            {/* Right: Embedded Register Pane (50%) */}
+            {/* Right: Cross‑arch synonyms pane (50%) */}
             {(
               <div style={{
                 flex:'0 0 50%',
@@ -1231,65 +1240,31 @@ export default function CanvasKitPanel() {
                 background:'#ffffff'
               }}>
                 <div style={{marginBottom:6, display:'flex', alignItems:'center', gap:8}}>
-                  <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>寄存器</div>
+                  <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>同义指令（跨架构）</div>
                   <div style={{flex:1}} />
-                  <button
-                    className="btn icon"
-                    title={regWide ? '收窄面板' : '展开面板'}
-                    style={{width:28, height:24, borderRadius:8, padding:0, border:'1px solid #e5e7eb', background:'#fff'}}
-                    onClick={()=>setRegWide(w=>!w)}
-                  >
-                    {regWide ? (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <polyline points="15 18 9 12 15 6"></polyline>
-                      </svg>
-                    ) : (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    )}
-                  </button>
+                  
                 </div>
-                {/* 标量寄存器 */}
-                <div style={{marginBottom:10, fontWeight:600, color:'#0f172a'}}>标量（x）</div>
-                {scalarRegs.size === 0 ? (
-                  <div style={{color:'#64748b'}}>暂无（DSL 中未发现 xN）</div>
+
+                {(!synonyms || synonyms.length === 0) ? (
+                  <div style={{color:'#64748b'}}>暂无同义指令。指令模块可通过 dslOverride.extras.synonyms 传入。</div>
                 ) : (
-                  <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gridTemplateColumns:'1fr 1fr', gap:6}}>
-                    {Array.from(scalarRegs.entries()).sort((a,b)=>parseInt(a[0].slice(1)) - parseInt(b[0].slice(1))).map(([k,v])=>(
-                      <li key={k} style={{display:'flex', alignItems:'center', gap:6, border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 8px', background:'#f8fafc'}}>
-                        <span style={{fontWeight:700}}>{k}</span>
-                        <span style={{marginLeft:'auto'}}>{fmt(v, fmtSnap.base, fmtSnap.hexDigits)}</span>
+                  <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
+                    {synonyms.map((it, idx)=> (
+                      <li key={idx} style={{border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', background:'#ffffff'}}>
+                        <div style={{display:'flex', alignItems:'center', gap:8}}>
+                          <span style={{fontWeight:700}}>{it.arch}</span>
+                          <span style={{fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', padding:'2px 6px', border:'1px solid #e5e7eb', borderRadius:999}}>{it.name}</span>
+                        </div>
+                        {it.note && <div style={{marginTop:6, color:'#475569'}}>{it.note}</div>}
+                        {it.example && (
+                          <pre style={{marginTop:6, background:'#f8fafc', border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 8px', overflow:'auto'}}><code>{it.example}</code></pre>
+                        )}
                       </li>
                     ))}
                   </ul>
                 )}
-                {/* 向量寄存器 */}
-                <div style={{margin:'12px 0 8px', fontWeight:600, color:'#0f172a'}}>向量（v）</div>
-                {vectorRegs.size === 0 ? (
-                  <div style={{color:'#64748b'}}>暂无（DSL 中未发现 v 组）</div>
-                ) : (
-                  <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
-                    {Array.from(vectorRegs.entries()).sort((a,b)=>parseInt(a[0].slice(1)) - parseInt(b[0].slice(1))).map(([base, lanes])=>{
-                      const merged = '0x' + lanes.map(v => fmt(v, 'hex', fmtSnap.hexDigits).replace(/^0x/i, '')).join('')
-                      return (
-                        <li key={base} style={{border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 8px', background:'#ffffff'}}>
-                          <div style={{display:'flex', alignItems:'center', gap:8}}>
-                            <span style={{fontWeight:700}}>{base}</span>
-                            <span style={{fontSize:11, color:'#475569', padding:'2px 6px', border:'1px solid #e5e7eb', borderRadius:999}}>VL{lanes.length}</span>
-                          </div>
-                          <div style={{marginTop:6, fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'}}>
-                            {fmtSnap.base === 'hex'
-                              ? <div style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{merged}</div>
-                              : <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:4}}>
-                                  {lanes.map((v,i)=><span key={i} style={{textAlign:'right'}}>{fmt(v, fmtSnap.base, fmtSnap.hexDigits)}</span>)}
-                                </div>}
-                          </div>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                )}
+
+                <div style={{marginTop:10, color:'#94a3b8', fontSize:11}}>注：为便于学习对比，此处列出大致等价的向量/并行指令，具体语义以各 ISA 文档为准。</div>
               </div>
             )}
           </div>

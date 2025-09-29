@@ -68,8 +68,13 @@ const vaddVV: InstructionModule = {
       .step('s4','写回结果').appear('a_alu_dst').appear('dst__box').appear('lbl_dst').appear('dst[0]').appear('dst[1]').appear('dst[2]').appear('dst[3]')
       .step('s5','完成')
 
-    // packOn 里仍然返回真实寄存器名，便于上层合并/显示
-    return tl.build(shapes,[vs1,vs2,vd])
+    const doc = tl.build(shapes, [vs1, vs2, vd])
+    const synonyms = [
+      { arch: 'ARM NEON', name: 'vaddq_s32', note: '同宽度向量加法', example: 'int32x4_t c = vaddq_s32(a,b);' },
+      { arch: 'x86 SSE/AVX', name: 'PADDD/VPADDD', note: '32位打包加', example: '__m128i c = _mm_add_epi32(a,b);' },
+    ]
+    ;(doc as any).synonyms = synonyms        // ← 兼容 doc 直挂
+    return { doc, extras: { synonyms } }
   }
 }
 
