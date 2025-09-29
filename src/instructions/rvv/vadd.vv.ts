@@ -6,6 +6,13 @@ const pxIn = (u:number)=>u; // 你的 parse/渲染用“英寸”为单位，这
 export const vaddVV: InstructionModule = {
   id: 'rvv/vadd.vv',
   title: 'vadd.vv',
+  sample: 'vadd.vv v0, v1, v2',
+  meta: {
+    usage: 'vadd.vv vd, vs1, vs2；向量加法：vd[i] = vs1[i] + vs2[i]',
+    scenarios: ['向量数组加法', '并行数据处理', '科学计算'],
+    notes: ['元素宽度由 vtype.vsew 决定', '支持掩码 vm', '目的寄存器 vd 可与源寄存器同名'],
+    exceptions: ['无'],
+  },
   build() {
     const shapes = [
       // 盒子（向量寄存器显示区域）
