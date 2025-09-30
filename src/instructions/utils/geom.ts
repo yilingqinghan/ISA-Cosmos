@@ -147,6 +147,6 @@ export function bitWidthRulerForBox(
     { kind: 'arrow', id: `${idPrefix}__l`, x1: cx - 0.01, y1: cy, x2: box.x + 0.12,           y2: cy, color: '#64748b', width: 1 },
     { kind: 'arrow', id: `${idPrefix}__r`, x1: cx + 0.01, y1: cy, x2: box.x + box.w - 0.12,   y2: cy, color: '#64748b', width: 1 },
     // 纯文字，无底色
-    { kind: 'text',  id: `${idPrefix}__t`, x:  cx,       y:  cy - 0.20, text, size: 14, color: '#334155', align: 'center' },
+    { kind: 'text',  id: `${idPrefix}__t`, x:  cx - 0.5,       y:  cy - 0.20, text, size: 14, color: '#334155', align: 'center' },
   ]
 }
