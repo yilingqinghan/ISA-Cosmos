@@ -20,6 +20,8 @@ vsetvli.ri x1, x10, e32m2
   const inlineIssueRef = useRef<HTMLDivElement|null>(null)
   const inlineIssueLine = useRef<number>(0)
   const inlineIssueDisposables = useRef<any[]>([])
+  const nextRunDontAdvanceRef = useRef<boolean>(false)
+  const lastRunLineRef = useRef<number>(1)
 
   const [doc, setDoc] = useState<{ usage?: string; scenarios?: string[]; notes?: string[]; exceptions?: string[] }>({})
   const [editorTheme, setEditorTheme] = useState<'isa-light' | 'solarized-light' | 'solarized-dark' | 'vs-dark'>(()=> {
@@ -83,6 +85,21 @@ vsetvli.ri x1, x10, e32m2
 
   // 指令目录：异步从注册表动态加载
   const [catalog, setCatalog] = useState<{arch:string; items:{arch:string; opcode:string; form:string; sample:string}[]}[]>([])
+  // 当 Canvas 工具条变更寄存器/元素位宽时，自动重跑当前行
+  useEffect(() => {
+    const rerun = () => {
+      try {
+        // 标记：下一次 run 强制“不前进”
+        nextRunDontAdvanceRef.current = true
+        ;(handleRun as any)?.({ dontAdvance:true, silent:true, lineOverride: lastRunLineRef.current })
+      } catch {}
+    }
+    window.addEventListener('isa:vector-change', rerun)
+    return () => {
+      window.removeEventListener('isa:vector-change', rerun)
+    }
+  }, [])
+
   useEffect(()=>{
     let cancelled = false
     ;(async()=>{
@@ -505,13 +522,18 @@ vsetvli.ri x1, x10, e32m2
     }
   }
 
-  const handleRun = async ()=>{
+  const handleRun = async (opts?: { dontAdvance?: boolean; silent?: boolean; lineOverride?: number })=>{
     clearDiagnostics()
     const ed = editorRef.current, m = monacoRef.current
     const model = ed?.getModel()
     if (!ed || !m || !model) return
+    // 合并选项与一次性“不前进”抑制（由 isa:vector-change 设置）
+    const dontAdvanceFlag = !!(opts?.dontAdvance || nextRunDontAdvanceRef.current)
+    // 用过即清（保证只作用一次）
+    if (nextRunDontAdvanceRef.current) nextRunDontAdvanceRef.current = false
     const pos = ed.getPosition() || { lineNumber: 1, column: 1 }
-    const lineNo = pos.lineNumber
+    const targetLine = Math.max(1, Math.min(model.getLineCount(), opts?.lineOverride ?? pos.lineNumber))
+    const lineNo = targetLine
     const raw = model.getLineContent(lineNo)
     const lineText = raw.trim()
     const payload = parseInlinePayload(raw)  // ← 新增
@@ -519,8 +541,12 @@ vsetvli.ri x1, x10, e32m2
     // 空行/注释：不解析，直接跳到下一条有效指令
     if (!lineText || /^(\/\/|#|;)/.test(lineText)) {
       const next = nextMeaningfulLine(lineNo)
-      highlightLine(next)
-      pushLog('↷ 跳过空行/注释，已定位到下一行')
+      if (dontAdvanceFlag) {
+        highlightLine(lineNo)
+      } else {
+        highlightLine(next)
+      }
+      if (!opts?.silent) pushLog(dontAdvanceFlag ? '↷ 跳过空行/注释，保持当前行' : '↷ 跳过空行/注释，已定位到下一行')
       setDslOverride(null as any)
       return
     }
@@ -558,7 +584,7 @@ vsetvli.ri x1, x10, e32m2
       if (out) {
         setDslOverride({ doc: out.doc, extras: out.extras, rev: Date.now() } as any)
         usedModule = true
-        pushLog(`✅ 模块渲染：${ast.opcode}.${ast.form}`)
+        if (!opts?.silent) pushLog(`✅ 模块渲染：${ast.opcode}.${ast.form}`)
         // 加载指令元信息 Usage/Notes 等
         const meta = await loadMiniDoc(ast)
         if (meta) setDoc(meta)
@@ -567,20 +593,24 @@ vsetvli.ri x1, x10, e32m2
     } catch {}
 
     if (!usedModule) {
-      pushLog(`非法指令或还未受支持ฅ^•ﻌ•^ฅ：${ast.opcode}.${ast.form}`)
+      if (!opts?.silent) pushLog(`非法指令或还未受支持ฅ^•ﻌ•^ฅ：${ast.opcode}.${ast.form}`)
       setDslOverride({ text: '', rev: Date.now() } as any)
       setDoc({ usage:'', scenarios:[], notes:[], exceptions:[] })
       // 在当前行给出“警告”提示
       showWarning(lineNo, 1, `非法指令或还未受支持：${ast.opcode}.${ast.form}`)
       highlightLine(lineNo)
+      lastRunLineRef.current = lineNo
       return
     }
 
     markExecutingLine(lineNo)
-
-    // 自动跳到下一条有效指令并高亮
-    const next = nextMeaningfulLine(lineNo)
-    highlightLine(next)
+    lastRunLineRef.current = lineNo
+    if (dontAdvanceFlag) {
+      highlightLine(lineNo)
+    } else {
+      const next = nextMeaningfulLine(lineNo)
+      highlightLine(next)
+    }
   }
 
   // 顶部导航的 Run 也可以触发

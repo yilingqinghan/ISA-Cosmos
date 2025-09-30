@@ -343,7 +343,12 @@ function VectorWidthToolbar() {
   const apply = (rb:number, eb:number)=>{
     localStorage.setItem('isa.vector.regBits',  String(rb))
     localStorage.setItem('isa.vector.elemBits', String(eb))
-    window.dispatchEvent(new Event('app/run')) // 立即重跑当前行
+    // 向外广播 UI 改变（LeftPanel 监听该事件实现自动重跑）
+    try {
+      window.dispatchEvent(new CustomEvent('isa:vector-change', { detail: { regBits: rb, elemBits: eb } }))
+    } catch {}
+    // 兼容旧逻辑：同时触发 app/run
+    // window.dispatchEvent(new Event('app/run'))
   }
 
   return (
@@ -388,14 +393,14 @@ export default function CanvasKitPanel() {
     const el = svgRef.current
     if (!el) return { ux: 0, uy: 0 }
     const rect = el.getBoundingClientRect()
-    const ux = dx * (CANVAS_W / rect.width) / zoom
-    const uy = dy * (CANVAS_H / rect.height) / zoom
+    const ux = dx * (CANVAS_W / rect.width)   // ← 不再除以 zoom
+    const uy = dy * (CANVAS_H / rect.height)  // ← 不再除以 zoom
     return { ux, uy }
   }
 
   const onPointerDown: React.PointerEventHandler<SVGSVGElement> = (e) => {
-    // left or middle button
-    if (e.button !== 0 && e.button !== 1) return
+    // 只屏蔽右键
+    if (e.button === 2) return
     try { (e.currentTarget as any).setPointerCapture?.(e.pointerId) } catch {}
     dragRef.current.active = true
     dragRef.current.sx = e.clientX
@@ -418,7 +423,7 @@ export default function CanvasKitPanel() {
     if (!dragRef.current.active) return
     dragRef.current.active = false
     setIsPanning(false)
-    try { e?.currentTarget?.releasePointerCapture?.((e as any).pointerId) } catch {}
+    try { e?.currentTarget?.releasePointerCapture?.(e.pointerId) } catch {}
   }
   const onPointerUp: React.PointerEventHandler<SVGSVGElement> = (e) => { endPan(e) }
   const onPointerLeave: React.PointerEventHandler<SVGSVGElement> = (e) => { endPan(e) }
@@ -1159,18 +1164,18 @@ export default function CanvasKitPanel() {
         </div>
         {/* SVG Stage (replaces KitStage) */}
         <svg
-          ref={svgRef}
-          className="svg-stage"
-          width="100%"
-          height="100%"
-          viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ display: 'block', cursor: isPanning ? 'grabbing' : 'grab' }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerLeave={onPointerLeave}
-        >
+            ref={svgRef}
+            className="svg-stage"
+            width="100%"
+            height="100%"
+            viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ display: 'block', cursor: isPanning ? 'grabbing' : 'grab', touchAction: 'none' }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerLeave={onPointerLeave}
+          >
           <defs>
             {/* Grid patterns */}
             {(() => {
@@ -1203,7 +1208,7 @@ export default function CanvasKitPanel() {
           {showGrid && <rect x={0} y={0} width={CANVAS_W} height={CANVAS_H} fill="url(#gridMajor)" />}
 
           {/* zoomed & panned content */}
-          <g transform={`scale(${zoom}) translate(${pan.x} ${pan.y})`}>
+          <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
             <Content />
           </g>
         </svg>
