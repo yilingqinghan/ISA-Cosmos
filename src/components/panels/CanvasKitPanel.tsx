@@ -797,15 +797,17 @@ export default function CanvasKitPanel() {
     switch (s.kind) {
       case 'rect': {
         const W = PX(s.w), H = PX(s.h), X = PX(s.x), Y = PX(s.y)
+        const corner = s.roundPx ?? Math.max(8, Math.min(18, Math.min(W, H) * 0.22)) // 动态圆角
+        const font   = s.size    ?? Math.max(10, Math.min(32, Math.min(W, H) * 0.45)) // 动态字号
         return (
           <Group key={s.id} x={X} y={Y} opacity={op}>
-            <Rect width={W} height={H} cornerRadius={20} fill={col(s.color)} shadowBlur={14} shadowColor="#00000022" />
+            <Rect width={W} height={H} cornerRadius={corner} fill={col(s.color)} shadowBlur={14} shadowColor="#00000022" />
             { s.text ? (
               <FmtText
                 value={s.text ?? ''}
                 x={0} y={0} width={W} height={H}
                 align="center" vAlign="middle"
-                fontSize={28}
+                fontSize={font}
                 color="#0B1220"
                 fontFamily="'Futura','STFangsong','PingFang SC','Microsoft YaHei',system-ui"
               />
@@ -832,16 +834,24 @@ export default function CanvasKitPanel() {
         )
       }
       case 'text': {
+        // 允许 text 形状带 w/h + 对齐，这样省略号能真正“居中”
         const X = PX(s.x), Y = PX(s.y)
+        const W = s.w != null ? PX(s.w) : undefined
+        const H = s.h != null ? PX(s.h) : undefined
         const fs = s.size ?? 16
-        const approx = s.text.length * fs * 0.6
-        let x = X
-        if (s.align === 'center') x = X - approx/2
-        else if (s.align === 'right') x = X - approx
         return (
-          <Text key={s.id} x={x} y={Y} text={s.text} fontSize={fs} fill={s.color ?? '#0f172a'}
-                align="left" listening={false} opacity={op}
-                fontFamily="'Futura','STFangsong','PingFang SC','Microsoft YaHei',system-ui"/>
+          <Text
+            key={s.id}
+            x={X} y={Y} width={W} height={H}
+            text={s.text}
+            align={(s.align as any) || 'left'}
+            verticalAlign={(s.vAlign as any) || 'top'}
+            fontSize={fs}
+            fill={s.color ?? '#0f172a'}
+            listening={false}
+            opacity={op}
+            fontFamily="'Futura','STFangsong','PingFang SC','Microsoft YaHei',system-ui"
+          />
         )
       }
       case 'group': {

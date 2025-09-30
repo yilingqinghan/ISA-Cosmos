@@ -2,155 +2,150 @@ import type { InstructionModule, BuildCtx } from '../types'
 import { Timeline } from '../timeline'
 import {
   inch as px, toNum,
-  leftMid, rightMid,
-  arrowBetween,
-  vectorSlotsFromEnv, layoutRowInBoxFit, bitWidthRulerForBox
+  vectorSlotsFromEnv, layoutRowInBoxSquare, bitWidthRulerForBox
 } from '../utils/geom'
 
-// 小工具：把数字/十六进制等转 Number（保留你原有行为）
-function toN(x:any){ return toNum(x) }
-
 const vaddVV: InstructionModule = {
-  id:'rvv/vadd.vv',
-  title:'vadd.vv',
-  sample:'vadd.vv v0, v1, v2',
-  meta:{
-    usage:'vadd.vv vd, vs1, vs2；向量加法：vd[i] = vs1[i] + vs2[i]',
-    scenarios:['向量数组加法','并行数据处理','科学计算'],
-    notes:['元素宽度由 UI 的“元素位宽”决定','支持掩码 vm（演示版未实现掩码绘制）','目的寄存器 vd 可与源寄存器同名'],
-    exceptions:['无']
+  id: 'rvv/vadd.vv',
+  title: 'vadd.vv',
+  sample: 'vadd.vv v0, v1, v2',
+  meta: {
+    usage: 'vadd.vv vd, vs1, vs2；向量加法：vd[i] = vs1[i] + vs2[i]',
+    scenarios: ['向量数组加法', '并行数据处理', '科学计算'],
+    notes: ['元素宽度由 UI 的“元素位宽”决定', '支持掩码 vm（演示版未实现掩码绘制）', '目的寄存器 vd 可与源寄存器同名'],
+    exceptions: ['无']
   },
-  build(ctx:BuildCtx){
-    const [vd='v0',vs1='v1',vs2='v2']=ctx.operands||[]
+  build(ctx: BuildCtx) {
+    const [vd = 'v0', vs1 = 'v1', vs2 = 'v2'] = ctx.operands || []
 
-    // —— 通用：由 UI/env 计算“演示元素数”N（1~8）与位宽 —— 
-    const { regBits, elemBits, slots: N } = vectorSlotsFromEnv(ctx.env, {
-      maxSlots: 8, defaultRegBits: 128, defaultElemBits: 32
+    // —— 从通用 env 计算 
+    const { regBits, elemBits, rawSlots, slots: N } =
+      vectorSlotsFromEnv(ctx.env, { maxSlots: 8, defaultRegBits: 128, defaultElemBits: 32 })
+
+    // 超出上限则预留“一个格子”给省略号：显示 N-1 个元素，但**排布用 N 个格子**
+    const showEllipsis  = rawSlots > N
+    const shownSlots    = showEllipsis ? N - 1 : N
+    const slotsForLayout = showEllipsis ? shownSlots + 1 : shownSlots
+
+    // values（可由 Editor 注入），默认演示值
+    const a0 = (ctx.values?.[vs1] ?? [1,2,3,4,5,6,7,8]).slice(0, shownSlots)
+    const b0 = (ctx.values?.[vs2] ?? [10,11,12,13,14,15,16,17]).slice(0, shownSlots)
+    const c0 = Array.from({ length: shownSlots }, (_, i) => {
+      const va = toNum(a0[i]); const vb = toNum(b0[i])
+      return va != null && vb != null ? (va as number) + (vb as number) : ''
     })
 
-    // values（可由 Editor 注入），按 N 裁剪
-    const a0=(ctx.values?.[vs1]??[1,2,3,4,5,6,7,8]).slice(0,N)
-    const b0=(ctx.values?.[vs2]??[10,11,12,13,14,15,16,17]).slice(0,N)
-    const c0=Array.from({length:N},(_,i)=>{ const va=toN(a0[i]); const vb=toN(b0[i]); return va!=null&&vb!=null?va+vb:'' })
+    // —— 框体 ——（注意：尺寸固定为“英寸”，渲染层会换算为 px）
+    const boxS1  = { x: px(1), y: px(1.00), w: px(4), h: px(1) }
+    const boxS2  = { x: px(1), y: px(2.40), w: px(4), h: px(1) }
+    const boxDst = { x: px(8), y: px(1.70), w: px(4), h: px(1) }
 
-    // —— 角色化 ID，避免 vd == vs1 冲突 —— 
-    const boxS1  = { x: px(1),  y: px(1),   w: px(4), h: px(1) }
-    const boxS2  = { x: px(1),  y: px(2.4), w: px(4), h: px(1) }
-    const boxDst = { x: px(8),  y: px(1.7), w: px(4), h: px(1) }
-
-    const shapes:any[]=[
-      {kind:'group',id:`s1__box`,  ...boxS1},
-      {kind:'group',id:`s2__box`,  ...boxS2},
-      {kind:'group',id:`dst__box`, ...boxDst},
+    const shapes: any[] = [
+      { kind: 'group', id: 's1__box',  ...boxS1 },
+      { kind: 'group', id: 's2__box',  ...boxS2 },
+      { kind: 'group', id: 'dst__box', ...boxDst },
     ]
 
-    // lanes：自动等间距、垂直居中；lane 宽随 N 自适应
-    const laneH = 0.8
-    const s1Fit  = layoutRowInBoxFit(boxS1,  N, laneH)
-    const s2Fit  = layoutRowInBoxFit(boxS2,  N, laneH)
-    const dstFit = layoutRowInBoxFit(boxDst, N, laneH)
+    // —— 自适应排布（注意：这里用 slotsForLayout，这样最后一个格子是给省略号的）——
+    const dynGap = N >= 8 ? 0.10 : N >= 6 ? 0.14 : 0.18
+    const s1Fit  = layoutRowInBoxSquare(boxS1,  slotsForLayout, 0.80, { gap: dynGap })
+    const s2Fit  = layoutRowInBoxSquare(boxS2,  slotsForLayout, 0.80, { gap: dynGap })
+    const dstFit = layoutRowInBoxSquare(boxDst, slotsForLayout, 0.80, { gap: dynGap })
 
-    for(let i=0;i<N;i++) shapes.push({kind:'rect',id:`s1[${i}]`,...s1Fit.lanes[i],color:'lightgray',text:String(a0[i]??''),textAlign:'center',textBaseline:'middle'})
-    for(let i=0;i<N;i++) shapes.push({kind:'rect',id:`s2[${i}]`,...s2Fit.lanes[i],color:'teal',     text:String(b0[i]??''),textAlign:'center',textBaseline:'middle'})
+    // 动态字号与圆角（以方块边长为基准）
+    const textPx  = Math.max(12, Math.min(30, Math.round(s1Fit.side * 96 * 0.45)))
+    const roundPx = Math.max(8,  Math.round(s1Fit.side * 96 * 0.22))
+
+    // —— 源/目标 lane（严格保持 w==h 正方形）——
+    for (let i = 0; i < shownSlots; i++) {
+      shapes.push({ kind:'rect', id:`s1[${i}]`, ...s1Fit.lanes[i],
+        color:'lightgray', text:String(a0[i] ?? ''), textAlign:'center', textBaseline:'middle',
+        size:textPx, roundPx })
+    }
+    for (let i = 0; i < shownSlots; i++) {
+      shapes.push({ kind:'rect', id:`s2[${i}]`, ...s2Fit.lanes[i],
+        color:'teal', text:String(b0[i] ?? ''), textAlign:'center', textBaseline:'middle',
+        size:textPx, roundPx })
+    }
+    for (let i = 0; i < shownSlots; i++) {
+      shapes.push({ kind:'rect', id:`dst[${i}]`, ...dstFit.lanes[i],
+        color:'lightgray', text:String(c0[i]), textAlign:'center', textBaseline:'middle',
+        size:textPx, roundPx })
+    }
 
     // ALU
-    shapes.push({kind:'rect',id:'alu',x:6,y:1.6,w:1.4,h:1.2,color:'#0EA5E9',text:'ALU',textAlign:'center',textBaseline:'middle'})
+    shapes.push({ kind: 'rect', id: 'alu', x: 6, y: 1.6, w: 1.4, h: 1.2, color: '#0EA5E9', text: 'ALU' })
 
-    for(let i=0;i<N;i++) shapes.push({kind:'rect',id:`dst[${i}]`,...dstFit.lanes[i],color:'lightgray',text:String(c0[i]),textAlign:'center',textBaseline:'middle'})
+    // —— 位宽标尺（文本无底色，且与总元素数并排显示：256-bit · 32 elems） ——
+    shapes.push(...bitWidthRulerForBox(boxS1,  regBits, 'ruler_s1', 0.5, { elems: rawSlots }))
+    shapes.push(...bitWidthRulerForBox(boxDst, regBits, 'ruler_dst', 0.6, { elems: rawSlots }))
 
-    // 位宽标尺：源寄存器在 Step1 出现；目标寄存器在 Step4 出现
-    const rulerS1  = bitWidthRulerForBox(boxS1,  regBits, 'ruler_s1')
-    const rulerDst = bitWidthRulerForBox(boxDst, regBits, 'ruler_dst')
-    shapes.push(...rulerS1, ...rulerDst)
+    // —— 省略号（放在“最后一个格子”的正中；三个框都要有）——
+    if (showEllipsis) {
+      const putEll = (fit: {side:number; lanes:{x:number;y:number;w:number;h:number}[]}, id:string) => {
+        const last = fit.lanes[fit.lanes.length - 1] // 预留给省略号的第 N 个格子
+        shapes.push({
+          kind:'text', id:`${id}__ellipsis`,
+          x:last.x, y:last.y, w:last.w, h:last.h,           // 让渲染层可用宽高做真正的水平/垂直居中
+          text:'…',
+          size: Math.max(16, Math.round(fit.side * 96 * 0.55)),
+          color:'#475569', align:'center', vAlign:'middle'
+        })
+      }
+      putEll(s1Fit, 's1')
+      putEll(s2Fit, 's2')   // ← 之前缺失的 vs2 省略号
+      putEll(dstFit, 'dst')
+    }
 
-    // flows：只定义，不在初始就显示；出现时机交给 timeline
-    const s1R  = rightMid(shapes, 's1__box')
-    const s2R  = rightMid(shapes, 's2__box')
-    const aluL = leftMid(shapes,  'alu')
-    const aluR = rightMid(shapes, 'alu')
-    const dstL = leftMid(shapes,  'dst__box')
+    // —— 箭头（从各组框的水平中心射向 ALU；从 ALU 射向目标框）——
+    const s1R = { x: boxS1.x + boxS1.w, y: boxS1.y + boxS1.h / 2 }
+    const s2R = { x: boxS2.x + boxS2.w, y: boxS2.y + boxS2.h / 2 }
+    const aluL = { x: 6,               y: 1.6 + 1.2/2 }
+    const aluR = { x: 6 + 1.4,         y: 1.6 + 1.2/2 }
+    const dstL = { x: boxDst.x,        y: boxDst.y + boxDst.h / 2 }
 
-    shapes.push(arrowBetween(shapes,'a_s1_alu', s1R, aluL, { dy1:-0.15, dy2:-0.15 }))
-    shapes.push(arrowBetween(shapes,'a_s2_alu', s2R, aluL, { dy1:+0.15, dy2:+0.15 }))
-    shapes.push(arrowBetween(shapes,'a_alu_dst', aluR, dstL))
+    shapes.push({ kind: 'arrow', id: 'a_s1_alu',  x1: s1R.x, y1: s1R.y - 0.15, x2: aluL.x, y2: aluL.y - 0.15, color: '#94a3b8', width: 2 })
+    shapes.push({ kind: 'arrow', id: 'a_s2_alu',  x1: s2R.x, y1: s2R.y + 0.15, x2: aluL.x, y2: aluL.y + 0.15, color: '#94a3b8', width: 2 })
+    shapes.push({ kind: 'arrow', id: 'a_alu_dst', x1: aluR.x, y1: aluR.y,       x2: dstL.x, y2: dstL.y,       color: '#94a3b8', width: 2 })
 
-    // 标签（显示真实寄存器号）
-    shapes.push(
-      {kind:'label',id:`lbl_s1`, x:1, y:0.6, text:`vs1 = ${vs1}`},
-      {kind:'label',id:`lbl_s2`, x:1, y:2.0, text:`vs2 = ${vs2}`},
-      {kind:'label',id:`lbl_dst`,x:8, y:1.2, text:`vd = ${vd}`},
-    )
+    // —— 标签（显示真实寄存器号）——
+    shapes.push({ kind: 'label', id: 'lbl_s1',  x: 1, y: 0.60, text: `vs1 = ${vs1}` })
+    shapes.push({ kind: 'label', id: 'lbl_s2',  x: 1, y: 2.00, text: `vs2 = ${vs2}` })
+    shapes.push({ kind: 'label', id: 'lbl_dst', x: 8, y: 1.20, text: `vd = ${vd}` })
 
-    // —— Timeline：严格控制“线”的出现时机 —— 
+    // —— Timeline ——（补上 s2 的省略号；去掉不存在的 __count）
     const tl = new Timeline()
-      // Step 1：源寄存器 + 源标尺 + 标签
-      .step('s1','读取源向量')
-        .appear('s1__box').appear('s2__box')
-        .appear('lbl_s1').appear('lbl_s2')
-        .appear('ruler_s1__l').appear('ruler_s1__r').appear('ruler_s1__t')
-      // Step 2：送入 ALU（此时才出现两条输入箭头）
-      .step('s2','送入 ALU')
-        .appear('a_s1_alu').appear('a_s2_alu')
-        .blink('alu',3,240)
-      // Step 3：执行加法（继续闪烁 ALU）
-      .step('s3','执行加法')
-        .blink('alu',3,240)
-      // Step 4：写回（目标框 + 目标标尺 + 标签 + 输出箭头 + 结果 lanes）
-      .step('s4','写回结果')
-        .appear('a_alu_dst').appear('dst__box')
-        .appear('ruler_dst__l').appear('ruler_dst__r').appear('ruler_dst__t')
-        .appear('lbl_dst')
-        // 先出现前 4 个，保证小屏也有节奏感
-        .appear('dst[0]').appear('dst[1]').appear('dst[2]').appear('dst[3]')
+    .step('s1','读取源向量')
+    .appear('s1__box').appear('s2__box')
+    .appear('lbl_s1').appear('lbl_s2')
+    .appear('ruler_s1__l').appear('ruler_s1__r').appear('ruler_s1__t')
 
-    // 若 N>4，则把剩余 dst.append 到 step4（保持同一阶段出现）
-    for (let i = 4; i < N; i++) tl.appear(`dst[${i}]`)
+    if (showEllipsis) tl.appear('s1__ellipsis').appear('s2__ellipsis')
+
+    tl.step('s2','送入 ALU')
+    .appear('a_s1_alu').appear('a_s2_alu')
+    .blink('alu',3,240)
+    .step('s3','执行加法')
+    .blink('alu',3,240)
+    .step('s4','写回结果')
+    .appear('a_alu_dst').appear('dst__box')
+    .appear('ruler_dst__l').appear('ruler_dst__r').appear('ruler_dst__t')
+    .appear('lbl_dst')
+    .appear('dst[0]').appear('dst[1]').appear('dst[2]').appear('dst[3]')
+
+    for (let i=4;i<shownSlots;i++) tl.appear(`dst[${i}]`)
+    if (showEllipsis) tl.appear('dst__ellipsis')
 
     tl.step('s5','完成')
-
+    
     const doc = tl.build(shapes, [vs1, vs2, vd])
 
     const synonyms = [
-      // ARMv8-A / NEON
-      {
-        arch: 'ARMv8-A NEON',
-        name: 'ADD (vector)',
-        note: 'A64 向量逐元素整数加法',
-        example: 'ADD V0.4S, V1.4S, V2.4S   // 4×int32',
-        intrinsics: ['vaddq_s32','vaddq_u8','vaddq_s16','vaddq_s64']
-      },
-    
-      // x86 SSE / AVX
-      {
-        arch: 'x86 SSE/AVX',
-        name: 'PADDB/PADDW/PADDD/PADDQ (VPADD*)',
-        note: '打包整数逐元素相加；AVX 为 VPADD*',
-        example: '__m128i c = _mm_add_epi32(a,b);   // PADDD',
-      },
-    
-      // MIPS MSA
-      {
-        arch: 'MIPS MSA',
-        name: 'ADDV.B/H/W/D',
-        note: 'MSA 整数逐元素相加（非饱和）',
-        example: '__m128i c = (__m128i)__msa_addv_w(a,b);'
-      },
-    
-      // LoongArch LSX（128-bit）
-      {
-        arch: 'LoongArch LSX',
-        name: 'VADD.B/H/W/D',
-        note: 'LSX 128b 逐元素相加；亦有 vaddwev/vaddwod 扩展位宽变体',
-        example: '__m128i c = __lsx_vadd_w(a,b);'
-      },
-    
-      // LoongArch LASX（256-bit）
-      {
-        arch: 'LoongArch LASX',
-        name: 'XVADD.B/H/W/D/Q',
-        note: 'LASX 256b 逐元素相加',
-        example: '__m256i c = __lasx_xvadd_w(a,b);'
-      },
+      { arch: 'ARMv8-A NEON',   name: 'ADD (vector)',           note: 'A64 向量逐元素整数加法', example: 'ADD V0.4S, V1.4S, V2.4S', intrinsics: ['vaddq_s32','vaddq_u8','vaddq_s16','vaddq_s64'] },
+      { arch: 'x86 SSE/AVX',    name: 'PADDB/PADDW/PADDD/PADDQ', note: '打包整数逐元素相加；AVX 为 VPADD*', example: '__m128i c = _mm_add_epi32(a,b);' },
+      { arch: 'MIPS MSA',       name: 'ADDV.B/H/W/D',            note: 'MSA 整数逐元素相加（非饱和）', example: '__m128i c = (__m128i)__msa_addv_w(a,b);' },
+      { arch: 'LoongArch LSX',  name: 'VADD.B/H/W/D',            note: 'LSX 128b 逐元素相加；亦有扩展位宽变体', example: '__m128i c = __lsx_vadd_w(a,b);' },
+      { arch: 'LoongArch LASX', name: 'XVADD.B/H/W/D/Q',         note: 'LASX 256b 逐元素相加', example: '__m256i c = __lasx_xvadd_w(a,b);' },
     ]
     return { doc, extras: { synonyms } }
   }

@@ -1,10 +1,9 @@
-// src/instructions/utils/geom.ts
 // 通用几何/数值辅助（指令无关 / 架构无关）
 
 export type BasicRect = { id: string; x: number; y: number; w: number; h: number }
 export type Shapes = Array<Partial<BasicRect> & { id: string; kind?: string; [k: string]: any }>
 
-/** 语义单位：英寸。Canvas 渲染层会统一乘以 96，不需要你关心 */
+/** 语义单位：英寸。渲染层统一乘以 96，不需要你关心 */
 export const inch = (u: number) => u
 
 /** 解析数值（支持 "0x" 十六进制；解析失败返回 null，不抛异常） */
@@ -51,7 +50,7 @@ export function bottomMid(shapes: Shapes, id: string): Pt {
 
 /** 根据两个锚点生成一条箭头（仍然是英寸坐标；渲染层会转换为 px） */
 export function arrowBetween(
-  shapes: Shapes,
+  _shapes: Shapes,
   id: string,
   from: Pt,
   to: Pt,
@@ -64,6 +63,7 @@ export function arrowBetween(
   return { kind: 'arrow', id, x1, y1, x2, y2, color: opts?.color ?? '#94a3b8', width: opts?.width ?? 2 }
 }
 
+/** 按固定宽高在 box 内横排 n 个元素并垂直居中 */
 export function layoutRowInBox(
   box:{x:number;y:number;w:number;h:number},
   n:number,
@@ -78,7 +78,7 @@ export function layoutRowInBox(
   }))
 }
 
-/** 由寄存器位宽/元素位宽得出演示用元素数（1~8），并返回一些派生量 */
+/** 由寄存器位宽/元素位宽得出演示用元素数（1~8），以及原始可容纳数 */
 export function vectorSlotsFromEnv(
   env: any,
   opts?: { maxSlots?: number; defaultRegBits?: number; defaultElemBits?: number }
@@ -87,48 +87,66 @@ export function vectorSlotsFromEnv(
   const defReg   = opts?.defaultRegBits ?? 128
   const defElem  = opts?.defaultElemBits ?? 32
 
-  // 通用命名优先；兼容性别名（例如 RVV 的 VLEN/SEW）
+  // 通用命名优先；兼容 RVV 的 VLEN/SEW
   const regBits  = Number(env?.vector?.regBits ?? env?.regBits ?? env?.VLEN ?? defReg)
   const elemBits = Number(env?.vector?.elemBits ?? env?.elemBits ?? env?.SEW  ?? defElem)
 
-  const raw = Math.max(1, Math.floor(regBits / Math.max(1, elemBits))) // 物理可容纳
-  const slots = Math.max(1, Math.min(maxSlots, raw))                    // 演示上限 1~8
-  return { regBits, elemBits, rawSlots: raw, slots }
+  const rawSlots = Math.max(1, Math.floor(regBits / Math.max(1, elemBits)))
+  const slots    = Math.max(1, Math.min(maxSlots, rawSlots))
+  return { regBits, elemBits, rawSlots, slots }
 }
 
-/** 在 box 内水平等间距排布 n 个矩形，并垂直居中；根据 n 自动收缩 lane 宽 */
-export function layoutRowInBoxFit(
+/**
+ * 在 box 内以“正方形”排布 n 个 lane，自动缩小边长保证放得下；垂直居中。
+ * 返回 { side, gapX, lanes[] }，其中 side==w==h。
+ */
+export function layoutRowInBoxSquare(
   box: { x:number; y:number; w:number; h:number },
   n: number,
-  laneH: number,
-  opts?: { gap?: number; laneWMin?: number; laneWMax?: number }
+  preferSide: number,              // 例如 0.8（英寸）
+  opts?: { gap?: number; minSide?: number }
 ) {
-  const gap = opts?.gap ?? 0.20
-  const laneWMin = opts?.laneWMin ?? 0.28
-  const laneWMax = opts?.laneWMax ?? 0.90
-  const laneW = Math.min(laneWMax, Math.max(laneWMin, (box.w - (n + 1) * gap) / n))
-  const gapX = (box.w - n * laneW) / (n + 1)
-  const y = box.y + (box.h - laneH) / 2
+  // 动态间距：元素越多，默认 gap 越小，避免“被挤瘦”
+  const gap = opts?.gap ?? (n >= 8 ? 0.10 : n >= 6 ? 0.14 : 0.18)
+  const minSide = opts?.minSide ?? 0.34
+
+  // 在保证正方形的前提下，尽量取 preferSide；不够就按宽度算一个可放下的边长
+  let side = Math.min(
+    preferSide,
+    (box.w - (n + 1) * gap) / n
+  )
+  side = Math.max(minSide, side)
+
+  const y = box.y + (box.h - side) / 2
+  const gapX = (box.w - n * side) / (n + 1)
+
   return {
-    laneW, gapX,
+    side, gapX,
     lanes: Array.from({ length: n }, (_, i) => ({
-      x: box.x + gapX + i * (laneW + gapX), y, w: laneW, h: laneH,
+      x: box.x + gapX + i * (side + gapX), y, w: side, h: side,
     }))
   }
 }
 
-/** 在寄存器组上方画一条“位宽标尺” */
+/**
+ * 在寄存器组上方画“位宽标尺”（双向箭头 + 文本）。文本仅用纯文字，无底色。
+ * 支持把“总元素数”并排到位宽后：256-bit · 32 elems
+ */
 export function bitWidthRulerForBox(
   box: { x:number; y:number; w:number; h:number },
   bits: number,
   idPrefix: string,
-  yGap: number = 0.14
+  yGap: number = 0.40,
+  opts?: { elems?: number }
 ) {
   const cy = box.y - yGap
   const cx = box.x + box.w / 2
+  const text = `${bits}-bit${opts?.elems ? ` · ${opts.elems} elems` : ''}`
   return [
-    { kind: 'arrow', id: `${idPrefix}__l`, x1: cx - 0.01, y1: cy, x2: box.x,         y2: cy, color: '#64748b', width: 1 },
-    { kind: 'arrow', id: `${idPrefix}__r`, x1: cx + 0.01, y1: cy, x2: box.x+box.w,   y2: cy, color: '#64748b', width: 1 },
-    { kind: 'label', id: `${idPrefix}__t`, x:  cx - 0.6,  y:  cy - 0.35, text: `${bits}-bit` },
+    // 端点往内缩，避免压到圆角
+    { kind: 'arrow', id: `${idPrefix}__l`, x1: cx - 0.01, y1: cy, x2: box.x + 0.12,           y2: cy, color: '#64748b', width: 1 },
+    { kind: 'arrow', id: `${idPrefix}__r`, x1: cx + 0.01, y1: cy, x2: box.x + box.w - 0.12,   y2: cy, color: '#64748b', width: 1 },
+    // 纯文字，无底色
+    { kind: 'text',  id: `${idPrefix}__t`, x:  cx,       y:  cy - 0.20, text, size: 14, color: '#334155', align: 'center' },
   ]
 }
