@@ -406,6 +406,20 @@ export default function CanvasKitPanel() {
     return { ux, uy }
   }
 
+  // 将鼠标 client 坐标转换为用户坐标（考虑 viewBox、pan 与 zoom）
+  function clientToUser(clientX:number, clientY:number){
+    const el = svgRef.current
+    if (!el) return { ux: 0, uy: 0 }
+    const rect = el.getBoundingClientRect()
+    // 把像素转换为 viewBox 下的用户单位（与 zoom 无关）
+    const vx = (clientX - rect.left) * (CANVAS_W / rect.width)
+    const vy = (clientY - rect.top)  * (CANVAS_H / rect.height)
+    // 反变换：U = (V/zoom) - pan
+    const ux = vx / zoom - panRef.current.x
+    const uy = vy / zoom - panRef.current.y
+    return { ux, uy }
+  }
+
   const onPointerDown: React.PointerEventHandler<SVGSVGElement> = (e) => {
     // 只屏蔽右键
     if (e.button === 2) return
@@ -435,6 +449,25 @@ export default function CanvasKitPanel() {
   }
   const onPointerUp: React.PointerEventHandler<SVGSVGElement> = (e) => { endPan(e) }
   const onPointerLeave: React.PointerEventHandler<SVGSVGElement> = (e) => { endPan(e) }
+
+  // Ctrl/Cmd + 滚轮缩放（以鼠标位置为锚点）
+  const onWheel: React.WheelEventHandler<SVGSVGElement> = (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return; // 仅在按下 Ctrl/Cmd 时拦截
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.1 : 1/1.1
+    const zNew = Math.max(0.5, Math.min(2, +(zoom * factor).toFixed(4)))
+    if (zNew === zoom) return
+
+    // 计算鼠标对应的用户坐标（缩放锚点）
+    const { ux, uy } = clientToUser(e.clientX, e.clientY)
+
+    // 保持鼠标位置下的对象在屏幕不动：(U + panNew)*zNew = (U + panOld)*zOld
+    const panNewX = ((ux + panRef.current.x) * zoom / zNew) - ux
+    const panNewY = ((uy + panRef.current.y) * zoom / zNew) - uy
+
+    setZoom(zNew)
+    setPan({ x: panNewX, y: panNewY })
+  }
   const fmtSnap = useFormat()
   useEffect(() => {
     if (!dslOverride) return
@@ -1212,15 +1245,16 @@ export default function CanvasKitPanel() {
             }}
           >
             <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gridTemplateColumns:'auto auto', columnGap:10, rowGap:6}}>
-              <li><b>Space</b> 播放/暂停</li>
-              <li><b>←/→</b> 上/下一步</li>
-              <li><b>+/−</b> 缩放</li>
-              <li><b>1/2/3/4</b> 0.5×/1×/2×/4×</li>
-              <li><b>G</b> 网格</li>
-              <li><b>R</b> 复位</li>
-              <li><b>S</b> 同义指令面板</li>
-              <li><b>T</b> 工具条显示/隐藏</li>
-              <li><b>H</b> 收起/展开本卡片</li>
+              <li><b>Space</b>&nbsp;&nbsp;&nbsp;播放/暂停</li>
+              <li><b>←/→</b>&nbsp;&nbsp;&nbsp;上/下一步</li>
+              <li><b>+/−</b>&nbsp;&nbsp;&nbsp;缩放</li>
+              <li><b>1/2/3/4</b>&nbsp;&nbsp;&nbsp;0.5×/1×/2×/4×</li>
+              <li><b>G</b>&nbsp;&nbsp;&nbsp;网格</li>
+              <li><b>R</b>&nbsp;&nbsp;&nbsp;复位</li>
+              <li><b>S</b>&nbsp;&nbsp;&nbsp;同义指令面板</li>
+              <li><b>T</b>&nbsp;&nbsp;&nbsp;工具条显示/隐藏</li>
+              <li><b>H</b>&nbsp;&nbsp;&nbsp;收起/展开本卡片</li>
+              <li><b>Ctrl/⌘ + 滚轮</b>&nbsp;&nbsp;&nbsp;缩放画布</li>
             </ul>
           </div>
         </div>
@@ -1288,6 +1322,7 @@ export default function CanvasKitPanel() {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerLeave={onPointerLeave}
+            onWheel={onWheel}
           >
           <defs>
             {/* Grid patterns */}
