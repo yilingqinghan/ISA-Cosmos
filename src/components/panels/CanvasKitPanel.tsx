@@ -334,44 +334,44 @@ function FmtText({
   )
 }
 
-function VectorWidthToolbar() {
-  // 读默认
-  const read = (k:string, d:number)=>{ try{ const v=Number(localStorage.getItem(k)||''); return Number.isFinite(v)?v:d }catch{return d} }
-  const [regBits, setRegBits]   = React.useState(()=>read('isa.vector.regBits', 128))
-  const [elemBits, setElemBits] = React.useState(()=>read('isa.vector.elemBits', 32))
-
-  const apply = (rb:number, eb:number)=>{
-    localStorage.setItem('isa.vector.regBits',  String(rb))
-    localStorage.setItem('isa.vector.elemBits', String(eb))
-    // 向外广播 UI 改变（LeftPanel 监听该事件实现自动重跑）
-    try {
-      window.dispatchEvent(new CustomEvent('isa:vector-change', { detail: { regBits: rb, elemBits: eb } }))
-    } catch {}
-    // 兼容旧逻辑：同时触发 app/run
-    // window.dispatchEvent(new Event('app/run'))
-  }
-
+function FlyItem({ id, title, icon, openId, setOpenId, children }: {
+  id: string;
+  title?: string;
+  icon: React.ReactNode;
+  openId: string | null;
+  setOpenId: (v: string | null) => void;
+  children: React.ReactNode;
+}) {
+  const open = openId === id;
   return (
-    <div style={{display:'flex', alignItems:'center', gap:8}}>
-      <label style={{fontSize:12, color:'#334155'}}>寄存器位宽</label>
-      <select
-        className="btn"
-        value={regBits}
-        onChange={(e)=>{ const v = Number(e.currentTarget.value); setRegBits(v); apply(v, elemBits); e.currentTarget.blur(); }}
+    <div
+      onMouseEnter={()=>setOpenId(id)}
+      onMouseLeave={()=>setOpenId(null)}
+      style={{ position:'relative' }}
+    >
+      <button title={title} className="btn icon" style={{width:36, height:36, minWidth:36, minHeight:36, borderRadius:8, display:'inline-flex', alignItems:'center', justifyContent:'center', border:'1px solid #e5e7eb', background:'#fff', boxShadow:'0 1px 2px rgba(0,0,0,0.06)', cursor:'pointer', padding:0}}>
+        {icon}
+      </button>
+      <div
+        style={{
+          position:'absolute',
+          left: 44 + 8,
+          top: 0,
+          zIndex: 20,
+          background:'#ffffff',
+          border:'1px solid #e5e7eb',
+          borderRadius: 12,
+          boxShadow:'0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
+          padding:'8px 10px',
+          display:'flex', alignItems:'center', gap:8,
+          transform: open ? 'translateX(0)' : 'translateX(-6px)',
+          opacity: open ? 1 : 0,
+          pointerEvents: open ? 'auto' : 'none',
+          transition:'opacity .16s ease, transform .16s ease'
+        }}
       >
-        {[64,128,256,512,1024].map(n=><option key={n} value={n}>{n}</option>)}
-      </select>
-      <span style={{fontSize:12}}>bit</span>
-
-      <label style={{fontSize:12, color:'#334155', marginLeft:6}}>元素位宽</label>
-      <select
-        className="btn"
-        value={elemBits}
-        onChange={(e)=>{ const v = Number(e.currentTarget.value); setElemBits(v); apply(regBits, v); e.currentTarget.blur(); }}
-      >
-        {[8,16,32,64].map(n=><option key={n} value={n}>{n}</option>)}
-      </select>
-      <span style={{fontSize:12}}>bit</span>
+        {children}
+      </div>
     </div>
   )
 }
@@ -492,6 +492,8 @@ export default function CanvasKitPanel() {
   const [logsOpen, setLogsOpen] = useState(false)
   // 独立的“同义指令”浮动面板（可开关）
   const [synOpen, setSynOpen] = useState(true)
+  // 当前展开的悬停抽屉 id（工具条 hover 时右侧拉出设置）
+  const [flyOpenId, setFlyOpenId] = useState<string|null>(null)
 
   // Restore UI prefs on mount
   useEffect(()=>{
@@ -529,7 +531,7 @@ export default function CanvasKitPanel() {
 
   // ==== Icon button styles ====
   const iconBtn: React.CSSProperties = {
-    width: 36, height: 28, minWidth: 36, minHeight: 28,
+    width: 36, height: 36, minWidth: 36, minHeight: 36,
     borderRadius: 8,
     display: 'inline-flex',
     alignItems: 'center', justifyContent: 'center',
@@ -1041,98 +1043,117 @@ export default function CanvasKitPanel() {
           className="canvas-toolbar floating"
           style={{
             position: 'absolute',
-            left: '50%',
-            top: 84,
-            // combine translateX(-50%) with a small Y offset when hidden
-            transform: toolbarVisible ? 'translate(-50%, 0)' : 'translate(-50%, -8px)',
+            left: 12,
+            top: 200,
+            transform: toolbarVisible ? 'translate(0,0)' : 'translate(-8px,0)',
             transition: 'opacity .22s ease, transform .22s ease',
             opacity: toolbarVisible ? 1 : 0,
             pointerEvents: toolbarVisible ? 'auto' : 'none',
             zIndex: 10,
-            width: 'min(96vw, 1100px)',
-            maxWidth: '56%',
-            borderRadius: 24,
+            width: 60,                 // 窄条
+            maxWidth: 56,
+            borderRadius: 16,
             background: '#ffffff',
             boxShadow: '0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
             border: '1px solid #e5e7eb',
-            padding: '10px 14px',
-            paddingLeft: 14,
+            padding: 8,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-            flexWrap: 'wrap',
-            rowGap: 10
+            flexDirection: 'column',   // 竖排
+            alignItems: 'stretch',
+            justifyContent: 'flex-start',
+            gap: 8
           }}
         >
+          {/* 播放/暂停：纯按钮，无抽屉 */}
           <button title={playing ? '暂停' : '播放'} className="btn icon" style={iconBtn} onClick={()=>{
             setPlaying(p=>{ const np = !p; if (np) stepStartRef.current = performance.now(); return np })
           }}>
-            <span style={iconText}>{playing ? '⏸' : '▶'}</span>
+            {/* 播放/暂停使用简洁 SVG 图标（非 emoji）*/}
+            {playing ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#111827" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            )}
           </button>
+
+          {/* 上/下一步：纯按钮 */}
           <button title="上一步" className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.max(0,i-1)); stepStartRef.current = performance.now() }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
           <button title="下一步" className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.min((doc.steps.length||1)-1,i+1)); stepStartRef.current = performance.now() }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
-          <label className="switch" title="播放速度" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6, flexShrink:0}}>
-            <span style={iconText}>⚡</span>
-            <select
-              className="select"
-              value={String(speed)}
-              onChange={(e)=>{ setSpeed(Number(e.currentTarget.value)); e.currentTarget.blur(); }}
-              style={{height:32}}
-            >
+
+          {/* 速度：悬停拉出 */}
+          <FlyItem id="speed" title="播放速度" icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+          } openId={flyOpenId} setOpenId={setFlyOpenId}>
+            <span style={{fontSize:12, color:'#334155'}}>速度</span>
+            <select className="select" value={String(speed)} onChange={(e)=>{ setSpeed(Number(e.currentTarget.value)); e.currentTarget.blur(); }} style={{height:28}}>
               <option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
             </select>
-          </label>
-          <label className="switch" title="缩放" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6, flexShrink:0}}>
-            <span style={iconText}>🔍</span>
-            <select
-              className="select"
-              value={String(zoom)}
-              onChange={(e)=>{ setZoom(parseFloat(e.currentTarget.value)); e.currentTarget.blur(); }}
-              style={{height:32}}
-            >
-              <option value="0.75">75%</option><option value="1">100%</option>
-              <option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option>
+          </FlyItem>
+
+          {/* 缩放：悬停拉出 */}
+          <FlyItem id="zoom" title="缩放" icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          } openId={flyOpenId} setOpenId={setFlyOpenId}>
+            <span style={{fontSize:12, color:'#334155'}}>缩放</span>
+            <select className="select" value={String(zoom)} onChange={(e)=>{ setZoom(parseFloat(e.currentTarget.value)); e.currentTarget.blur(); }} style={{height:28}}>
+              <option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option>
             </select>
-          </label>
-          <button title="复位" className="btn icon" style={{...iconBtn, marginLeft:6}} onClick={()=>setResetTick(t=>t+1)}>
-            <span style={iconText}>⟲</span>
+          </FlyItem>
+
+          {/* 复位 & 网格：纯按钮 */}
+          <button title="复位" className="btn icon" style={iconBtn} onClick={()=>setResetTick(t=>t+1)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5H1"/></svg>
           </button>
           <button title="显示/隐藏网格" className="btn icon" style={iconBtn} onClick={()=>setShowGrid(s=>!s)}>
-            <span style={iconText}>#</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
           </button>
-          <div className="format-mini" style={{display:'inline-flex', alignItems:'center', gap:6, marginLeft:8, flexShrink:0}}>
-            <span className="label-muted" title="数制">⑩</span>
-            <Select
-              value={fmtSnap.base}
-              onChange={(e)=>{ formatStore.setBase(e.target.value as any); (e.currentTarget as HTMLSelectElement).blur?.(); }}
-              className="select"
-            >
+
+          {/* 数制：悬停拉出 */}
+          <FlyItem id="radix" title="数制" icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><text x="8" y="16" fontSize="8" fill="#111827">10</text></svg>
+          } openId={flyOpenId} setOpenId={setFlyOpenId}>
+            <span style={{fontSize:12, color:'#334155'}}>数制</span>
+            <Select value={fmtSnap.base} onChange={(e)=>{ formatStore.setBase(e.target.value as any); (e.currentTarget as HTMLSelectElement).blur?.(); }} className="select">
               <option value="dec">10 进制</option>
               <option value="hex">16 进制</option>
             </Select>
-          </div>
-          <button title="隐藏工具条 (T)" className="btn icon" style={{...iconBtn, marginLeft:6}} onClick={()=>setToolbarVisible(false)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+          </FlyItem>
+
+          {/* 同义指令面板：纯按钮 */}
+          <button title="同义指令面板 (S)" className="btn icon" style={iconBtn} onClick={()=>setSynOpen(o=>!o)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><line x1="7" y1="10" x2="17" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/></svg>
           </button>
-          <button title="同义指令面板 (S)" className="btn icon" style={{...iconBtn, marginLeft:6}} onClick={()=>setSynOpen(o=>!o)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="6" width="18" height="12" rx="2"/>
-              <line x1="7" y1="10" x2="17" y2="10"/>
-              <line x1="7" y1="14" x2="13" y2="14"/>
-            </svg>
+
+          {/* 寄存器位宽：悬停拉出 */}
+          <FlyItem id="regbits" title="寄存器位宽" icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M3 7h4M3 11h4M3 15h4M17 7h4M17 11h4M17 15h4M7 3v4M11 3v4M15 3v4M7 17v4M11 17v4M15 17v4"/></svg>
+          } openId={flyOpenId} setOpenId={setFlyOpenId}>
+            <span style={{fontSize:12, color:'#334155'}}>寄存器</span>
+            <select className="btn" value={String(localStorage.getItem('isa.vector.regBits')||'128')} onChange={(e)=>{ const v=Number(e.currentTarget.value); localStorage.setItem('isa.vector.regBits', String(v)); window.dispatchEvent(new CustomEvent('isa:vector-change', { detail: { regBits: v, elemBits: Number(localStorage.getItem('isa.vector.elemBits')||'32') } })); e.currentTarget.blur(); }} style={{height:28}}>
+              {[64,128,256,512,1024].map(n=> <option key={n} value={n}>{n}</option>)}
+            </select>
+            <span style={{fontSize:12}}>bit</span>
+          </FlyItem>
+
+          {/* 元素位宽：悬停拉出 */}
+          <FlyItem id="elembits" title="元素位宽" icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+          } openId={flyOpenId} setOpenId={setFlyOpenId}>
+            <span style={{fontSize:12, color:'#334155'}}>元素</span>
+            <select className="btn" value={String(localStorage.getItem('isa.vector.elemBits')||'32')} onChange={(e)=>{ const v=Number(e.currentTarget.value); localStorage.setItem('isa.vector.elemBits', String(v)); window.dispatchEvent(new CustomEvent('isa:vector-change', { detail: { regBits: Number(localStorage.getItem('isa.vector.regBits')||'128'), elemBits: v } })); e.currentTarget.blur(); }} style={{height:28}}>
+              {[8,16,32,64].map(n=> <option key={n} value={n}>{n}</option>)}
+            </select>
+            <span style={{fontSize:12}}>bit</span>
+          </FlyItem>
+
+          {/* 收起工具条 */}
+          <button title="收起工具条 (T)" className="btn icon" style={iconBtn} onClick={()=>setToolbarVisible(false)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
-          <VectorWidthToolbar /> 
         </div>
         {!toolbarVisible && (
           <button
@@ -1140,9 +1161,8 @@ export default function CanvasKitPanel() {
             onClick={()=>setToolbarVisible(true)}
             style={{
               position:'absolute',
-              left:'50%',
-              top: 80,
-              transform:'translateX(-50%)',
+              left: 12,
+              top: 120,
               zIndex: 10,
               height: 30,
               padding:'0 12px',
@@ -1153,7 +1173,7 @@ export default function CanvasKitPanel() {
               fontSize:12,
               cursor:'pointer'
             }}
-          >工具条</button>
+          >工具</button>
         )}
         <div
           className="hotkey-cheatsheet"
@@ -1210,7 +1230,7 @@ export default function CanvasKitPanel() {
             style={{
               position:'absolute',
               right: 12,
-              top: 120,
+              top: 200,
               zIndex: 9,
               width: 360,
               maxWidth: '32vw',
