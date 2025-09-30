@@ -6,7 +6,7 @@ import { LeftNotch } from '../nav/NavBar'
 
 
 export default function LeftPanel() {
-  const { arch, pushLog, setDslOverride } = useApp()
+  const { arch, pushLog, setDslOverride, vectorEnv } = useApp()
   const [code, setCode] = useState(`vadd.vv v0, v1, v2
 vmul.vv v3, v4, v5
 vsetvli.ri x1, x10, e32m2
@@ -444,14 +444,24 @@ vsetvli.ri x1, x10, e32m2
         mod = (reg as any).instructionRegistry[key]
       }
       if (!mod || typeof mod.build !== 'function') return null
-
+      // 读取 UI 工具条持久化的位宽（没有就走默认）
+      const uiRegBits  = Number(localStorage.getItem('isa.vector.regBits')  || 128)
+      const uiElemBits = Number(localStorage.getItem('isa.vector.elemBits') || 32)
       // —— 组装 BuildCtx ——（类型约束在 src/instructions/types.ts 已定义）
       const ctx = {
         arch: ast.arch,
         opcode: ast.opcode,
         form: ast.form,
         operands: ast.operands || [],            // ← 从 Editor 传入的寄存器号等
-        env: { VL: 4, ...(payload?.env || {}) }, // ← 默认 VL=4，可被行内 JSON 覆盖
+        env: {
+          // 通用键（首选）
+          regBits: uiRegBits,
+          elemBits: uiElemBits,
+          // 兼容旧模块（比如早期 RVV 写法）
+          VLEN: uiRegBits,
+          SEW:  uiElemBits,
+          ...(payload?.env || {}),
+        },
         values: payload?.values || undefined,    // ← 行内 JSON 里可传各寄存器 lane 值
       }
 

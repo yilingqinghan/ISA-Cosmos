@@ -334,6 +334,35 @@ function FmtText({
   )
 }
 
+function VectorWidthToolbar() {
+  // 读默认
+  const read = (k:string, d:number)=>{ try{ const v=Number(localStorage.getItem(k)||''); return Number.isFinite(v)?v:d }catch{return d} }
+  const [regBits, setRegBits]   = React.useState(()=>read('isa.vector.regBits', 128))
+  const [elemBits, setElemBits] = React.useState(()=>read('isa.vector.elemBits', 32))
+
+  const apply = (rb:number, eb:number)=>{
+    localStorage.setItem('isa.vector.regBits',  String(rb))
+    localStorage.setItem('isa.vector.elemBits', String(eb))
+    window.dispatchEvent(new Event('app/run')) // 立即重跑当前行
+  }
+
+  return (
+    <div style={{display:'flex', alignItems:'center', gap:8}}>
+      <label style={{fontSize:12, color:'#334155'}}>寄存器位宽</label>
+      <select className="btn" value={regBits} onChange={e=>{ const v=Number(e.target.value); setRegBits(v); apply(v, elemBits) }}>
+        {[64,128,256,512,1024].map(n=><option key={n} value={n}>{n}</option>)}
+      </select>
+      <span style={{fontSize:12}}>bit</span>
+
+      <label style={{fontSize:12, color:'#334155', marginLeft:6}}>元素位宽</label>
+      <select className="btn" value={elemBits} onChange={e=>{ const v=Number(e.target.value); setElemBits(v); apply(regBits, v) }}>
+        {[8,16,32,64].map(n=><option key={n} value={n}>{n}</option>)}
+      </select>
+      <span style={{fontSize:12}}>bit</span>
+    </div>
+  )
+}
+
 export default function CanvasKitPanel() {
   const [showGrid, setShowGrid] = useState(true);
   const { arch, opcode, form, pushLog, clearLogs, dslOverride, logs } = useApp()
@@ -1056,6 +1085,7 @@ export default function CanvasKitPanel() {
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
           </button>
+          <VectorWidthToolbar /> 
         </div>
         {!toolbarVisible && (
           <button

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 
 export type NumBase = 'dec' | 'hex' | 'bin'
 export type DslOverride = { text: string; rev: number } | null
+export type VectorEnv = { VL: number; VLEN: number; SEW: number }
 
 type Ctx = {
   arch: string; setArch: (v: string) => void
@@ -24,6 +25,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [arch, setArch] = useState('rvv')
   const [opcode, setOpcode] = useState('vadd')
   const [form, setForm] = useState('vv')
+  const [vectorEnv, setVectorEnv] = useState<VectorEnv>({ VL: 4, VLEN: 128, SEW: 32 })
 
   const [logs, setLogs] = useState<string[]>([])
   const pushLog = (line: string) => setLogs((l) => [...l, line])
@@ -48,6 +50,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         base, setBase,
         sew, setSew,
         dslOverride, setDslOverride,
+        vectorEnv, setVectorEnv,
       }}
     >
       {children}

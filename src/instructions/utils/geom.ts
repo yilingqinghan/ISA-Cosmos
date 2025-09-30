@@ -64,7 +64,6 @@ export function arrowBetween(
   return { kind: 'arrow', id, x1, y1, x2, y2, color: opts?.color ?? '#94a3b8', width: opts?.width ?? 2 }
 }
 
-// utils/geom.ts
 export function layoutRowInBox(
   box:{x:number;y:number;w:number;h:number},
   n:number,
@@ -77,4 +76,59 @@ export function layoutRowInBox(
     x: box.x + gapX + i*(laneW + gapX),
     y, w: laneW, h: laneH
   }))
+}
+
+/** 由寄存器位宽/元素位宽得出演示用元素数（1~8），并返回一些派生量 */
+export function vectorSlotsFromEnv(
+  env: any,
+  opts?: { maxSlots?: number; defaultRegBits?: number; defaultElemBits?: number }
+) {
+  const maxSlots = opts?.maxSlots ?? 8
+  const defReg   = opts?.defaultRegBits ?? 128
+  const defElem  = opts?.defaultElemBits ?? 32
+
+  // 通用命名优先；兼容性别名（例如 RVV 的 VLEN/SEW）
+  const regBits  = Number(env?.vector?.regBits ?? env?.regBits ?? env?.VLEN ?? defReg)
+  const elemBits = Number(env?.vector?.elemBits ?? env?.elemBits ?? env?.SEW  ?? defElem)
+
+  const raw = Math.max(1, Math.floor(regBits / Math.max(1, elemBits))) // 物理可容纳
+  const slots = Math.max(1, Math.min(maxSlots, raw))                    // 演示上限 1~8
+  return { regBits, elemBits, rawSlots: raw, slots }
+}
+
+/** 在 box 内水平等间距排布 n 个矩形，并垂直居中；根据 n 自动收缩 lane 宽 */
+export function layoutRowInBoxFit(
+  box: { x:number; y:number; w:number; h:number },
+  n: number,
+  laneH: number,
+  opts?: { gap?: number; laneWMin?: number; laneWMax?: number }
+) {
+  const gap = opts?.gap ?? 0.20
+  const laneWMin = opts?.laneWMin ?? 0.28
+  const laneWMax = opts?.laneWMax ?? 0.90
+  const laneW = Math.min(laneWMax, Math.max(laneWMin, (box.w - (n + 1) * gap) / n))
+  const gapX = (box.w - n * laneW) / (n + 1)
+  const y = box.y + (box.h - laneH) / 2
+  return {
+    laneW, gapX,
+    lanes: Array.from({ length: n }, (_, i) => ({
+      x: box.x + gapX + i * (laneW + gapX), y, w: laneW, h: laneH,
+    }))
+  }
+}
+
+/** 在寄存器组上方画一条“位宽标尺” */
+export function bitWidthRulerForBox(
+  box: { x:number; y:number; w:number; h:number },
+  bits: number,
+  idPrefix: string,
+  yGap: number = 0.14
+) {
+  const cy = box.y - yGap
+  const cx = box.x + box.w / 2
+  return [
+    { kind: 'arrow', id: `${idPrefix}__l`, x1: cx - 0.01, y1: cy, x2: box.x,         y2: cy, color: '#64748b', width: 1 },
+    { kind: 'arrow', id: `${idPrefix}__r`, x1: cx + 0.01, y1: cy, x2: box.x+box.w,   y2: cy, color: '#64748b', width: 1 },
+    { kind: 'label', id: `${idPrefix}__t`, x:  cx - 0.6,  y:  cy - 0.35, text: `${bits}-bit` },
+  ]
 }
