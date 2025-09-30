@@ -489,7 +489,9 @@ export default function CanvasKitPanel() {
   const [regWide, setRegWide] = useState(false)
   const [hotkeyOpen, setHotkeyOpen] = useState(true)
   const [toolbarVisible, setToolbarVisible] = useState(true)
-  const [logsOpen, setLogsOpen] = useState(true)
+  const [logsOpen, setLogsOpen] = useState(false)
+  // 独立的“同义指令”浮动面板（可开关）
+  const [synOpen, setSynOpen] = useState(true)
 
   // Restore UI prefs on mount
   useEffect(()=>{
@@ -768,6 +770,11 @@ export default function CanvasKitPanel() {
         case 'h':
         case 'H': // 快捷键帮助
           setHotkeyOpen(o => !o)
+          break
+        case 's':
+        case 'S': // 同义指令面板开关
+          e.preventDefault()
+          setSynOpen(o => !o)
           break
         case '1': setSpeed(0.5); break
         case '2': setSpeed(1); break
@@ -1118,6 +1125,13 @@ export default function CanvasKitPanel() {
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
           </button>
+          <button title="同义指令面板 (S)" className="btn icon" style={{...iconBtn, marginLeft:6}} onClick={()=>setSynOpen(o=>!o)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="6" width="18" height="12" rx="2"/>
+              <line x1="7" y1="10" x2="17" y2="10"/>
+              <line x1="7" y1="14" x2="13" y2="14"/>
+            </svg>
+          </button>
           <VectorWidthToolbar /> 
         </div>
         {!toolbarVisible && (
@@ -1184,12 +1198,63 @@ export default function CanvasKitPanel() {
               <li><b>1/2/3/4</b> 0.5×/1×/2×/4×</li>
               <li><b>G</b> 网格</li>
               <li><b>R</b> 复位</li>
-              <li><b>S</b> 对比抽屉</li>
+              <li><b>S</b> 同义指令面板</li>
               <li><b>T</b> 工具条显示/隐藏</li>
               <li><b>H</b> 收起/展开本卡片</li>
             </ul>
           </div>
         </div>
+        {/* 同义指令：独立浮动面板，固定在右侧，不随底部日志滚动 */}
+        {synOpen && (
+          <div
+            style={{
+              position:'absolute',
+              right: 12,
+              top: 120,
+              zIndex: 9,
+              width: 360,
+              maxWidth: '32vw',
+              maxHeight: 'calc(100% - 180px)',
+              overflow: 'auto',
+              background:'#ffffff',
+              border:'1px solid #e5e7eb',
+              borderRadius: 12,
+              boxShadow:'0 10px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
+              padding:'8px 10px'
+            }}
+          >
+            <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+              <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>同义指令（跨架构）</div>
+              <div style={{flex:1}} />
+              <button
+                title="关闭 (S)"
+                onClick={()=>setSynOpen(false)}
+                style={{width:24, height:24, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', cursor:'pointer'}}
+              >×</button>
+            </div>
+
+            {(!synonyms || synonyms.length === 0) ? (
+              <div style={{color:'#64748b', fontSize:12}}>暂无同义指令。指令模块可通过 dslOverride.extras.synonyms 传入。</div>
+            ) : (
+              <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
+                {synonyms.map((it, idx)=> (
+                  <li key={idx} style={{border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', background:'#ffffff'}}>
+                    <div style={{display:'flex', alignItems:'center', gap:8}}>
+                      <span style={{fontWeight:700}}>{it.arch}</span>
+                      <span style={{fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', padding:'2px 6px', border:'1px solid #e5e7eb', borderRadius:999}}>{it.name}</span>
+                    </div>
+                    {it.note && <div style={{marginTop:6, color:'#475569'}}>{it.note}</div>}
+                    {it.example && (
+                      <pre style={{marginTop:6, background:'#f8fafc', border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 8px', overflow:'auto'}}><code>{it.example}</code></pre>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div style={{marginTop:10, color:'#94a3b8', fontSize:11}}>注：为便于学习对比，此处列出大致等价的向量/并行指令，具体语义以各 ISA 文档为准。</div>
+          </div>
+        )}
         {/* SVG Stage (replaces KitStage) */}
         <svg
             ref={svgRef}
@@ -1241,7 +1306,7 @@ export default function CanvasKitPanel() {
           </g>
         </svg>
       </div>
-      <div className="canvas-logs" style={{borderTop:'1px solid #e5e7eb', background:'#fff', height: logsOpen ? 260 : 36, transition:'height .18s ease'}}>
+      <div className="canvas-logs" style={{borderTop:'1px solid #e5e7eb', background:'#fff', height: logsOpen ? 180 : 36, transition:'height .18s ease'}}>
         <div style={{display:'flex', alignItems:'center', height:36, padding:'0 8px', gap:8}}>
           <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>Logs</div>
           <div style={{flex:1}} />
@@ -1267,8 +1332,7 @@ export default function CanvasKitPanel() {
         </div>
         {logsOpen && (
           <div style={{display:'flex', height:224}}>
-            {/* Left: Logs (50% or 100% when reg pane closed) */}
-            <div style={{flex: '0 0 50%' , overflow:'auto', padding:'6px 10px'}}>
+            <div style={{flex: 1, overflow:'auto', padding:'6px 10px'}}>
               {(!logs || logs.length===0) ? (
                 <div style={{fontSize:12, color:'#64748b'}}>暂无日志。运行后会在此显示解析步骤 / 提示。</div>
               ) : (
@@ -1282,45 +1346,6 @@ export default function CanvasKitPanel() {
                 </ul>
               )}
             </div>
-            {/* Right: Cross‑arch synonyms pane (50%) */}
-            {(
-              <div style={{
-                flex:'0 0 50%',
-                borderLeft:'1px solid #e5e7eb',
-                padding:'6px 10px',
-                overflow:'auto',
-                fontSize:12,
-                color:'#334155',
-                background:'#ffffff'
-              }}>
-                <div style={{marginBottom:6, display:'flex', alignItems:'center', gap:8}}>
-                  <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>同义指令（跨架构）</div>
-                  <div style={{flex:1}} />
-                  
-                </div>
-
-                {(!synonyms || synonyms.length === 0) ? (
-                  <div style={{color:'#64748b'}}>暂无同义指令。指令模块可通过 dslOverride.extras.synonyms 传入。</div>
-                ) : (
-                  <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
-                    {synonyms.map((it, idx)=> (
-                      <li key={idx} style={{border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', background:'#ffffff'}}>
-                        <div style={{display:'flex', alignItems:'center', gap:8}}>
-                          <span style={{fontWeight:700}}>{it.arch}</span>
-                          <span style={{fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', padding:'2px 6px', border:'1px solid #e5e7eb', borderRadius:999}}>{it.name}</span>
-                        </div>
-                        {it.note && <div style={{marginTop:6, color:'#475569'}}>{it.note}</div>}
-                        {it.example && (
-                          <pre style={{marginTop:6, background:'#f8fafc', border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 8px', overflow:'auto'}}><code>{it.example}</code></pre>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                <div style={{marginTop:10, color:'#94a3b8', fontSize:11}}>注：为便于学习对比，此处列出大致等价的向量/并行指令，具体语义以各 ISA 文档为准。</div>
-              </div>
-            )}
           </div>
         )}
         </div>
