@@ -354,13 +354,21 @@ function VectorWidthToolbar() {
   return (
     <div style={{display:'flex', alignItems:'center', gap:8}}>
       <label style={{fontSize:12, color:'#334155'}}>寄存器位宽</label>
-      <select className="btn" value={regBits} onChange={e=>{ const v=Number(e.target.value); setRegBits(v); apply(v, elemBits) }}>
+      <select
+        className="btn"
+        value={regBits}
+        onChange={(e)=>{ const v = Number(e.currentTarget.value); setRegBits(v); apply(v, elemBits); e.currentTarget.blur(); }}
+      >
         {[64,128,256,512,1024].map(n=><option key={n} value={n}>{n}</option>)}
       </select>
       <span style={{fontSize:12}}>bit</span>
 
       <label style={{fontSize:12, color:'#334155', marginLeft:6}}>元素位宽</label>
-      <select className="btn" value={elemBits} onChange={e=>{ const v=Number(e.target.value); setElemBits(v); apply(regBits, v) }}>
+      <select
+        className="btn"
+        value={elemBits}
+        onChange={(e)=>{ const v = Number(e.currentTarget.value); setElemBits(v); apply(regBits, v); e.currentTarget.blur(); }}
+      >
         {[8,16,32,64].map(n=><option key={n} value={n}>{n}</option>)}
       </select>
       <span style={{fontSize:12}}>bit</span>
@@ -1067,13 +1075,23 @@ export default function CanvasKitPanel() {
           </button>
           <label className="switch" title="播放速度" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6, flexShrink:0}}>
             <span style={iconText}>⚡</span>
-            <select className="select" value={String(speed)} onChange={e=>setSpeed(Number(e.target.value))} style={{height:32}}>
+            <select
+              className="select"
+              value={String(speed)}
+              onChange={(e)=>{ setSpeed(Number(e.currentTarget.value)); e.currentTarget.blur(); }}
+              style={{height:32}}
+            >
               <option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
             </select>
           </label>
           <label className="switch" title="缩放" style={{marginLeft:8, display:'inline-flex', alignItems:'center', gap:6, flexShrink:0}}>
             <span style={iconText}>🔍</span>
-            <select className="select" value={String(zoom)} onChange={e=>setZoom(parseFloat(e.target.value))} style={{height:32}}>
+            <select
+              className="select"
+              value={String(zoom)}
+              onChange={(e)=>{ setZoom(parseFloat(e.currentTarget.value)); e.currentTarget.blur(); }}
+              style={{height:32}}
+            >
               <option value="0.75">75%</option><option value="1">100%</option>
               <option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option>
             </select>
@@ -1088,7 +1106,7 @@ export default function CanvasKitPanel() {
             <span className="label-muted" title="数制">⑩</span>
             <Select
               value={fmtSnap.base}
-              onChange={(e)=>formatStore.setBase(e.target.value as any)}
+              onChange={(e)=>{ formatStore.setBase(e.target.value as any); (e.currentTarget as HTMLSelectElement).blur?.(); }}
               className="select"
             >
               <option value="dec">10 进制</option>
