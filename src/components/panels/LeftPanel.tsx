@@ -416,18 +416,23 @@ useEffect(() => {
     document.head.appendChild(style)
   }, [])
 
-  // 轻量语法解析：`opcode.form [operands]`，从 UI 的 arch 推导架构
+  // 支持两种语法：
+  // 1) opcode.form operands   (例如：vadd.vv v0, v1, v2)
+  // 2) opcode operands        (例如：add x0, x1, x2)
+  // 同时容忍中点 U+00B7 等字符作为分隔符
   function parseLineToAst(arch: string, lineText: string) {
-    const m = lineText.match(/^([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\s*(.*)$/)
+    const SEP = '[.\u00B7\uFF0E]'
+    const re = new RegExp(`^([A-Za-z0-9_]+)(?:${SEP}([A-Za-z0-9_]+))?\\s*(.*)$`)
+    const m = lineText.match(re)
     if (!m) {
       const dotIdx = lineText.indexOf('.')
       const col = dotIdx > 0 ? dotIdx + 1 : Math.max(1, lineText.length)
-      const err: IDError = { line: 1, col, message: '缺少 opcode.form 或格式不正确' }
+      const err: IDError = { line: 1, col, message: '缺少 opcode 或格式不正确（示例：add x0, x1, x2 或 vadd.vv v0, v1, v2）' }
       throw err
     }
     const opcode = m[1]
-    const form = m[2]
-    const operands = m[3] ? m[3].split(',').map(s=>s.trim()).filter(Boolean) : []
+    const form = m[2] || ''
+    const operands = m[3] ? m[3].split(',').map(s => s.trim()).filter(Boolean) : []
     return { arch, opcode, form, operands }
   }
   function parseInlinePayload(rawLine: string): { env?: any; values?: Record<string, any[]> } {
@@ -449,11 +454,34 @@ useEffect(() => {
       const reg: any = await (import(/* @vite-ignore */ modName).catch(() => null))
       if (!reg) return null
 
-      const key = `${ast.arch}/${ast.opcode}.${ast.form}`
       const getInstrModule = (reg as any).getInstrModule
-      let mod = typeof getInstrModule === 'function' ? getInstrModule(key) : undefined
-      if (!mod && (reg as any).instructionRegistry) {
-        mod = (reg as any).instructionRegistry[key]
+      // build candidate keys to support multiple registry naming styles
+      const candidates: string[] = []
+      const archPrefix = ast.arch
+      const op = ast.opcode
+      const form = (ast.form || '').trim()
+      if (form) {
+        candidates.push(`${archPrefix}/${op}.${form}`)
+        candidates.push(`${archPrefix}.${op}.${form}`)
+      } else {
+        // no form: try plain opcode keys
+        candidates.push(`${archPrefix}/${op}`)
+        candidates.push(`${archPrefix}.${op}`)
+      }
+      // fallback generic attempts
+      candidates.push(`${archPrefix}/${op}.${form}`)
+      candidates.push(`${archPrefix}.${op}`)
+
+      let mod: any = undefined
+      for (const k of candidates) {
+        if (!k) continue
+        if (typeof getInstrModule === 'function') {
+          mod = getInstrModule(k)
+        }
+        if (!mod && (reg as any).instructionRegistry) {
+          mod = (reg as any).instructionRegistry[k]
+        }
+        if (mod) break
       }
       if (!mod || typeof mod.build !== 'function') return null
       // 读取 UI 工具条持久化的位宽（没有就走默认）
@@ -749,22 +777,33 @@ useEffect(() => {
                   <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>{group.title}</div>
                   <div style={{fontSize:11, color:'#64748b'}}>({group.arch.toUpperCase()}/{group.ext.toUpperCase()})</div>
                 </div>
+                {/* 去重：防止不同模块路径/重复导出导致重复项（按 opcode+form 去重） */}
                 <ul style={{listStyle:'none', padding:0, margin:0}}>
-                  {group.items.map(it => {
-                    const keyStr = `${group.arch}/${group.ext}:${it.opcode}.${it.form}`
-                    return (
-                      <li
-                        key={keyStr}
-                        className={`catalog-item ${activeKey===keyStr ? 'active' : ''}`}
-                        style={{display:'flex', alignItems:'center', gap:8, padding:'6px 6px', borderRadius:6, cursor:'pointer', fontSize:12}}
-                        onClick={() => { setCode(it.sample); setActiveKey(keyStr); }}
-                      >
-                        <span style={{fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize:12}}>
-                          {it.opcode}.{it.form}
-                        </span>
-                      </li>
-                    )
-                  })}
+                  {(() => {
+                    const seen = new Set<string>()
+                    const unique: CatalogItem[] = []
+                    for (const it of group.items) {
+                      const k = `${it.opcode}${it.form ? '.' + it.form : ''}`
+                      if (seen.has(k)) continue
+                      seen.add(k)
+                      unique.push(it)
+                    }
+                    return unique.map(it => {
+                      const keyStr = `${group.arch}/${group.ext}:${it.opcode}${it.form ? '.' + it.form : ''}`
+                      return (
+                        <li
+                          key={keyStr}
+                          className={`catalog-item ${activeKey===keyStr ? 'active' : ''}`}
+                          style={{display:'flex', alignItems:'center', gap:8, padding:'6px 6px', borderRadius:6, cursor:'pointer', fontSize:12}}
+                          onClick={() => { setCode(it.sample); setActiveKey(keyStr); }}
+                        >
+                          <span style={{fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize:12}}>
+                            {it.opcode}{it.form ? '.' + it.form : ''}
+                          </span>
+                        </li>
+                      )
+                    })
+                  })()}
                 </ul>
               </div>
             ))}
