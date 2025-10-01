@@ -6,8 +6,8 @@
 - 目标项目已提供以下导入（**需要/优先使用**）：
 
   ```ts
-  import type { InstructionModule, BuildCtx } from '../types'
-  import { Timeline } from '../timeline'
+  import type { InstructionModule, BuildCtx } from '../../types'
+  import { Timeline } from '../../timeline'
   import {
     inch as px, toNum,
     // 新接口（优先用）
@@ -16,7 +16,7 @@
     leftMid, rightMid, centerOf,
     arrowBetween,
     layoutRowInBox,
-  } from '../utils/geom'
+  } from '../../utils/geom'
   ```
 
 - **坐标单位用英寸**（渲染层会自动乘以 96 转 px）。
