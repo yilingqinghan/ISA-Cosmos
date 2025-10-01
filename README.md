@@ -10,4 +10,6 @@
 
 Full docs live in **docs/guide.md**.
 
+> [yilingqinghan.github.io/ISA-Cosmos/](https://yilingqinghan.github.io/ISA-Cosmos/)
+
 > Still Under Development, I am adding more insts manually.🤗
