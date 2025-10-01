@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef, useState, useEffect, useMemo } from 'react'
 import { useApp } from '../../context'
 import Editor, { OnMount } from '@monaco-editor/react'
 import { LeftNotch } from '../nav/NavBar'
@@ -88,6 +88,21 @@ vsetvli.ri x1, x10, e32m2
   type CatalogItem = { id:string; opcode:string; form:string; sample:string }
   type CatalogGroup = { arch:string; ext:string; title:string; items: CatalogItem[] }
   const [catalog, setCatalog] = useState<CatalogGroup[]>([])
+  // 搜索关键字（右侧指令列表）
+  const [catalogQuery, setCatalogQuery] = useState('')
+
+  // 过滤后的目录（对 opcode、form、id、sample 进行包含匹配）
+  const filteredCatalog = useMemo(() => {
+    const q = catalogQuery.trim().toLowerCase()
+    if (!q) return catalog
+    const match = (s: any) => String(s || '').toLowerCase().includes(q)
+    return catalog
+      .map(g => ({
+        ...g,
+        items: g.items.filter(it => match(it.opcode) || match(it.form) || match(it.id) || match(it.sample))
+      }))
+      .filter(g => g.items.length > 0)
+  }, [catalog, catalogQuery])
   // 当 Canvas 工具条变更寄存器/元素位宽时，自动重跑当前行
   useEffect(() => {
     const rerun = () => {
@@ -766,12 +781,26 @@ useEffect(() => {
 
         {/* 右侧：指令目录（可独立滚动） */}
         <aside className="left-catalog nice-card" style={{display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0}}>
-          <div className="panel-toolbar">
+          <div className="panel-toolbar" style={{gap:8}}>
             <div className="panel-title">指令目录</div>
             <div className="grow" />
           </div>
-          <div className="catalog-scroll" style={{overflow:'auto', padding:'6px 8px', height:'calc(100% - 40px)'}}>
-            {catalog.map(group => (
+          <div className="catalog-search" style={{padding:'6px 8px'}}>
+            <input
+              value={catalogQuery}
+              onChange={e=>setCatalogQuery(e.target.value)}
+              placeholder="搜索"
+              aria-label="搜索指令"
+              style={{
+                fontSize:12, padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6,
+                outline:'none', width:'100%', boxSizing:'border-box'
+              }}
+            />
+          </div>
+          <div className="catalog-scroll" style={{overflow:'auto', padding:'6px 8px', flex:1, minHeight:0}}>
+            {filteredCatalog.length === 0 ? (
+              <div className="muted" style={{fontSize:12, color:'#64748b', padding:'6px 8px'}}>未找到匹配项</div>
+            ) : filteredCatalog.map(group => (
               <div key={`${group.arch}/${group.ext}`} style={{marginBottom:12}}>
                 <div style={{display:'flex', alignItems:'baseline', gap:6, margin:'6px 0'}}>
                   <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>{group.title}</div>
