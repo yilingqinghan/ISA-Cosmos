@@ -6,7 +6,7 @@ import {
 } from '../../utils/geom'
 
 const vaddVV: InstructionModule = {
-  id: 'rvv/vadd.vv',
+  id: 'riscv/vadd.vv',
   title: 'vadd.vv',
   sample: 'vadd.vv v0, v1, v2',
   meta: {
