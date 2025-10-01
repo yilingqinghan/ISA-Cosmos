@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { useApp } from '../../context'
 import Editor, { OnMount } from '@monaco-editor/react'
 import { LeftNotch } from '../nav/NavBar'
@@ -775,19 +775,6 @@ vsetvli.ri x1, x10, e32m2
       </div>
     </div>
   )
-}
-
-function Section({title, children}:{title:string; children:React.ReactNode}){
-  return (
-    <div style={{marginBottom:10}}>
-      <div style={{fontSize:12, fontWeight:600, color:'#0f172a', margin:'6px 0'}}>{title}</div>
-      {children}
-    </div>
-  )
-}
-function List({items}:{items?:string[]}) {
-  if (!items || items.length===0) return <p className="muted">无</p>
-  return <ul style={{paddingLeft:18, margin:'4px 0'}}>{items.map((s,i)=><li key={i}>{s}</li>)}</ul>
 }
 
 function FancyList({items, icon, empty, tone}:{items?:string[]; icon:string; empty?:string; tone?:'base'|'warn'|'danger'}) {

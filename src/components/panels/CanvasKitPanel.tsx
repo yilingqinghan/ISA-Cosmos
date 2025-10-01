@@ -682,32 +682,6 @@ export default function CanvasKitPanel() {
     dbg('vecGroups =', summary)
   }, [vecGroups])
 
-  // ===== 寄存器快照（用于右侧面板显示） =====
-  const vectorRegs = useMemo(() => {
-    // Map baseId -> lane values (按 lanes 顺序)
-    const map = new Map<string, string[]>()
-    vecGroups.forEach(g => {
-      const vals = g.lanes.map(l => String(l.text ?? ''))
-      map.set(g.baseId, vals)
-    })
-    return map
-  }, [vecGroups])
-
-  const scalarRegs = useMemo(() => {
-    // 收集 x0..x31 等标量寄存器（从 shapes 的 text 提取）
-    const map = new Map<string, string>()
-    for (const s of doc.shapes) {
-      if (s.kind === 'rect' && /^x\d+$/.test(s.id)) {
-        map.set(s.id, String(s.text ?? ''))
-      }
-      // 若 DSL 用 label/text 表示 xN，也尝试兼容
-      if ((s.kind === 'label' || s.kind === 'text') && /^x\d+$/.test(s.text ?? '')) {
-        // 下一步可在 DSL 里约定：同坐标附近的 rect/text 联动；目前先略过
-      }
-    }
-    return map
-  }, [doc.shapes])
-
   // 过渡
   const elapsedInCurrentStep = () => (performance.now() - stepStartRef.current) * speed
   const appearAlpha = (id:string): number => {
