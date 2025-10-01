@@ -10,3 +10,4 @@
 
 Full docs live in **docs/guide.md**.
 
+> Still Under Development, I am adding more insts manually.🤗
