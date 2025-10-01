@@ -147,7 +147,8 @@ const vaddVV: InstructionModule = {
       { arch: 'LoongArch LSX',  name: 'VADD.B/H/W/D',            note: 'LSX 128b 逐元素相加；亦有扩展位宽变体', example: '__m128i c = __lsx_vadd_w(a,b);' },
       { arch: 'LoongArch LASX', name: 'XVADD.B/H/W/D/Q',         note: 'LASX 256b 逐元素相加', example: '__m256i c = __lasx_xvadd_w(a,b);' },
     ]
-    return { doc, extras: { synonyms } }
+    ;(doc as any).synonyms = synonyms
+    return doc
   }
 }
 
