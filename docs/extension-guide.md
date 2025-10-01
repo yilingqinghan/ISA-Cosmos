@@ -9,10 +9,10 @@ This codebase is designed to be extended with new architectures and instructions
 export type InstructionCategory = 'memory' | 'computation' | 'control';
 
 export interface ParsedInstruction {
-  arch: string;          // e.g., 'rvv'
-  mnemonic: string;      // e.g., 'vadd'
-  form?: string;         // e.g., 'vv', 'vx'
-  operands: string[];    // e.g., ['v0','v1','v2']
+  arch: string;
+  mnemonic: string;
+  form?: string;
+  operands: string[];
   raw: string;
 }
 

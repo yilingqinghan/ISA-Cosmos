@@ -576,7 +576,6 @@ export default function CanvasKitPanel() {
     padding: 0,
     flex: '0 0 auto'
   }
-  const iconText: React.CSSProperties = { lineHeight: '1', fontSize: 12 }
 
   useEffect(()=>{
     const d = safeParseDSL(dsl)

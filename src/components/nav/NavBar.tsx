@@ -83,7 +83,7 @@ export function RightNotch({ inline = false }: { inline?: boolean }) {
       <div className="nav-controls" style={{display:'flex', alignItems:'center', gap:10}}>
         <label className="label">Architecture</label>
         <select className="select" value={arch} onChange={e=>setArch(e.target.value)}>
-          <option value="rvv">RISC-V Vector (RVV)</option>
+          <option value="rvv">RISC-V</option>
           {/* 预留：Arm SVE、x86-AVX512… */}
         </select>
 
