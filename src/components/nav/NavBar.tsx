@@ -131,7 +131,7 @@ export function RightNotch({ inline = false }: { inline?: boolean }) {
 
         <a className="nav-link" href="#" onClick={(e)=>e.preventDefault()} title="文档（即将上线）">Docs</a>
         <a className="nav-link" href="https://github.com/yilingqinghan/isa-cosmos" target="_blank" rel="noreferrer" title="在 GitHub 查看项目">GitHub</a>
-        <button className="btn nav-cta" title="运行（Cmd/Ctrl + Enter）" onClick={()=>window.dispatchEvent(new CustomEvent('app/run'))}>运行 ⌘⏎</button>
+        <button className="btn nav-cta" title="运行（Cmd/Ctrl + Enter）" onClick={()=>window.dispatchEvent(new CustomEvent('app/run'))}>Run ⌘⏎</button>
       </div>
     </div>
   )
