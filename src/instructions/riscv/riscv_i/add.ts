@@ -30,7 +30,6 @@ const addScalarOrVector: InstructionModule = {
     if (!treatingAsVector) {
       // Scalar integer rendering (force 32-bit element width)
       const elemBits = 32
-      const regBits = ctx.env?.regBits ?? 64
 
       // For scalar view, present a single lane (no VL slicing allowed)
       const shownSlots = 1
@@ -101,7 +100,7 @@ const addScalarOrVector: InstructionModule = {
         { arch: 'x86', name: 'ADD', note: '整数加', example: 'add eax, ebx' },
       ]
       ;(doc as any).synonyms = synonyms
-      return { doc, extras: { synonyms } }
+      return doc
     }
 
     // If any operand is a vector reg, keep the original vector rendering behavior
@@ -213,7 +212,7 @@ const addScalarOrVector: InstructionModule = {
       { arch: 'x86', name: 'ADD', note: '整数加', example: 'add eax, ebx' },
     ]
     ;(doc as any).synonyms = synonyms
-    return { doc, extras: { synonyms } }
+    return doc
   }
 }
 
