@@ -1,7 +1,7 @@
 import type { InstructionModule, InstructionMeta, InstructionSetValidator } from './types'
 
 // 自动加载本目录下所有 .ts（包含模块与校验器）
-const modules = import.meta.glob('./**/*.ts', { eager: true }) as Record<string, any>
+const modules = (import.meta as any).glob('./**/*.ts', { eager: true }) as Record<string, any>
 
 export const instructionRegistry: Record<string, InstructionModule> = {}
 export const miniDocs: Record<string, InstructionMeta> = {}
