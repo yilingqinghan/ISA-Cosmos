@@ -784,7 +784,7 @@ useEffect(() => {
             <input
               value={catalogQuery}
               onChange={e=>setCatalogQuery(e.target.value)}
-              placeholder="搜索"
+              placeholder="Search♡"
               aria-label="搜索指令"
               style={{
                 fontSize:12, padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6,
