@@ -107,7 +107,7 @@ export function Text({
   let tx = x,
     ty = y
   let textAnchor: 'start' | 'middle' | 'end' = 'start'
-  let dominantBaseline: string = 'text-before-edge'
+  let dominantBaseline: React.SVGAttributes<SVGTextElement>['dominantBaseline'] = 'text-before-edge'
 
   if (width != null) {
     if (align === 'center') {
