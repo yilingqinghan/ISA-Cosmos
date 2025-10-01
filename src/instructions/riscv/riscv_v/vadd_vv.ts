@@ -1,6 +1,7 @@
 import type { InstructionModule, BuildCtx } from '../../types'
 import { Timeline } from '../../timeline'
 import { tr } from '@/i18n'
+import { syn } from '../../utils/syn'
 import {
   inch as px, toNum,
   vectorSlotsFromEnv, layoutRowInBoxSquare, bitWidthRulerForBox
@@ -83,7 +84,7 @@ const vaddVV: InstructionModule = {
     }
 
     // ALU
-    shapes.push({ kind: 'rect', id: 'alu', x: 6, y: 1.6, w: 1.4, h: 1.2, color: '#0EA5E9', text: tr('算术逻辑单元', 'ALU') })
+    shapes.push({ kind: 'rect', id: 'alu', x: 6, y: 1.6, w: 1.4, h: 1.2, color: '#0EA5E9', text: tr('ALU', 'ALU') })
 
     // —— 位宽标尺（文本无底色，且与总元素数并排显示：256-bit · 32 elems） ——
     shapes.push(...bitWidthRulerForBox(boxS1,  regBits, 'ruler_s1', 0.5, { elems: rawSlots }))
@@ -150,21 +151,21 @@ const vaddVV: InstructionModule = {
     const doc = tl.build(shapes, [vs1, vs2, vd])
 
     const makeSynonyms = () => [
-      { arch: tr('ARMv8-A NEON', 'ARMv8-A NEON'), name: tr('ADD（向量）', 'ADD (vector)'),
-        note: tr('A64 向量逐元素整数加法', 'A64 vector element-wise integer add'),
-        example: 'ADD V0.4S, V1.4S, V2.4S', intrinsics: ['vaddq_s32','vaddq_u8','vaddq_s16','vaddq_s64'] },
-      { arch: tr('x86 SSE/AVX', 'x86 SSE/AVX'), name: 'PADDB/PADDW/PADDD/PADDQ',
-        note: tr('打包整数逐元素相加；AVX 为 VPADD*', 'Packed integer element-wise add; AVX uses VPADD*'),
-        example: '__m128i c = _mm_add_epi32(a,b);' },
-      { arch: tr('MIPS MSA', 'MIPS MSA'), name: 'ADDV.B/H/W/D',
-        note: tr('MSA 整数逐元素相加（非饱和）', 'MSA element-wise integer add (non-saturating)'),
-        example: '__m128i c = (__m128i)__msa_addv_w(a,b);' },
-      { arch: tr('LoongArch LSX', 'LoongArch LSX'), name: 'VADD.B/H/W/D',
-        note: tr('LSX 128b 逐元素相加；亦有扩展位宽变体', 'LSX 128b element-wise add; width variants exist'),
-        example: '__m128i c = __lsx_vadd_w(a,b);' },
-      { arch: tr('LoongArch LASX', 'LoongArch LASX'), name: 'XVADD.B/H/W/D/Q',
-        note: tr('LASX 256b 逐元素相加', 'LASX 256b element-wise add'),
-        example: '__m256i c = __lasx_xvadd_w(a,b);' },
+      syn('ARMv8-A NEON','ARMv8-A NEON','ADD（向量）','ADD (vector)',
+          'A64 向量逐元素整数加法','A64 vector element-wise integer add',
+          'ADD V0.4S, V1.4S, V2.4S',['vaddq_s32','vaddq_u8','vaddq_s16','vaddq_s64']),
+      syn('x86 SSE/AVX','x86 SSE/AVX','PADDB/PADDW/PADDD/PADDQ','PADDB/PADDW/PADDD/PADDQ',
+          '打包整数逐元素相加；AVX 为 VPADD*','Packed integer add; AVX uses VPADD*',
+          '__m128i c = _mm_add_epi32(a,b);'),
+      syn('MIPS MSA','MIPS MSA','ADDV.B/H/W/D','ADDV.B/H/W/D',
+          'MSA 整数逐元素相加（非饱和）','MSA element-wise integer add (non-saturating)',
+          '__m128i c = (__m128i)__msa_addv_w(a,b);'),
+      syn('LoongArch LSX','LoongArch LSX','VADD.B/H/W/D','VADD.B/H/W/D',
+          'LSX 128b 逐元素相加；亦有扩展位宽变体','LSX 128b element-wise add; width variants exist',
+          '__m128i c = __lsx_vadd_w(a,b);'),
+      syn('LoongArch LASX','LoongArch LASX','XVADD.B/H/W/D/Q','XVADD.B/H/W/D/Q',
+          'LASX 256b 逐元素相加','LASX 256b element-wise add',
+          '__m256i c = __lasx_xvadd_w(a,b);'),
     ]
 
     // 动态属性：读取 doc.synonyms 时才根据当前语言计算 —— 无需强制重跑
