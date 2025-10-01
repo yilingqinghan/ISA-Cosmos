@@ -1,5 +1,6 @@
 import type { InstructionModule, BuildCtx } from '../../types'
 import { Timeline } from '../../timeline'
+import { tr } from '@/i18n'
 import {
   inch as px, toNum,
   vectorSlotsFromEnv, layoutRowInBoxSquare, bitWidthRulerForBox
@@ -10,10 +11,18 @@ const vaddVV: InstructionModule = {
   title: 'vadd.vv',
   sample: 'vadd.vv v0, v1, v2',
   meta: {
-    usage: 'vadd.vv vd, vs1, vs2；向量加法：vd[i] = vs1[i] + vs2[i]',
-    scenarios: ['向量数组加法', '并行数据处理', '科学计算'],
-    notes: ['元素宽度由 UI 的“元素位宽”决定', '支持掩码 vm（演示版未实现掩码绘制）', '目的寄存器 vd 可与源寄存器同名'],
-    exceptions: ['无']
+    usage: tr('vadd.vv vd, vs1, vs2；向量加法：vd[i] = vs1[i] + vs2[i]', 'vadd.vv vd, vs1, vs2; Vector add: vd[i] = vs1[i] + vs2[i]'),
+    scenarios: [
+      tr('向量数组加法', 'Vector array addition'),
+      tr('并行数据处理', 'Parallel data processing'),
+      tr('科学计算', 'Scientific computing')
+    ],
+    notes: [
+      tr('元素宽度由 UI 的“元素位宽”决定', 'Element width follows UI "Element width"'),
+      tr('支持掩码 vm（演示版未实现掩码绘制）', 'Mask vm supported (demo does not render mask)'),
+      tr('目的寄存器 vd 可与源寄存器同名', 'Destination vd may equal a source')
+    ],
+    exceptions: [ tr('无', 'None') ]
   },
   build(ctx: BuildCtx) {
     const [vd = 'v0', vs1 = 'v1', vs2 = 'v2'] = ctx.operands || []
@@ -74,7 +83,7 @@ const vaddVV: InstructionModule = {
     }
 
     // ALU
-    shapes.push({ kind: 'rect', id: 'alu', x: 6, y: 1.6, w: 1.4, h: 1.2, color: '#0EA5E9', text: 'ALU' })
+    shapes.push({ kind: 'rect', id: 'alu', x: 6, y: 1.6, w: 1.4, h: 1.2, color: '#0EA5E9', text: tr('算术逻辑单元', 'ALU') })
 
     // —— 位宽标尺（文本无底色，且与总元素数并排显示：256-bit · 32 elems） ——
     shapes.push(...bitWidthRulerForBox(boxS1,  regBits, 'ruler_s1', 0.5, { elems: rawSlots }))
@@ -115,39 +124,54 @@ const vaddVV: InstructionModule = {
 
     // —— Timeline ——（补上 s2 的省略号；去掉不存在的 __count）
     const tl = new Timeline()
-    .step('s1','读取源向量')
+    .step('s1', tr('读取源向量', 'Read source vectors'))
     .appear('s1__box').appear('s2__box')
     .appear('lbl_s1').appear('lbl_s2')
     .appear('ruler_s1__l').appear('ruler_s1__r').appear('ruler_s1__t')
 
     if (showEllipsis) tl.appear('s1__ellipsis').appear('s2__ellipsis')
 
-    tl.step('s2','送入 ALU')
+    tl.step('s2', tr('送入 ALU', 'Feed into ALU'))
     .appear('a_s1_alu').appear('a_s2_alu')
-    .blink('alu',3,240)
-    .step('s3','执行加法')
-    .blink('alu',3,240)
-    .step('s4','写回结果')
+    .blink('alu', 3, 240)
+    .step('s3', tr('执行加法', 'Execute addition'))
+    .blink('alu', 3, 240)
+    .step('s4', tr('写回结果', 'Write back'))
     .appear('a_alu_dst').appear('dst__box')
     .appear('ruler_dst__l').appear('ruler_dst__r').appear('ruler_dst__t')
     .appear('lbl_dst')
     .appear('dst[0]').appear('dst[1]').appear('dst[2]').appear('dst[3]')
 
-    for (let i=4;i<shownSlots;i++) tl.appear(`dst[${i}]`)
+    for (let i = 4; i < shownSlots; i++) tl.appear(`dst[${i}]`)
     if (showEllipsis) tl.appear('dst__ellipsis')
 
-    tl.step('s5','完成')
+    tl.step('s5', tr('完成', 'Done'))
     
     const doc = tl.build(shapes, [vs1, vs2, vd])
 
-    const synonyms = [
-      { arch: 'ARMv8-A NEON',   name: 'ADD (vector)',           note: 'A64 向量逐元素整数加法', example: 'ADD V0.4S, V1.4S, V2.4S', intrinsics: ['vaddq_s32','vaddq_u8','vaddq_s16','vaddq_s64'] },
-      { arch: 'x86 SSE/AVX',    name: 'PADDB/PADDW/PADDD/PADDQ', note: '打包整数逐元素相加；AVX 为 VPADD*', example: '__m128i c = _mm_add_epi32(a,b);' },
-      { arch: 'MIPS MSA',       name: 'ADDV.B/H/W/D',            note: 'MSA 整数逐元素相加（非饱和）', example: '__m128i c = (__m128i)__msa_addv_w(a,b);' },
-      { arch: 'LoongArch LSX',  name: 'VADD.B/H/W/D',            note: 'LSX 128b 逐元素相加；亦有扩展位宽变体', example: '__m128i c = __lsx_vadd_w(a,b);' },
-      { arch: 'LoongArch LASX', name: 'XVADD.B/H/W/D/Q',         note: 'LASX 256b 逐元素相加', example: '__m256i c = __lasx_xvadd_w(a,b);' },
+    const makeSynonyms = () => [
+      { arch: tr('ARMv8-A NEON', 'ARMv8-A NEON'), name: tr('ADD（向量）', 'ADD (vector)'),
+        note: tr('A64 向量逐元素整数加法', 'A64 vector element-wise integer add'),
+        example: 'ADD V0.4S, V1.4S, V2.4S', intrinsics: ['vaddq_s32','vaddq_u8','vaddq_s16','vaddq_s64'] },
+      { arch: tr('x86 SSE/AVX', 'x86 SSE/AVX'), name: 'PADDB/PADDW/PADDD/PADDQ',
+        note: tr('打包整数逐元素相加；AVX 为 VPADD*', 'Packed integer element-wise add; AVX uses VPADD*'),
+        example: '__m128i c = _mm_add_epi32(a,b);' },
+      { arch: tr('MIPS MSA', 'MIPS MSA'), name: 'ADDV.B/H/W/D',
+        note: tr('MSA 整数逐元素相加（非饱和）', 'MSA element-wise integer add (non-saturating)'),
+        example: '__m128i c = (__m128i)__msa_addv_w(a,b);' },
+      { arch: tr('LoongArch LSX', 'LoongArch LSX'), name: 'VADD.B/H/W/D',
+        note: tr('LSX 128b 逐元素相加；亦有扩展位宽变体', 'LSX 128b element-wise add; width variants exist'),
+        example: '__m128i c = __lsx_vadd_w(a,b);' },
+      { arch: tr('LoongArch LASX', 'LoongArch LASX'), name: 'XVADD.B/H/W/D/Q',
+        note: tr('LASX 256b 逐元素相加', 'LASX 256b element-wise add'),
+        example: '__m256i c = __lasx_xvadd_w(a,b);' },
     ]
-    ;(doc as any).synonyms = synonyms
+
+    // 动态属性：读取 doc.synonyms 时才根据当前语言计算 —— 无需强制重跑
+    Object.defineProperty(doc as any, 'synonyms', {
+      configurable: true,
+      get: makeSynonyms,
+    })
     return doc
   }
 }

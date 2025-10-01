@@ -24,14 +24,14 @@ export function LeftNotch({ inline = false }: { inline?: boolean }) {
 
   return (
     <div className="notch-left" style={{ ...(base as any), ...(inline ? inlineStyle : floating) }}>
-      <a className="brand" href={BASE} title="回到首页" style={{display:'flex', alignItems:'center', gap:'10px', textDecoration:'none'}}>
+      <a className="brand" href={BASE} title="回到首页" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
         <img
           className="logo"
           src={ICON_SRC}
           alt="ISA Cosmos"
           style={{ display: 'block', width: '40px', height: '40px', borderRadius: '50%', background: 'white', padding: '4px', boxSizing: 'border-box' }}
         />
-        <div className="brand-text" style={{display:'flex', flexDirection:'column', lineHeight:1}}>
+        <div className="brand-text" style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
           <div className="brand-title">ISA Cosmos</div>
           <div className="brand-sub">RISC-V · ARM · LoongArch</div>
         </div>
@@ -68,32 +68,32 @@ export function RightNotch({ inline = false }: { inline?: boolean }) {
   // Discover available architectures from the instruction registry
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const reg: any = await import('../../instructions/registry').catch(() => null)
-        const instructionRegistry = reg?.instructionRegistry || {}
-        const allKeys = Object.keys(instructionRegistry)
-        const archKeyOf = (k: string) => {
-          const i = k.lastIndexOf('/')
-          return i > 0 ? k.slice(0, i) : k
+      ; (async () => {
+        try {
+          const reg: any = await import('../../instructions/registry').catch(() => null)
+          const instructionRegistry = reg?.instructionRegistry || {}
+          const allKeys = Object.keys(instructionRegistry)
+          const archKeyOf = (k: string) => {
+            const i = k.lastIndexOf('/')
+            return i > 0 ? k.slice(0, i) : k
+          }
+          const normalize = (a: string) => {
+            if (a === 'rvv' || a.startsWith('riscv')) return 'riscv'
+            if (a.startsWith('arm')) return 'arm'
+            return a
+          }
+          const raw = Array.from(new Set(allKeys.map(archKeyOf)))
+          const options = Array.from(new Set(raw.map(normalize)))
+          // 只保留 RISC-V
+          const filtered = options.includes('riscv') ? ['riscv'] : ['riscv']
+          if (!cancelled) {
+            setArchOptions(filtered)
+            if (arch !== 'riscv') setArch('riscv')
+          }
+        } catch {
+          if (!cancelled) setArchOptions(['riscv'])
         }
-        const normalize = (a: string) => {
-          if (a === 'rvv' || a.startsWith('riscv')) return 'riscv'
-          if (a.startsWith('arm')) return 'arm'
-          return a
-        }
-        const raw = Array.from(new Set(allKeys.map(archKeyOf)))
-        const options = Array.from(new Set(raw.map(normalize)))
-        // 只保留 RISC-V
-        const filtered = options.includes('riscv') ? ['riscv'] : ['riscv']
-        if (!cancelled) {
-          setArchOptions(filtered)
-          if (arch !== 'riscv') setArch('riscv')
-        }
-      } catch {
-        if (!cancelled) setArchOptions(['riscv'])
-      }
-    })()
+      })()
     return () => { cancelled = true }
   }, [])
 
@@ -103,38 +103,41 @@ export function RightNotch({ inline = false }: { inline?: boolean }) {
   }
 
   const base: React.CSSProperties = {
-    display:'flex', alignItems:'center', gap:'12px',
-    padding:'6px 12px',
-    border:'1px solid #e2e8f0', borderTop:'none',
-    borderRadius:'0 0 14px 14px',
-    background:'rgba(230,238,255,0.9)',
-    backdropFilter:'saturate(180%) blur(8px)',
-    WebkitBackdropFilter:'saturate(180%) blur(8px)',
-    boxShadow:'0 8px 16px rgba(0,0,0,0.06)'
+    display: 'flex', alignItems: 'center', gap: '12px',
+    padding: '6px 12px',
+    border: '1px solid #e2e8f0', borderTop: 'none',
+    borderRadius: '0 0 14px 14px',
+    background: 'rgba(230,238,255,0.9)',
+    backdropFilter: 'saturate(180%) blur(8px)',
+    WebkitBackdropFilter: 'saturate(180%) blur(8px)',
+    boxShadow: '0 8px 16px rgba(0,0,0,0.06)'
   }
   const floating: React.CSSProperties = {
-    position:'absolute', top:0, right:0, zIndex:2,
-    minWidth:'660px', width:'fit-content', justifyContent:'flex-end', pointerEvents:'auto'
+    position: 'absolute', top: 0, right: 0, zIndex: 2,
+    minWidth: '660px', width: 'fit-content', justifyContent: 'flex-end', pointerEvents: 'auto'
   }
   const inlineStyle: React.CSSProperties = {
-    position:'static', minWidth:'auto', justifyContent:'flex-end',
-    marginBottom:8, pointerEvents:'auto'
+    position: 'static', minWidth: 'auto', justifyContent: 'flex-end',
+    marginBottom: 8, pointerEvents: 'auto'
   }
 
   return (
     <div className="notch-right" style={{ ...base, ...(inline ? inlineStyle : floating) }}>
-      <div className="nav-controls" style={{display:'flex', alignItems:'center', gap:10}}>
+      <div className="nav-controls" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <label className="label">{tr('架构', 'Architecture')}</label>
-        <select className="select" value={arch} onChange={e=>setArch(e.target.value)}>
+        <select className="select" value={arch} onChange={e => setArch(e.target.value)}>
           {archOptions.map(opt => (
             <option key={opt} value={opt}>{humanizeArch(opt)}</option>
           ))}
         </select>
 
-        <button className="btn" style={{padding:'4px 8px'}} title={tr('切换为 English', 'Switch to 中文')} onClick={toggleLang}>{lang === 'zh' ? 'EN' : '中'}</button>
-        <a className="nav-link" href="#" onClick={(e)=>e.preventDefault()} title={tr('文档（即将上线）', 'Docs (coming soon)')}>{tr('文档', 'Docs')}</a>
+        <button className="btn" style={{ padding: '4px 8px' }} title={tr('切换为 English', 'Switch to 中文')} onClick={() => {
+          toggleLang();                               // 切语言
+          window.dispatchEvent(new CustomEvent('app/run', { detail: { reason: 'lang' } })); // 立刻重建文档
+        }}>{lang === 'zh' ? 'EN' : '中'}</button>
+        <a className="nav-link" href="#" onClick={(e) => e.preventDefault()} title={tr('文档（即将上线）', 'Docs (coming soon)')}>{tr('文档', 'Docs')}</a>
         <a className="nav-link" href="https://github.com/yilingqinghan/isa-cosmos" target="_blank" rel="noreferrer" title={tr('在 GitHub 查看项目', 'View on GitHub')}>GitHub</a>
-        <button className="btn nav-cta" title={tr('运行（Cmd/Ctrl + Enter）', 'Run (Cmd/Ctrl + Enter)')} onClick={()=>window.dispatchEvent(new CustomEvent('app/run'))}>{tr('运行 ⌘⏎', 'Run ⌘⏎')}</button>
+        <button className="btn nav-cta" title={tr('运行（Cmd/Ctrl + Enter）', 'Run (Cmd/Ctrl + Enter)')} onClick={() => window.dispatchEvent(new CustomEvent('app/run'))}>{tr('运行 ⌘⏎', 'Run ⌘⏎')}</button>
       </div>
     </div>
   )
