@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 const ICON_SRC = '/favicon.png' // 放在 public 根目录，亦可替换为 '/favicon.png'
 import { useApp } from '../../context'
 
@@ -59,6 +59,47 @@ export function LeftNotch({ inline = false }: { inline?: boolean }) {
 export function RightNotch({ inline = false }: { inline?: boolean }) {
   const { arch, setArch } = useApp()
 
+  const [archOptions, setArchOptions] = useState<string[]>([])
+
+  // Discover available architectures from the instruction registry
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const modPath = '../../instructions/registry' as string
+        // @ts-ignore
+        const reg: any = await import(/* @vite-ignore */ modPath).catch(() => null)
+        const instructionRegistry = reg?.instructionRegistry || {}
+        const allKeys = Object.keys(instructionRegistry)
+        const archKeyOf = (k: string) => {
+          const i = k.lastIndexOf('/')
+          return i > 0 ? k.slice(0, i) : k
+        }
+        const normalize = (a: string) => {
+          if (a === 'rvv' || a.startsWith('riscv')) return 'riscv'
+          if (a.startsWith('arm')) return 'arm'
+          return a
+        }
+        const raw = Array.from(new Set(allKeys.map(archKeyOf)))
+        const options = Array.from(new Set(raw.map(normalize)))
+        // 只保留 RISC-V
+        const filtered = options.includes('riscv') ? ['riscv'] : ['riscv']
+        if (!cancelled) {
+          setArchOptions(filtered)
+          if (arch !== 'riscv') setArch('riscv')
+        }
+      } catch {
+        if (!cancelled) setArchOptions(['riscv'])
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  const humanizeArch = (a: string) => {
+    if (a === 'riscv') return 'RISC-V'
+    return a.toUpperCase()
+  }
+
   const base: React.CSSProperties = {
     display:'flex', alignItems:'center', gap:'12px',
     padding:'6px 12px',
@@ -83,8 +124,9 @@ export function RightNotch({ inline = false }: { inline?: boolean }) {
       <div className="nav-controls" style={{display:'flex', alignItems:'center', gap:10}}>
         <label className="label">Architecture</label>
         <select className="select" value={arch} onChange={e=>setArch(e.target.value)}>
-          <option value="rvv">RISC-V</option>
-          {/* 预留：Arm SVE、x86-AVX512… */}
+          {archOptions.map(opt => (
+            <option key={opt} value={opt}>{humanizeArch(opt)}</option>
+          ))}
         </select>
 
         <a className="nav-link" href="#" onClick={(e)=>e.preventDefault()} title="文档（即将上线）">Docs</a>

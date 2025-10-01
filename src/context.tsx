@@ -1,23 +1,29 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
 export type NumBase = 'dec' | 'hex' | 'bin'
-export type DslOverride = { text: string; rev: number } | null
-export type VectorEnv = { VL: number; VLEN: number; SEW: number }
+export type DslOverride =
+  | { text: string; rev: number }
+  | { doc: any; rev: number }
+  | null
+  export type VectorEnv = { VL: number; VLEN: number; SEW: number }
 
-type Ctx = {
-  arch: string; setArch: (v: string) => void
-  opcode: string; setOpcode: (v: string) => void
-  form: string; setForm: (v: string) => void
-
-  logs: string[]; pushLog: (line: string) => void; clearLogs: () => void
-
-  base: NumBase; setBase: (b: NumBase) => void
-  sew: number; setSew: (w: number) => void
-
-  /** 新增：左侧编辑器覆盖右侧画布的 DSL */
-  dslOverride: DslOverride
-  setDslOverride: (d: DslOverride) => void
-}
+  type Ctx = {
+    arch: string; setArch: (v: string) => void
+    opcode: string; setOpcode: (v: string) => void
+    form: string; setForm: (v: string) => void
+  
+    logs: string[]; pushLog: (line: string) => void; clearLogs: () => void
+  
+    base: NumBase; setBase: (b: NumBase) => void
+    sew: number; setSew: (w: number) => void
+  
+    dslOverride: DslOverride
+    setDslOverride: (d: DslOverride) => void
+  
+    // NEW: 声明到类型
+    vectorEnv: VectorEnv
+    setVectorEnv: (e: VectorEnv) => void
+  }
 
 const AppCtx = createContext<Ctx>(null as any)
 

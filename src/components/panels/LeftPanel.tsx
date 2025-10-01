@@ -84,7 +84,10 @@ vsetvli.ri x1, x10, e32m2
   }
 
   // 指令目录：异步从注册表动态加载
-  const [catalog, setCatalog] = useState<{arch:string; items:{arch:string; opcode:string; form:string; sample:string}[]}[]>([])
+  // 分组目录类型（与 instructions/registry.getCatalogByArch 输出对齐）
+  type CatalogItem = { id:string; opcode:string; form:string; sample:string }
+  type CatalogGroup = { arch:string; ext:string; title:string; items: CatalogItem[] }
+  const [catalog, setCatalog] = useState<CatalogGroup[]>([])
   // 当 Canvas 工具条变更寄存器/元素位宽时，自动重跑当前行
   useEffect(() => {
     const rerun = () => {
@@ -100,34 +103,26 @@ vsetvli.ri x1, x10, e32m2
     }
   }, [])
 
-  useEffect(()=>{
-    let cancelled = false
-    ;(async()=>{
-      try {
-        // 动态加载新注册表（不存在时自动回退为空）
-        const modPath = '../../instructions/registry' as string
-        // @ts-ignore
-        const reg: any = await import(/* @vite-ignore */ modPath).catch(()=>null)
-        const instructionRegistry = reg?.instructionRegistry || {}
-        const arches = ['rvv']
-        const cat = arches.map(archName => {
-          const keys = Object.keys(instructionRegistry).filter(k => k.startsWith(archName + '/'))
-          const items = keys.map(k => {
-            const name = k.slice(archName.length + 1)
-            const [opcode, form] = name.split('.')
-            const mod = instructionRegistry[k]
-            const sample: string = mod?.sample || `${opcode}.${form} v0, v1, v2`
-            return { arch: archName, opcode, form, sample }
-          })
-          return { arch: archName, items }
-        })
-        if (!cancelled) setCatalog(cat)
-      } catch {
+useEffect(() => {
+  let cancelled = false
+  ;(async () => {
+    try {
+      const modPath = '../../instructions/registry' as string
+      // @ts-ignore
+      const reg: any = await import(/* @vite-ignore */ modPath).catch(() => null)
+      const getCatalogByArch = reg?.getCatalogByArch
+      if (typeof getCatalogByArch !== 'function') {
         if (!cancelled) setCatalog([])
+        return
       }
-    })()
-    return ()=>{ cancelled = true }
-  }, [])
+      const groups: CatalogGroup[] = getCatalogByArch(arch) || []
+      if (!cancelled) setCatalog(groups)
+    } catch {
+      if (!cancelled) setCatalog([])
+    }
+  })()
+  return () => { cancelled = true }
+}, [arch])
 
   const clearDiagnostics = ()=>{
     const ed = editorRef.current, m = monacoRef.current
@@ -749,11 +744,14 @@ vsetvli.ri x1, x10, e32m2
           </div>
           <div className="catalog-scroll" style={{overflow:'auto', padding:'6px 8px', height:'calc(100% - 40px)'}}>
             {catalog.map(group => (
-              <div key={group.arch} style={{marginBottom:12}}>
-                <div style={{fontSize:12, fontWeight:700, color:'#0f172a', margin:'6px 0'}}>{group.arch.toUpperCase()}</div>
+              <div key={`${group.arch}/${group.ext}`} style={{marginBottom:12}}>
+                <div style={{display:'flex', alignItems:'baseline', gap:6, margin:'6px 0'}}>
+                  <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>{group.title}</div>
+                  <div style={{fontSize:11, color:'#64748b'}}>({group.arch.toUpperCase()}/{group.ext.toUpperCase()})</div>
+                </div>
                 <ul style={{listStyle:'none', padding:0, margin:0}}>
                   {group.items.map(it => {
-                    const keyStr = `${it.arch}:${it.opcode}.${it.form}`
+                    const keyStr = `${group.arch}/${group.ext}:${it.opcode}.${it.form}`
                     return (
                       <li
                         key={keyStr}
