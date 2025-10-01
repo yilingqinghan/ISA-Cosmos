@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useMemo } from 'react'
 import { useApp } from '../../context'
 import Editor, { OnMount } from '@monaco-editor/react'
 import { LeftNotch } from '../nav/NavBar'
+import type * as Monaco from 'monaco-editor'
 
 
 
@@ -11,9 +12,9 @@ export default function LeftPanel() {
 vmul.vv v3, v4, v5
 vsetvli.ri x1, x10, e32m2
 `)
-  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor|null>(null)
-  const monacoRef = useRef<typeof monaco|null>(null)
-  const widgets = useRef<monaco.editor.IContentWidget[]>([])
+  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor|null>(null)
+  const monacoRef = useRef<Monaco|null>(null)
+  const widgets = useRef<Monaco.editor.IContentWidget[]>([])
   const decoIds = useRef<string[]>([])
   const runFocusDecoIds = useRef<string[]>([])
   const runExecDecoIds = useRef<string[]>([])
@@ -214,14 +215,14 @@ useEffect(() => {
     })))
 
     // 2) 行首 glyph 红点 + 3) 行尾气泡
-    const decos: monaco.editor.IModelDeltaDecoration[] = []
+    const decos: Monaco.editor.IModelDeltaDecoration[] = []
     errs.forEach((e,idx)=>{
       decos.push({ range: new m.Range(e.line,1,e.line,1), options:{ isWholeLine:true, glyphMarginClassName:'err-glyph' } })
       const id = `err-${Date.now()}-${idx}`
       const node = document.createElement('div')
       node.className = 'err-bubble'
       node.textContent = e.message
-      const w: monaco.editor.IContentWidget = {
+      const w: Monaco.editor.IContentWidget = {
         getId: ()=>id,
         getDomNode: ()=>node,
         getPosition: ()=>({
@@ -677,7 +678,7 @@ useEffect(() => {
               {editorControlsHidden ? (
                 <>
                   <button title="显示编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(false)}>⋯</button>
-                  <button className="btn" onClick={handleRun}>Run</button>
+                  <button className="btn" onClick={() => { handleRun(); }}>Run</button>
                 </>
               ) : (
                 <>
@@ -721,7 +722,7 @@ useEffect(() => {
                   <button title="重置为默认设置" className="btn" onClick={()=>{ setEditorTheme('isa-light'); setEditorFont('Fira'); setEditorFontSize(13); }}>↺</button>
                   <span style={{width:6}} />
                   <button title="隐藏编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(true)}>—</button>
-                  <button className="btn" onClick={handleRun}>Run</button>
+                  <button className="btn" onClick={() => { handleRun(); }}>Run</button>
                 </>
               )}
             </div>
