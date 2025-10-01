@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useMemo } from 'react'
 import { useApp } from '../../context'
 import Editor, { OnMount } from '@monaco-editor/react'
 import { LeftNotch } from '../nav/NavBar'
-import type * as Monaco from 'monaco-editor'
+type Monaco = typeof import('monaco-editor')
 
 
 
