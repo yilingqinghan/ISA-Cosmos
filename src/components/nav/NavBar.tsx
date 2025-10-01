@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-const ICON_SRC = '/favicon.png' // 放在 public 根目录，亦可替换为 '/favicon.png'
+// 使用 Vite 的 BASE_URL，确保在 GitHub Pages 子路径下也能正确指向
+const ICON_SRC = `${import.meta.env.BASE_URL}favicon.png`
 import { useApp } from '../../context'
 
 export function LeftNotch({ inline = false }: { inline?: boolean }) {
@@ -21,7 +22,7 @@ export function LeftNotch({ inline = false }: { inline?: boolean }) {
 
   return (
     <div className="notch-left" style={{ ...(base as any), ...(inline ? inlineStyle : floating) }}>
-      <a className="brand" href="/" title="回到首页" style={{display:'flex', alignItems:'center', gap:'10px', textDecoration:'none'}}>
+      <a className="brand" href={import.meta.env.BASE_URL} title="回到首页" style={{display:'flex', alignItems:'center', gap:'10px', textDecoration:'none'}}>
         <img
           className="logo"
           src={ICON_SRC}
