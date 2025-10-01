@@ -777,7 +777,7 @@ useEffect(() => {
         {/* 右侧：指令目录（可独立滚动） */}
         <aside className="left-catalog nice-card" style={{display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0}}>
           <div className="panel-toolbar" style={{gap:8}}>
-            <div className="panel-title">instructions♣</div>
+            <div className="panel-title">Instrs☘</div>
             <div className="grow" />
           </div>
           <div className="catalog-search" style={{padding:'6px 8px'}}>
