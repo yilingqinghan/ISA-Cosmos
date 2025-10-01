@@ -12,9 +12,9 @@ export default function LeftPanel() {
 vmul.vv v3, v4, v5
 vsetvli.ri x1, x10, e32m2
 `)
-  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor|null>(null)
+  const editorRef = useRef<import('monaco-editor').editor.IStandaloneCodeEditor | null>(null)
   const monacoRef = useRef<Monaco|null>(null)
-  const widgets = useRef<Monaco.editor.IContentWidget[]>([])
+  const widgets = useRef<import('monaco-editor').editor.IContentWidget[]>([])
   const decoIds = useRef<string[]>([])
   const runFocusDecoIds = useRef<string[]>([])
   const runExecDecoIds = useRef<string[]>([])
@@ -215,14 +215,14 @@ useEffect(() => {
     })))
 
     // 2) 行首 glyph 红点 + 3) 行尾气泡
-    const decos: Monaco.editor.IModelDeltaDecoration[] = []
+    const decos: import('monaco-editor').editor.IModelDeltaDecoration[] = []
     errs.forEach((e,idx)=>{
       decos.push({ range: new m.Range(e.line,1,e.line,1), options:{ isWholeLine:true, glyphMarginClassName:'err-glyph' } })
       const id = `err-${Date.now()}-${idx}`
       const node = document.createElement('div')
       node.className = 'err-bubble'
       node.textContent = e.message
-      const w: Monaco.editor.IContentWidget = {
+      const w: import('monaco-editor').editor.IContentWidget = {
         getId: ()=>id,
         getDomNode: ()=>node,
         getPosition: ()=>({
