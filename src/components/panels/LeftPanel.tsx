@@ -123,9 +123,7 @@ useEffect(() => {
   let cancelled = false
   ;(async () => {
     try {
-      const modPath = '../../instructions/registry' as string
-      // @ts-ignore
-      const reg: any = await import(/* @vite-ignore */ modPath).catch(() => null)
+      const reg: any = await import('../../instructions/registry').catch(() => null)
       const getCatalogByArch = reg?.getCatalogByArch
       if (typeof getCatalogByArch !== 'function') {
         if (!cancelled) setCatalog([])
@@ -465,9 +463,7 @@ useEffect(() => {
   // —— 优先走“指令模块 → DSLDoc”，找不到模块时回退到老的文本 DSL ——
   async function buildDocViaModule(ast: any, payload?: { env?: any; values?: Record<string, any[]> }) {
     try {
-      const modName = '../../instructions/registry' as string
-      // @ts-ignore: 动态导入——模块不存在时将被捕获
-      const reg: any = await (import(/* @vite-ignore */ modName).catch(() => null))
+      const reg: any = await (import('../../instructions/registry').catch(() => null))
       if (!reg) return null
 
       const getInstrModule = (reg as any).getInstrModule
@@ -541,9 +537,7 @@ useEffect(() => {
   // 从指令模块或注册表里读取迷你文档（Usage/Notes）
   async function loadMiniDoc(ast: {arch:string; opcode:string; form:string}) {
     try {
-      const modName = '../../instructions/registry' as string
-      // @ts-ignore
-      const reg: any = await import(/* @vite-ignore */ modName).catch(()=>null)
+      const reg: any = await import('../../instructions/registry').catch(()=>null)
       if (!reg) return null
       const key1 = `${ast.arch}/${ast.opcode}.${ast.form}`
       const key2 = `${ast.arch}.${ast.opcode}.${ast.form}` // 兼容你以前的 key 书写
