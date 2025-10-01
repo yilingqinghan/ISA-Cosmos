@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
-// 使用 Vite 的 BASE_URL，确保在 GitHub Pages 子路径下也能正确指向
-const ICON_SRC = `${import.meta.env.BASE_URL}favicon.png`
+// 使用 Vite 的 BASE_URL（类型在某些项目中未声明，做一次容错）
+const BASE = ((import.meta as any)?.env?.BASE_URL ?? '/') as string
+const ICON_SRC = `${BASE}favicon.png`
 import { useApp } from '../../context'
 
 export function LeftNotch({ inline = false }: { inline?: boolean }) {
@@ -22,7 +23,7 @@ export function LeftNotch({ inline = false }: { inline?: boolean }) {
 
   return (
     <div className="notch-left" style={{ ...(base as any), ...(inline ? inlineStyle : floating) }}>
-      <a className="brand" href={import.meta.env.BASE_URL} title="回到首页" style={{display:'flex', alignItems:'center', gap:'10px', textDecoration:'none'}}>
+      <a className="brand" href={BASE} title="回到首页" style={{display:'flex', alignItems:'center', gap:'10px', textDecoration:'none'}}>
         <img
           className="logo"
           src={ICON_SRC}
@@ -67,9 +68,7 @@ export function RightNotch({ inline = false }: { inline?: boolean }) {
     let cancelled = false
     ;(async () => {
       try {
-        const modPath = '../../instructions/registry' as string
-        // @ts-ignore
-        const reg: any = await import(/* @vite-ignore */ modPath).catch(() => null)
+        const reg: any = await import('../../instructions/registry').catch(() => null)
         const instructionRegistry = reg?.instructionRegistry || {}
         const allKeys = Object.keys(instructionRegistry)
         const archKeyOf = (k: string) => {
