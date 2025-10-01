@@ -15,7 +15,7 @@ export interface ValidationError {
   col?: number
 }
 
-export interface InstructionSetValidator {r
+export interface InstructionSetValidator {
   arch: string
   validate(ast: { arch: string; opcode: string; form: string; operands: string[] }): ValidationError[]
 }
