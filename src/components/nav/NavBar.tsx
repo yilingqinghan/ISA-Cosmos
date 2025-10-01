@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useLang, tr, toggleLang } from '@/i18n'
 // 使用 Vite 的 BASE_URL（类型在某些项目中未声明，做一次容错）
 const BASE = ((import.meta as any)?.env?.BASE_URL ?? '/') as string
-const ICON_SRC = `${BASE}favicon.png`
+const ICON_SRC = `https://yilingqinghan.github.io/ISA-Cosmos/favicon.png`
 import { useApp } from '../../context'
 
 export function LeftNotch({ inline = false }: { inline?: boolean }) {
