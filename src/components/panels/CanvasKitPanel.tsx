@@ -210,7 +210,7 @@ function Text({
   let tx = x;
   let ty = y;
   let textAnchor: 'start' | 'middle' | 'end' = 'start';
-  let dominantBaseline: string = 'text-before-edge';
+  let dominantBaseline: React.SVGAttributes<SVGTextElement>['dominantBaseline'] = 'text-before-edge';
 
   if (width != null) {
     if (align === 'center') {
@@ -820,8 +820,8 @@ export default function CanvasKitPanel() {
     switch (s.kind) {
       case 'rect': {
         const W = PX(s.w), H = PX(s.h), X = PX(s.x), Y = PX(s.y)
-        const corner = s.roundPx ?? Math.max(8, Math.min(18, Math.min(W, H) * 0.22)) // 动态圆角
-        const font   = s.size    ?? Math.max(10, Math.min(32, Math.min(W, H) * 0.45)) // 动态字号
+        const corner = (s as any).roundPx ?? Math.max(8, Math.min(18, Math.min(W, H) * 0.22)) // 动态圆角
+        const font   = (s as any).size    ?? Math.max(10, Math.min(32, Math.min(W, H) * 0.45)) // 动态字号
         return (
           <Group key={s.id} x={X} y={Y} opacity={op}>
             <Rect width={W} height={H} cornerRadius={corner} fill={col(s.color)} shadowBlur={14} shadowColor="#00000022" />

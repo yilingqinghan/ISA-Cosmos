@@ -173,18 +173,11 @@ export function Line({
   fill,
 }: LineProps) {
   const common: React.SVGProps<SVGElement> = {
-    // @ts-expect-error SVG/HTML props overlap
     stroke,
-    // @ts-expect-error ditto
     strokeWidth,
-    // @ts-expect-error ditto
     opacity,
-    // @ts-expect-error ditto
     pointerEvents: listening === false ? 'none' : undefined,
-    // 让折线端点更圆润一些
-    // @ts-expect-error
     strokeLinecap: 'round',
-    // @ts-expect-error
     strokeLinejoin: 'round',
   }
 
