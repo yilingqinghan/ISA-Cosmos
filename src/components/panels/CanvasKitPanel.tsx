@@ -859,16 +859,16 @@ export default function CanvasKitPanel() {
       case 'text': {
         // 允许 text 形状带 w/h + 对齐，这样省略号能真正“居中”
         const X = PX(s.x), Y = PX(s.y)
-        const W = s.w != null ? PX(s.w) : undefined
-        const H = s.h != null ? PX(s.h) : undefined
-        const fs = s.size ?? 16
+        const W = (s as any).w != null ? PX((s as any).w) : undefined
+        const H = (s as any).h != null ? PX((s as any).h) : undefined
+        const fs = (s as any).size ?? 16
         return (
           <Text
             key={s.id}
             x={X} y={Y} width={W} height={H}
             text={s.text}
             align={(s.align as any) || 'left'}
-            verticalAlign={(s.vAlign as any) || 'top'}
+            verticalAlign={((s as any).vAlign as any) || 'top'}
             fontSize={fs}
             fill={s.color ?? '#0f172a'}
             listening={false}
