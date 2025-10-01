@@ -16,6 +16,6 @@ export interface ValidationError {
 }
 
 export interface InstructionSetValidator {r
-  arch: string                                // 如 'rvv'
+  arch: string
   validate(ast: { arch: string; opcode: string; form: string; operands: string[] }): ValidationError[]
 }
