@@ -3,11 +3,12 @@ import { useApp } from '../../context'
 import Editor, { OnMount } from '@monaco-editor/react'
 import { LeftNotch } from '../nav/NavBar'
 type Monaco = typeof import('monaco-editor')
-
+import { useLang, tr } from '@/i18n'
 
 
 export default function LeftPanel() {
   const { arch, pushLog, setDslOverride, vectorEnv } = useApp()
+  const [lang] = useLang()
   const [code, setCode] = useState(`vadd.vv v0, v1, v2
 vmul.vv v3, v4, v5
 vsetvli.ri x1, x10, e32m2
@@ -288,7 +289,7 @@ useEffect(() => {
   }
 
   const onMount:OnMount = (ed, m)=>{
-    pushLog('Editor ready ✔')
+    pushLog(tr('编辑器就绪 ✔','Editor ready ✔'))
     editorRef.current = ed; monacoRef.current = m
     m.editor.defineTheme('isa-light', {
       base: 'vs',
@@ -441,7 +442,10 @@ useEffect(() => {
     if (!m) {
       const dotIdx = lineText.indexOf('.')
       const col = dotIdx > 0 ? dotIdx + 1 : Math.max(1, lineText.length)
-      const err: IDError = { line: 1, col, message: '缺少 opcode 或格式不正确（示例：add x0, x1, x2 或 vadd.vv v0, v1, v2）' }
+      const err: IDError = { line: 1, col,   message: tr(
+        '缺少 opcode 或格式不正确（示例：add x0, x1, x2 或 vadd.vv v0, v1, v2）',
+        'Missing opcode or malformed (e.g., add x0, x1, x2 or vadd.vv v0, v1, v2)'
+      ) }
       throw err
     }
     const opcode = m[1]
@@ -579,7 +583,11 @@ useEffect(() => {
       } else {
         highlightLine(next)
       }
-      if (!opts?.silent) pushLog(dontAdvanceFlag ? '↷ 跳过空行/注释，保持当前行' : '↷ 跳过空行/注释，已定位到下一行')
+      if (!opts?.silent) pushLog(
+        dontAdvanceFlag
+          ? tr('↷ 跳过空行/注释，保持当前行','↷ Skip blank/comment, stay on this line')
+          : tr('↷ 跳过空行/注释，已定位到下一行','↷ Skip blank/comment, moved to next')
+      )
       setDslOverride(null as any)
       return
     }
@@ -617,7 +625,7 @@ useEffect(() => {
       if (out) {
         setDslOverride({ doc: out.doc, extras: out.extras, rev: Date.now() } as any)
         usedModule = true
-        if (!opts?.silent) pushLog(`✅ 模块渲染：${ast.opcode}.${ast.form}`)
+        if (!opts?.silent) pushLog(tr('✅ 模块渲染：','✅ Module render: ') + `${ast.opcode}.${ast.form}`)
         // 加载指令元信息 Usage/Notes 等
         const meta = await loadMiniDoc(ast)
         if (meta) setDoc(meta)
@@ -626,11 +634,11 @@ useEffect(() => {
     } catch {}
 
     if (!usedModule) {
-      if (!opts?.silent) pushLog(`非法指令或还未受支持ฅ^•ﻌ•^ฅ：${ast.opcode}.${ast.form}`)
+      if (!opts?.silent) pushLog(tr('非法指令或还未受支持ฅ^•ﻌ•^ฅ：','Unsupported or invalid instruction: ') + `${ast.opcode}.${ast.form}`)
       setDslOverride({ text: '', rev: Date.now() } as any)
       setDoc({ usage:'', scenarios:[], notes:[], exceptions:[] })
       // 在当前行给出“警告”提示
-      showWarning(lineNo, 1, `非法指令或还未受支持：${ast.opcode}.${ast.form}`)
+      showWarning(lineNo, 1, tr('非法指令或还未受支持：','Unsupported or invalid instruction: ') + `${ast.opcode}.${ast.form}`)
       highlightLine(lineNo)
       lastRunLineRef.current = lineNo
       return
@@ -667,38 +675,38 @@ useEffect(() => {
           {/* 上：编辑器 */}
           <div className="left-top nice-card" style={{display:'flex', flexDirection:'column', minHeight:120, minWidth:0, overflow:'hidden'}}>
             <div className="panel-toolbar">
-              <div className="panel-title">Editor</div>
+              <div className="panel-title">{tr('编辑器','Editor')}</div>
               <div className="grow" />
               {editorControlsHidden ? (
                 <>
-                  <button title="显示编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(false)}>⋯</button>
-                  <button className="btn" onClick={() => { handleRun(); }}>Run</button>
+                  <button title={tr('显示编辑器设置','Show editor settings')} className="btn" onClick={()=>setEditorControlsHidden(false)}>⋯</button>
+                  <button className="btn" onClick={() => { handleRun(); }}>{tr('运行','Run')}</button>
                 </>
               ) : (
                 <>
                   <button
-                    title="浅色 (Isa)"
+                    title={tr('浅色 (Isa)','Isa Light')}
                     className={`btn theme-btn ${editorTheme==='isa-light'?'active':''}`}
                     onClick={()=>setEditorTheme('isa-light')}
                     aria-label="Isa Light"
                     style={{background:'#FBFCFD', borderColor:'#94a3b8'}}
                   />
                   <button
-                    title="Solarized Light"
+                    title={tr('Solarized（浅色）','Solarized Light')}
                     className={`btn theme-btn ${editorTheme==='solarized-light'?'active':''}`}
                     onClick={()=>setEditorTheme('solarized-light')}
                     aria-label="Solarized Light"
                     style={{background:'#fdf6e3', borderColor:'#d9cbb2'}}
                   />
                   <button
-                    title="Solarized Dark"
+                    title={tr('Solarized（深色）','Solarized Dark')}
                     className={`btn theme-btn ${editorTheme==='solarized-dark'?'active':''}`}
                     onClick={()=>setEditorTheme('solarized-dark')}
                     aria-label="Solarized Dark"
                     style={{background:'#002b36', borderColor:'#0b3942'}}
                   />
                   <button
-                    title="VS Dark"
+                    title={tr('VS（深色）','VS Dark')}
                     className={`btn theme-btn ${editorTheme==='vs-dark'?'active':''}`}
                     onClick={()=>setEditorTheme('vs-dark')}
                     aria-label="VS Dark"
@@ -711,12 +719,12 @@ useEffect(() => {
                     <option value="System">系统等宽</option>
                   </select>
                   <span style={{width:6}} />
-                  <button title="字号变小" className="btn" onClick={()=>setEditorFontSize(s=>Math.max(10, s-1))}>－</button>
-                  <button title="字号变大" className="btn" onClick={()=>setEditorFontSize(s=>Math.min(22, s+1))}>＋</button>
-                  <button title="重置为默认设置" className="btn" onClick={()=>{ setEditorTheme('isa-light'); setEditorFont('Fira'); setEditorFontSize(13); }}>↺</button>
+                  <button title={tr('字号变小','Smaller')} className="btn" onClick={()=>setEditorFontSize(s=>Math.max(10, s-1))}>－</button>
+                  <button title={tr('字号变大','Larger')} className="btn" onClick={()=>setEditorFontSize(s=>Math.min(22, s+1))}>＋</button>
+                  <button title={tr('重置为默认设置','Reset to defaults')} className="btn" onClick={()=>{ setEditorTheme('isa-light'); setEditorFont('Fira'); setEditorFontSize(13); }}>↺</button>
                   <span style={{width:6}} />
-                  <button title="隐藏编辑器设置" className="btn" onClick={()=>setEditorControlsHidden(true)}>—</button>
-                  <button className="btn" onClick={() => { handleRun(); }}>Run</button>
+                  <button title={tr('隐藏编辑器设置','Hide editor settings')} className="btn" onClick={()=>setEditorControlsHidden(true)}>—</button>
+                  <button className="btn" onClick={() => { handleRun(); }}>{tr('运行','Run')}</button>
                 </>
               )}
             </div>
@@ -735,38 +743,38 @@ useEffect(() => {
 
           <div className="left-mid nice-card" style={{display:'flex', flexDirection:'column', minHeight:120, minWidth:0, overflow:'hidden'}}>
             <div className="panel-toolbar">
-              <div className="panel-title">Usage</div>
+              <div className="panel-title">{tr('用法','Usage')}</div>
               <div className="grow" />
             </div>
             <div className="usage-wrap" style={{padding:'8px 10px', overflow:'auto', flex:1, minHeight:0, fontSize:12}}>
               <div className="usage-all" style={{display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr', gap:10}}>
                 <div style={{display:'none', marginTop:8, color:'#64748b', fontSize:12}} aria-hidden="true">
-                  提示：我们不检查语法正确性，请自行保证语法正确！
+                  {tr('提示：我们不检查语法正确性，请自行保证语法正确！','Tip: syntax is not validated; please ensure correctness yourself.')}
                 </div>
                 <div style={{gridColumn:'1 / -1', padding:8, border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc'}}>
-                  <div style={{fontSize:11, fontWeight:600, color:'#0f172a', marginBottom:6}}>说明</div>
-                  {doc.usage ? <p style={{lineHeight:1.6, margin:0}}>{doc.usage}</p> : <p className="muted" style={{margin:0}}>无</p>}
+                  <div style={{fontSize:11, fontWeight:600, color:'#0f172a', marginBottom:6}}>{tr('说明','Description')}</div>
+                  {doc.usage ? <p style={{lineHeight:1.6, margin:0}}>{doc.usage}</p> : <p className="muted" style={{margin:0}}>{tr('无','None')}</p>}
                 </div>
                 <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
                   <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                    <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>场景</div>
+                    <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>{tr('场景','Scenarios')}</div>
                     <span style={pillStyle}>{count(doc.scenarios)}</span>
                   </div>
-                  <FancyList items={doc.scenarios} icon="💡" empty="暂无典型场景" />
+                  <FancyList items={doc.scenarios} icon="💡" empty={tr('暂无典型场景','No typical scenarios')} />
                 </div>
                 <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
                   <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                    <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>注意</div>
+                    <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>{tr('注意','Notes')}</div>
                     <span style={pillStyle}>{count(doc.notes)}</span>
                   </div>
-                  <FancyList items={doc.notes} icon="⚠️" empty="暂无注意事项" tone="warn" />
+                  <FancyList items={doc.notes} icon="⚠️" empty={tr('暂无注意事项','No notes')} tone="warn" />
                 </div>
                 <div style={{padding:8, border:'1px solid #e2e8f0', borderRadius:8}}>
                   <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                    <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>异常</div>
+                    <div style={{fontSize:11, fontWeight:600, color:'#0f172a'}}>{tr('异常','Exceptions')}</div>
                     <span style={pillStyle}>{count(doc.exceptions)}</span>
                   </div>
-                  <FancyList items={doc.exceptions} icon="⛔" empty="暂无已知异常" tone="danger" />
+                  <FancyList items={doc.exceptions} icon="⛔" empty={tr('暂无已知异常','No known exceptions')} tone="danger" />
                 </div>
               </div>
             </div>
@@ -777,15 +785,15 @@ useEffect(() => {
         {/* 右侧：指令目录（可独立滚动） */}
         <aside className="left-catalog nice-card" style={{display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0}}>
           <div className="panel-toolbar" style={{gap:8}}>
-            <div className="panel-title">Instrs☘</div>
+            <div className="panel-title">{tr('指令☘','Instrs☘')}</div>
             <div className="grow" />
           </div>
           <div className="catalog-search" style={{padding:'6px 8px'}}>
             <input
               value={catalogQuery}
               onChange={e=>setCatalogQuery(e.target.value)}
-              placeholder="Search♡"
-              aria-label="搜索指令"
+              placeholder={tr('搜索♡','Search♡')}
+              aria-label={tr('搜索指令','Search instructions')}
               style={{
                 fontSize:12, padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6,
                 outline:'none', width:'100%', boxSizing:'border-box'
@@ -794,7 +802,7 @@ useEffect(() => {
           </div>
           <div className="catalog-scroll" style={{overflow:'auto', padding:'6px 8px', flex:1, minHeight:0}}>
             {filteredCatalog.length === 0 ? (
-              <div className="muted" style={{fontSize:12, color:'#64748b', padding:'6px 8px'}}>未找到匹配项</div>
+              <div className="muted" style={{fontSize:12, color:'#64748b', padding:'6px 8px'}}>{tr('未找到匹配项','No results')}</div>
             ) : filteredCatalog.map(group => (
               <div key={`${group.arch}/${group.ext}`} style={{marginBottom:12}}>
                 <div style={{display:'flex', alignItems:'baseline', gap:6, margin:'6px 0'}}>

@@ -4,6 +4,7 @@ import { useApp } from '../../context'
 import { Select } from "@ui/Select";
 import { useFormat, fmt, formatStore } from '../../state/formatStore'
 import { RightNotch } from '../nav/NavBar'
+import { useLang, tr } from '@/i18n'
 
 // ---- LocalStorage helpers for UI prefs ----
 const PREFS_KEY = 'isaViz.canvas.prefs.v1'
@@ -377,6 +378,7 @@ function FlyItem({ id, title, icon, openId, setOpenId, children }: {
 }
 
 export default function CanvasKitPanel() {
+  const [lang] = useLang()
   const [showGrid, setShowGrid] = useState(true);
   const { arch, opcode, form, pushLog, clearLogs, dslOverride, logs } = useApp()
   const [dsl, setDsl] = useState('')
@@ -1043,7 +1045,7 @@ export default function CanvasKitPanel() {
             pointerEvents:'none'
           }}
         >
-          <div>步骤：{Math.min(stepIdx+1, Math.max(1, doc.steps.length))}/{Math.max(doc.steps.length,1)} · {stepName || '—'}</div>
+          <div>{tr('步骤：','Step: ')}{Math.min(stepIdx+1, Math.max(1, doc.steps.length))}/{Math.max(doc.steps.length,1)} · {stepName || '—'}</div>
         </div>
         <div
           className="canvas-toolbar floating"
@@ -1071,7 +1073,7 @@ export default function CanvasKitPanel() {
           }}
         >
           {/* 播放/暂停：纯按钮，无抽屉 */}
-          <button title={playing ? '暂停' : '播放'} className="btn icon" style={iconBtn} onClick={()=>{
+          <button title={playing ? tr('暂停','Pause') : tr('播放','Play')} className="btn icon" style={iconBtn} onClick={()=>{
             setPlaying(p=>{ const np = !p; if (np) stepStartRef.current = performance.now(); return np })
           }}>
             {/* 播放/暂停使用简洁 SVG 图标（非 emoji）*/}
@@ -1083,73 +1085,73 @@ export default function CanvasKitPanel() {
           </button>
 
           {/* 上/下一步：纯按钮 */}
-          <button title="上一步" className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.max(0,i-1)); stepStartRef.current = performance.now() }}>
+          <button title={tr('上一步','Previous')} className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.max(0,i-1)); stepStartRef.current = performance.now() }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
-          <button title="下一步" className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.min((doc.steps.length||1)-1,i+1)); stepStartRef.current = performance.now() }}>
+          <button title={tr('下一步','Next')} className="btn icon" style={iconBtn} onClick={()=>{ setStepIdx(i=>Math.min((doc.steps.length||1)-1,i+1)); stepStartRef.current = performance.now() }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
 
           {/* 速度：悬停拉出 */}
-          <FlyItem id="speed" title="播放速度" icon={
+          <FlyItem id="speed" title={tr('播放速度','Playback speed')} icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
           } openId={flyOpenId} setOpenId={setFlyOpenId}>
-            <span style={{fontSize:12, color:'#334155'}}>速度</span>
+            <span style={{fontSize:12, color:'#334155'}}>{tr('速度','Speed')}</span>
             <select className="select" value={String(speed)} onChange={(e)=>{ setSpeed(Number(e.currentTarget.value)); e.currentTarget.blur(); }} style={{height:28}}>
               <option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
             </select>
           </FlyItem>
 
           {/* 缩放：悬停拉出 */}
-          <FlyItem id="zoom" title="缩放" icon={
+          <FlyItem id="zoom" title={tr('缩放','Zoom')} icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           } openId={flyOpenId} setOpenId={setFlyOpenId}>
-            <span style={{fontSize:12, color:'#334155'}}>缩放</span>
+            <span style={{fontSize:12, color:'#334155'}}>{tr('缩放','Zoom')}</span>
             <select className="select" value={String(zoom)} onChange={(e)=>{ setZoom(parseFloat(e.currentTarget.value)); e.currentTarget.blur(); }} style={{height:28}}>
               <option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option>
             </select>
           </FlyItem>
 
           {/* 复位 & 网格：纯按钮 */}
-          <button title="复位" className="btn icon" style={iconBtn} onClick={()=>setResetTick(t=>t+1)}>
+          <button title={tr('复位','Reset')} className="btn icon" style={iconBtn} onClick={()=>setResetTick(t=>t+1)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5H1"/></svg>
           </button>
-          <button title="显示/隐藏网格" className="btn icon" style={iconBtn} onClick={()=>setShowGrid(s=>!s)}>
+          <button title={tr('显示/隐藏网格','Toggle grid')} className="btn icon" style={iconBtn} onClick={()=>setShowGrid(s=>!s)}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
           </button>
 
           {/* 数制：悬停拉出 */}
-          <FlyItem id="radix" title="数制" icon={
+          <FlyItem id="radix" title={tr('数制','Radix')} icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><text x="8" y="16" fontSize="8" fill="#111827">10</text></svg>
           } openId={flyOpenId} setOpenId={setFlyOpenId}>
-            <span style={{fontSize:12, color:'#334155'}}>数制</span>
+            <span style={{fontSize:12, color:'#334155'}}>{tr('数制','Radix')}</span>
             <Select value={fmtSnap.base} onChange={(e)=>{ formatStore.setBase(e.target.value as any); (e.currentTarget as HTMLSelectElement).blur?.(); }} className="select">
-              <option value="dec">10 进制</option>
-              <option value="hex">16 进制</option>
+              <option value="dec">{tr('10 进制','Decimal')}</option>
+              <option value="hex">{tr('16 进制','Hex')}</option>
             </Select>
           </FlyItem>
 
           {/* 同义指令面板：纯按钮 */}
-          <button title="同义指令面板 (S)" className="btn icon" style={iconBtn} onClick={()=>setSynOpen(o=>!o)}>
+          <button title={tr('同义指令面板 (S)','Synonyms panel (S)')} className="btn icon" style={iconBtn} onClick={()=>setSynOpen(o=>!o)}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><line x1="7" y1="10" x2="17" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/></svg>
           </button>
 
           {/* 寄存器位宽：悬停拉出 */}
-          <FlyItem id="regbits" title="寄存器位宽" icon={
+          <FlyItem id="regbits" title={tr('寄存器位宽','Register width')} icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M3 7h4M3 11h4M3 15h4M17 7h4M17 11h4M17 15h4M7 3v4M11 3v4M15 3v4M7 17v4M11 17v4M15 17v4"/></svg>
           } openId={flyOpenId} setOpenId={setFlyOpenId}>
-            <span style={{fontSize:12, color:'#334155'}}>寄存器</span>
+            <span style={{fontSize:12, color:'#334155'}}>{tr('寄存器','Register')}</span>
             <select className="btn" value={String(localStorage.getItem('isa.vector.regBits')||'128')} onChange={(e)=>{ const v=Number(e.currentTarget.value); localStorage.setItem('isa.vector.regBits', String(v)); window.dispatchEvent(new CustomEvent('isa:vector-change', { detail: { regBits: v, elemBits: Number(localStorage.getItem('isa.vector.elemBits')||'32') } })); e.currentTarget.blur(); }} style={{height:28}}>
               {[64,128,256,512,1024].map(n=> <option key={n} value={n}>{n}</option>)}
             </select>
-            <span style={{fontSize:12}}>bit</span>
+            <span style={{fontSize:12}}>{tr('位','bit')}</span>
           </FlyItem>
 
           {/* 元素位宽：悬停拉出 */}
-          <FlyItem id="elembits" title="元素位宽" icon={
+          <FlyItem id="elembits" title={tr('元素位宽','Element width')} icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
           } openId={flyOpenId} setOpenId={setFlyOpenId}>
-            <span style={{fontSize:12, color:'#334155'}}>元素</span>
+            <span style={{fontSize:12, color:'#334155'}}>{tr('元素','Element')}</span>
             <select className="btn" value={String(localStorage.getItem('isa.vector.elemBits')||'32')} onChange={(e)=>{ const v=Number(e.currentTarget.value); localStorage.setItem('isa.vector.elemBits', String(v)); window.dispatchEvent(new CustomEvent('isa:vector-change', { detail: { regBits: Number(localStorage.getItem('isa.vector.regBits')||'128'), elemBits: v } })); e.currentTarget.blur(); }} style={{height:28}}>
               {[8,16,32,64].map(n=> <option key={n} value={n}>{n}</option>)}
             </select>
@@ -1157,13 +1159,13 @@ export default function CanvasKitPanel() {
           </FlyItem>
 
           {/* 收起工具条 */}
-          <button title="收起工具条 (T)" className="btn icon" style={iconBtn} onClick={()=>setToolbarVisible(false)}>
+          <button title={tr('收起工具条 (T)','Hide toolbar (T)')} className="btn icon" style={iconBtn} onClick={()=>setToolbarVisible(false)}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
         </div>
         {!toolbarVisible && (
           <button
-            title="显示工具条 (T)"
+            title={tr('显示工具条 (T)','Show toolbar (T)')}
             onClick={()=>setToolbarVisible(true)}
             style={{
               position:'absolute',
@@ -1198,10 +1200,9 @@ export default function CanvasKitPanel() {
           }}
         >
           <div style={{display:'flex', alignItems:'center', height:30, padding:'0 8px', gap:8, borderBottom:'1px solid #eef2f7'}}>
-            <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>快捷键</div>
+            <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>{tr('快捷键','Shortcuts')}</div>
             <div style={{flex:1}} />
-            <button
-              title={hotkeyOpen ? '收起 (H)' : '展开 (H)'}
+            <button title={hotkeyOpen ? tr('收起 (H)','Collapse (H)') : tr('展开 (H)','Expand (H)')}
               onClick={()=>setHotkeyOpen(o=>!o)}
               style={{width:28, height:24, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', cursor:'pointer'}}
             >{hotkeyOpen ? '−' : '＋'}</button>
@@ -1218,16 +1219,16 @@ export default function CanvasKitPanel() {
             }}
           >
             <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gridTemplateColumns:'auto auto', columnGap:10, rowGap:6}}>
-              <li><b>Space</b>&nbsp;&nbsp;&nbsp;播放/暂停</li>
-              <li><b>←/→</b>&nbsp;&nbsp;&nbsp;上/下一步</li>
-              <li><b>+/−</b>&nbsp;&nbsp;&nbsp;缩放</li>
+              <li><b>Space</b>&nbsp;&nbsp;&nbsp;{tr('播放/暂停','Play / Pause')}</li>
+              <li><b>←/→</b>&nbsp;&nbsp;&nbsp;{tr('上/下一步','Prev / Next step')}</li>
+              <li><b>+/−</b>&nbsp;&nbsp;&nbsp;{tr('缩放','Zoom')}</li>
               <li><b>1/2/3/4</b>&nbsp;&nbsp;&nbsp;0.5×/1×/2×/4×</li>
-              <li><b>G</b>&nbsp;&nbsp;&nbsp;网格</li>
-              <li><b>R</b>&nbsp;&nbsp;&nbsp;复位</li>
-              <li><b>S</b>&nbsp;&nbsp;&nbsp;同义指令面板</li>
-              <li><b>T</b>&nbsp;&nbsp;&nbsp;工具条显示/隐藏</li>
-              <li><b>H</b>&nbsp;&nbsp;&nbsp;收起/展开本卡片</li>
-              <li><b>Ctrl/⌘ + 滚轮</b>&nbsp;&nbsp;&nbsp;缩放画布</li>
+              <li><b>G</b>&nbsp;&nbsp;&nbsp;{tr('网格','Grid')}</li>
+              <li><b>R</b>&nbsp;&nbsp;&nbsp;{tr('复位','Reset')}</li>
+              <li><b>S</b>&nbsp;&nbsp;&nbsp;{tr('同义指令面板','Synonyms panel')}</li>
+              <li><b>T</b>&nbsp;&nbsp;&nbsp;{tr('工具条显示/隐藏','Toggle toolbar')}</li>
+              <li><b>H</b>&nbsp;&nbsp;&nbsp;{tr('收起/展开本卡片','Collapse/Expand this card')}</li>
+              <li><b>{tr('Ctrl/⌘ + 滚轮','Ctrl/⌘ + Wheel')}</b>&nbsp;&nbsp;&nbsp;{tr('缩放画布','Zoom canvas')}</li>
             </ul>
           </div>
         </div>
@@ -1251,17 +1252,17 @@ export default function CanvasKitPanel() {
             }}
           >
             <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-              <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>同义指令（跨架构）</div>
+              <div style={{fontSize:12, fontWeight:700, color:'#0f172a'}}>{tr('同义指令（跨架构）','Synonyms (cross-ISA)')}</div>
               <div style={{flex:1}} />
               <button
-                title="关闭 (S)"
+                title={tr('关闭 (S)','Close (S)')}
                 onClick={()=>setSynOpen(false)}
                 style={{width:24, height:24, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', cursor:'pointer'}}
               >×</button>
             </div>
 
             {(!synonyms || synonyms.length === 0) ? (
-              <div style={{color:'#64748b', fontSize:12}}>暂无同义指令。指令模块可通过 dslOverride.extras.synonyms 传入。</div>
+              <div style={{color:'#64748b', fontSize:12}}>{tr('暂无同义指令。指令模块可通过 dslOverride.extras.synonyms 传入。','No synonyms. Provide via dslOverride.extras.synonyms in the instruction module.')}</div>
             ) : (
               <ul style={{listStyle:'none', padding:0, margin:0, display:'grid', gap:8}}>
                 {synonyms.map((it, idx)=> (
@@ -1278,8 +1279,6 @@ export default function CanvasKitPanel() {
                 ))}
               </ul>
             )}
-
-            <div style={{marginTop:10, color:'#94a3b8', fontSize:11}}>注：为便于学习对比，此处列出大致等价的向量/并行指令，具体语义以各 ISA 文档为准。</div>
           </div>
         )}
         {/* SVG Stage (replaces KitStage) */}
@@ -1336,11 +1335,11 @@ export default function CanvasKitPanel() {
       </div>
       <div className="canvas-logs" style={{borderTop:'1px solid #e5e7eb', background:'#fff', height: logsOpen ? 180 : 36, transition:'height .18s ease'}}>
         <div style={{display:'flex', alignItems:'center', height:36, padding:'0 8px', gap:8}}>
-          <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>Logs</div>
+          <div style={{fontSize:12, fontWeight:600, color:'#0f172a'}}>{tr('日志','Logs')}</div>
           <div style={{flex:1}} />
           <button
             className="btn icon"
-            title={logsOpen ? '收起日志' : '展开日志'}
+            title={logsOpen ? tr('收起日志','Collapse logs') : tr('展开日志','Expand logs')}
             onClick={()=>setLogsOpen(o=>!o)}
             style={{width:28, height:24, borderRadius:8, padding:0, border:'1px solid #e5e7eb', background:'#fff'}}
           >
@@ -1356,13 +1355,13 @@ export default function CanvasKitPanel() {
               </svg>
             )}
           </button>
-          <button className="btn" onClick={()=>clearLogs()} style={{marginLeft:6}}>清空</button>
+          <button className="btn" onClick={()=>clearLogs()} style={{marginLeft:6}}>{tr('清空','Clear')}</button>
         </div>
         {logsOpen && (
           <div style={{display:'flex', height:224}}>
             <div style={{flex: 1, overflow:'auto', padding:'6px 10px'}}>
               {(!logs || logs.length===0) ? (
-                <div style={{fontSize:12, color:'#64748b'}}>暂无日志。运行后会在此显示解析步骤 / 提示。</div>
+                <div style={{fontSize:12, color:'#64748b'}}>{tr('暂无日志。运行后会在此显示解析步骤 / 提示。','No logs yet. Steps/prompts will appear here after running.')}</div>
               ) : (
                 <ul style={{listStyle:'none', padding:0, margin:0, fontSize:12, color:'#334155'}}>
                   {logs.map((l, i)=>(

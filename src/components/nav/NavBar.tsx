@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
+import { useLang, tr, toggleLang } from '@/i18n'
 // 使用 Vite 的 BASE_URL（类型在某些项目中未声明，做一次容错）
 const BASE = ((import.meta as any)?.env?.BASE_URL ?? '/') as string
-const ICON_SRC = `https://yilingqinghan.github.io/ISA-Cosmos/favicon.png`
+const ICON_SRC = `${BASE}favicon.png`
 import { useApp } from '../../context'
 
 export function LeftNotch({ inline = false }: { inline?: boolean }) {
@@ -49,9 +50,9 @@ export function LeftNotch({ inline = false }: { inline?: boolean }) {
             alignItems: 'center',
             height: '100%'
           }}
-          title="Slogan"
+          title={tr('口号', 'Slogan')}
         >
-          ISA, easy to learn!
+          {tr('ISA，轻松上手！', 'ISA, easy to learn!')}
         </div>
       </a>
     </div>
@@ -60,6 +61,7 @@ export function LeftNotch({ inline = false }: { inline?: boolean }) {
 
 export function RightNotch({ inline = false }: { inline?: boolean }) {
   const { arch, setArch } = useApp()
+  const [lang] = useLang()
 
   const [archOptions, setArchOptions] = useState<string[]>([])
 
@@ -122,16 +124,17 @@ export function RightNotch({ inline = false }: { inline?: boolean }) {
   return (
     <div className="notch-right" style={{ ...base, ...(inline ? inlineStyle : floating) }}>
       <div className="nav-controls" style={{display:'flex', alignItems:'center', gap:10}}>
-        <label className="label">Architecture</label>
+        <label className="label">{tr('架构', 'Architecture')}</label>
         <select className="select" value={arch} onChange={e=>setArch(e.target.value)}>
           {archOptions.map(opt => (
             <option key={opt} value={opt}>{humanizeArch(opt)}</option>
           ))}
         </select>
 
-        <a className="nav-link" href="#" onClick={(e)=>e.preventDefault()} title="文档（即将上线）">Docs</a>
-        <a className="nav-link" href="https://github.com/yilingqinghan/isa-cosmos" target="_blank" rel="noreferrer" title="在 GitHub 查看项目">GitHub</a>
-        <button className="btn nav-cta" title="运行（Cmd/Ctrl + Enter）" onClick={()=>window.dispatchEvent(new CustomEvent('app/run'))}>Run ⌘⏎</button>
+        <button className="btn" style={{padding:'4px 8px'}} title={tr('切换为 English', 'Switch to 中文')} onClick={toggleLang}>{lang === 'zh' ? 'EN' : '中'}</button>
+        <a className="nav-link" href="#" onClick={(e)=>e.preventDefault()} title={tr('文档（即将上线）', 'Docs (coming soon)')}>{tr('文档', 'Docs')}</a>
+        <a className="nav-link" href="https://github.com/yilingqinghan/isa-cosmos" target="_blank" rel="noreferrer" title={tr('在 GitHub 查看项目', 'View on GitHub')}>GitHub</a>
+        <button className="btn nav-cta" title={tr('运行（Cmd/Ctrl + Enter）', 'Run (Cmd/Ctrl + Enter)')} onClick={()=>window.dispatchEvent(new CustomEvent('app/run'))}>{tr('运行 ⌘⏎', 'Run ⌘⏎')}</button>
       </div>
     </div>
   )
