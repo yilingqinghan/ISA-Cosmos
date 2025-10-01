@@ -120,6 +120,14 @@ vsetvli.ri x1, x10, e32m2
     }
   }, [])
 
+  // 语言切换后，重新用当前行重建 DSL（不前进、不刷日志）
+  useEffect(() => {
+    try {
+      nextRunDontAdvanceRef.current = true
+      ;(handleRun as any)?.({ dontAdvance: true, silent: true, lineOverride: lastRunLineRef.current })
+    } catch {}
+  }, [lang])
+
 useEffect(() => {
   let cancelled = false
   ;(async () => {

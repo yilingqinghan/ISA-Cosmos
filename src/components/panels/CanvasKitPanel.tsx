@@ -1181,7 +1181,7 @@ export default function CanvasKitPanel() {
               fontSize:12,
               cursor:'pointer'
             }}
-          >工具</button>
+          >{tr('工具','Toolbar')}</button>
         )}
         <div
           className="hotkey-cheatsheet"
