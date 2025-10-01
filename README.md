@@ -1,4 +1,6 @@
-<img src="favicon.png" width="80" height="80" style="text-align:center"  alt="favicon" />
+<div align="center">
+  <img src="favicon.png" width="80" height="80" alt="favicon" />
+</div>
 
 ISA Cosmos, A tiny, hackable **ISA visualization playground**. Type an instruction, watch the registers move and the ALU light up — not a simulator, a **stage** for teaching and demos.
 
