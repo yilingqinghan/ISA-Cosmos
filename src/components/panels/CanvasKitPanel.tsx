@@ -343,20 +343,33 @@ function FlyItem({ id, title, icon, openId, setOpenId, children }: {
   setOpenId: (v: string | null) => void;
   children: React.ReactNode;
 }) {
+  const hideTimer = React.useRef<number | null>(null)
+  const handleEnter = () => {
+    if (hideTimer.current != null) { window.clearTimeout(hideTimer.current); hideTimer.current = null }
+    setOpenId(id)
+  }
+  const handleLeave = () => {
+    // 给 150ms 宽限，允许鼠标跨越间隙
+    hideTimer.current = window.setTimeout(() => {
+      if (openId === id) setOpenId(null)
+    }, 150)
+  }
   const open = openId === id;
   return (
     <div
-      onMouseEnter={()=>setOpenId(id)}
-      onMouseLeave={()=>setOpenId(null)}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
       style={{ position:'relative' }}
     >
       <button title={title} className="btn icon" style={{width:36, height:36, minWidth:36, minHeight:36, borderRadius:8, display:'inline-flex', alignItems:'center', justifyContent:'center', border:'1px solid #e5e7eb', background:'#fff', boxShadow:'0 1px 2px rgba(0,0,0,0.06)', cursor:'pointer', padding:0}}>
         {icon}
       </button>
+      {/* 覆盖按钮与弹窗之间的缝隙，防止鼠标抖动导致 onMouseLeave */}
+      <div aria-hidden="true" style={{ position:'absolute', left: 36, top: 0, width: 12, height: 36 }} />
       <div
         style={{
           position:'absolute',
-          left: 44 + 8,
+          left: 44,
           top: 0,
           zIndex: 20,
           background:'#ffffff',
