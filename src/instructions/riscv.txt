@@ -1,0 +1,81 @@
+INSN_CLASS_D_AND_ZFA: fcvtmod.w.d fleq.d fli.d fltq.d fmaxm.d fminm.d fmvh.x.d fmvp.d.x fround.d froundnx.d
+INSN_CLASS_D_INX: fabs.d fadd.d fclass.d fcvt.d.l fcvt.d.lu fcvt.d.s fcvt.d.w fcvt.d.wu fcvt.l.d fcvt.lu.d fcvt.s.d fcvt.w.d fcvt.wu.d fdiv.d feq.d fge.d fgt.d fle.d flt.d fmadd.d fmax.d fmin.d fmsub.d fmul.d fmv.d fneg.d fnmadd.d fnmsub.d fsgnj.d fsgnjn.d fsgnjx.d fsqrt.d fsub.d
+INSN_CLASS_D: fld fmv.d.x fmv.x.d fsd
+INSN_CLASS_F_INX: fabs.s fadd.s fclass.s fcvt.l.s fcvt.lu.s fcvt.s.l fcvt.s.lu fcvt.s.w fcvt.s.wu fcvt.w.s fcvt.wu.s fdiv.s feq.s fge.s fgt.s fle.s flt.s fmadd.s fmax.s fmin.s fmsub.s fmul.s fmv.s fneg.s fnmadd.s fnmsub.s frcsr frflags frrm frsr fscsr fsflags fsflagsi fsgnj.s fsgnjn.s fsgnjx.s fsqrt.s fsrm fsrmi fssr fsub.s
+INSN_CLASS_F: b flw fmv.s.x fmv.w.x fmv.x.s fmv.x.w fsw i j r r4 s sb u uj
+INSN_CLASS_H: hfence.gvma hfence.vvma hlv.b hlv.bu hlv.d hlv.h hlv.hu hlv.w hlv.wu hlvx.hu hlvx.wu hsv.b hsv.d hsv.h hsv.w
+INSN_CLASS_I: add addi addiw addw and andi auipc b beq beqz bge bgeu bgez bgt bgtu bgtz ble bleu blez blt bltu bltz bne bnez call dret ebreak ecall fence fence.tso hret i j jal jalr jr jump la la.tls.gd la.tls.ie lb lbu ld lga lh lhu li lla lui lw lwu move mret mv neg negw nop not or ori r r4 rdcycle rdcycleh rdinstret rdinstreth rdtime rdtimeh ret s sb sbreak scall sd seqz sext.b sext.h sext.w sfence.vma sgt sgtu sgtz sh sll slli slliw sllw slt slti sltiu sltu sltz snez sra srai sraiw sraw sret srl srli srliw srlw sub subw sw tail u uj unimp uret wfi xor xori zext.b zext.h zext.w
+INSN_CLASS_M: div divu divuw divw rem remu remuw remw
+INSN_CLASS_Q_AND_ZFA: fleq.q fli.q fltq.q fmaxm.q fminm.q fmvh.x.q fmvp.q.x fround.q froundnx.q
+INSN_CLASS_Q_INX: fabs.q fadd.q fclass.q fcvt.d.q fcvt.l.q fcvt.lu.q fcvt.q.d fcvt.q.l fcvt.q.lu fcvt.q.s fcvt.q.w fcvt.q.wu fcvt.s.q fcvt.w.q fcvt.wu.q fdiv.q feq.q fge.q fgt.q fle.q flt.q fmadd.q fmax.q fmin.q fmsub.q fmul.q fmv.q fneg.q fnmadd.q fnmsub.q fsgnj.q fsgnjn.q fsgnjx.q fsqrt.q fsub.q
+INSN_CLASS_Q: flq fsq
+INSN_CLASS_SMCTR_OR_SSCTR: sctrclr
+INSN_CLASS_SMRNMI: mnret
+INSN_CLASS_SVINVAL: hinval.gvma hinval.vvma sfence.inval.ir sfence.w.inval sinval.vma
+INSN_CLASS_V: vaadd.vv vaadd.vx vaaddu.vv vaaddu.vx vadc.vim vadc.vvm vadc.vxm vadd.vi vadd.vv vadd.vx vand.vi vand.vv vand.vx vasub.vv vasub.vx vasubu.vv vasubu.vx vcompress.vm vcpop.m vdiv.vv vdiv.vx vdivu.vv vdivu.vx vfirst.m vid.v viota.m vl1r.v vl1re16.v vl1re32.v vl1re64.v vl1re8.v vl2r.v vl2re16.v vl2re32.v vl2re64.v vl2re8.v vl4r.v vl4re16.v vl4re32.v vl4re64.v vl4re8.v vl8r.v vl8re16.v vl8re32.v vl8re64.v vl8re8.v vle1.v vle16.v vle16ff.v vle32.v vle32ff.v vle64.v vle64ff.v vle8.v vle8ff.v vlm.v vloxei16.v vloxei32.v vloxei64.v vloxei8.v vloxseg2ei16.v vloxseg2ei32.v vloxseg2ei64.v vloxseg2ei8.v vloxseg3ei16.v vloxseg3ei32.v vloxseg3ei64.v vloxseg3ei8.v vloxseg4ei16.v vloxseg4ei32.v vloxseg4ei64.v vloxseg4ei8.v vloxseg5ei16.v vloxseg5ei32.v vloxseg5ei64.v vloxseg5ei8.v vloxseg6ei16.v vloxseg6ei32.v vloxseg6ei64.v vloxseg6ei8.v vloxseg7ei16.v vloxseg7ei32.v vloxseg7ei64.v vloxseg7ei8.v vloxseg8ei16.v vloxseg8ei32.v vloxseg8ei64.v vloxseg8ei8.v vlse16.v vlse32.v vlse64.v vlse8.v vlseg2e16.v vlseg2e16ff.v vlseg2e32.v vlseg2e32ff.v vlseg2e64.v vlseg2e64ff.v vlseg2e8.v vlseg2e8ff.v vlseg3e16.v vlseg3e16ff.v vlseg3e32.v vlseg3e32ff.v vlseg3e64.v vlseg3e64ff.v vlseg3e8.v vlseg3e8ff.v vlseg4e16.v vlseg4e16ff.v vlseg4e32.v vlseg4e32ff.v vlseg4e64.v vlseg4e64ff.v vlseg4e8.v vlseg4e8ff.v vlseg5e16.v vlseg5e16ff.v vlseg5e32.v vlseg5e32ff.v vlseg5e64.v vlseg5e64ff.v vlseg5e8.v vlseg5e8ff.v vlseg6e16.v vlseg6e16ff.v vlseg6e32.v vlseg6e32ff.v vlseg6e64.v vlseg6e64ff.v vlseg6e8.v vlseg6e8ff.v vlseg7e16.v vlseg7e16ff.v vlseg7e32.v vlseg7e32ff.v vlseg7e64.v vlseg7e64ff.v vlseg7e8.v vlseg7e8ff.v vlseg8e16.v vlseg8e16ff.v vlseg8e32.v vlseg8e32ff.v vlseg8e64.v vlseg8e64ff.v vlseg8e8.v vlseg8e8ff.v vlsseg2e16.v vlsseg2e32.v vlsseg2e64.v vlsseg2e8.v vlsseg3e16.v vlsseg3e32.v vlsseg3e64.v vlsseg3e8.v vlsseg4e16.v vlsseg4e32.v vlsseg4e64.v vlsseg4e8.v vlsseg5e16.v vlsseg5e32.v vlsseg5e64.v vlsseg5e8.v vlsseg6e16.v vlsseg6e32.v vlsseg6e64.v vlsseg6e8.v vlsseg7e16.v vlsseg7e32.v vlsseg7e64.v vlsseg7e8.v vlsseg8e16.v vlsseg8e32.v vlsseg8e64.v vlsseg8e8.v vluxei16.v vluxei32.v vluxei64.v vluxei8.v vluxseg2ei16.v vluxseg2ei32.v vluxseg2ei64.v vluxseg2ei8.v vluxseg3ei16.v vluxseg3ei32.v vluxseg3ei64.v vluxseg3ei8.v vluxseg4ei16.v vluxseg4ei32.v vluxseg4ei64.v vluxseg4ei8.v vluxseg5ei16.v vluxseg5ei32.v vluxseg5ei64.v vluxseg5ei8.v vluxseg6ei16.v vluxseg6ei32.v vluxseg6ei64.v vluxseg6ei8.v vluxseg7ei16.v vluxseg7ei32.v vluxseg7ei64.v vluxseg7ei8.v vluxseg8ei16.v vluxseg8ei32.v vluxseg8ei64.v vluxseg8ei8.v vmacc.vv vmacc.vx vmadc.vi vmadc.vim vmadc.vv vmadc.vvm vmadc.vx vmadc.vxm vmadd.vv vmadd.vx vmand.mm vmandn.mm vmandnot.mm vmax.vv vmax.vx vmaxu.vv vmaxu.vx vmclr.m vmcpy.m vmerge.vim vmerge.vvm vmerge.vxm vmin.vv vmin.vx vminu.vv vminu.vx vmmv.m vmnand.mm vmnor.mm vmnot.m vmor.mm vmorn.mm vmornot.mm vmsbc.vv vmsbc.vvm vmsbc.vx vmsbc.vxm vmsbf.m vmseq.vi vmseq.vv vmseq.vx vmset.m vmsge.vi vmsge.vv vmsge.vx vmsgeu.vi vmsgeu.vv vmsgeu.vx vmsgt.vi vmsgt.vv vmsgt.vx vmsgtu.vi vmsgtu.vv vmsgtu.vx vmsif.m vmsle.vi vmsle.vv vmsle.vx vmsleu.vi vmsleu.vv vmsleu.vx vmslt.vi vmslt.vv vmslt.vx vmsltu.vi vmsltu.vv vmsltu.vx vmsne.vi vmsne.vv vmsne.vx vmsof.m vmul.vv vmul.vx vmulh.vv vmulh.vx vmulhsu.vv vmulhsu.vx vmulhu.vv vmulhu.vx vmv.s.x vmv.v.i vmv.v.v vmv.v.x vmv.x.s vmv1r.v vmv2r.v vmv4r.v vmv8r.v vmxnor.mm vmxor.mm vnclip.wi vnclip.wv vnclip.wx vnclipu.wi vnclipu.wv vnclipu.wx vncvt.x.x.w vneg.v vnmsac.vv vnmsac.vx vnmsub.vv vnmsub.vx vnot.v vnsra.wi vnsra.wv vnsra.wx vnsrl.wi vnsrl.wv vnsrl.wx vor.vi vor.vv vor.vx vpopc.m vredand.vs vredmax.vs vredmaxu.vs vredmin.vs vredminu.vs vredor.vs vredsum.vs vredxor.vs vrem.vv vrem.vx vremu.vv vremu.vx vrgather.vi vrgather.vv vrgather.vx vrgatherei16.vv vrsub.vi vrsub.vx vs1r.v vs2r.v vs4r.v vs8r.v vsadd.vi vsadd.vv vsadd.vx vsaddu.vi vsaddu.vv vsaddu.vx vsbc.vvm vsbc.vxm vse1.v vse16.v vse32.v vse64.v vse8.v vsetivli vsetvl vsetvli vsext.vf2 vsext.vf4 vsext.vf8 vslide1down.vx vslide1up.vx vslidedown.vi vslidedown.vx vslideup.vi vslideup.vx vsll.vi vsll.vv vsll.vx vsm.v vsmul.vv vsmul.vx vsoxei16.v vsoxei32.v vsoxei64.v vsoxei8.v vsoxseg2ei16.v vsoxseg2ei32.v vsoxseg2ei64.v vsoxseg2ei8.v vsoxseg3ei16.v vsoxseg3ei32.v vsoxseg3ei64.v vsoxseg3ei8.v vsoxseg4ei16.v vsoxseg4ei32.v vsoxseg4ei64.v vsoxseg4ei8.v vsoxseg5ei16.v vsoxseg5ei32.v vsoxseg5ei64.v vsoxseg5ei8.v vsoxseg6ei16.v vsoxseg6ei32.v vsoxseg6ei64.v vsoxseg6ei8.v vsoxseg7ei16.v vsoxseg7ei32.v vsoxseg7ei64.v vsoxseg7ei8.v vsoxseg8ei16.v vsoxseg8ei32.v vsoxseg8ei64.v vsoxseg8ei8.v vsra.vi vsra.vv vsra.vx vsrl.vi vsrl.vv vsrl.vx vsse16.v vsse32.v vsse64.v vsse8.v vsseg2e16.v vsseg2e32.v vsseg2e64.v vsseg2e8.v vsseg3e16.v vsseg3e32.v vsseg3e64.v vsseg3e8.v vsseg4e16.v vsseg4e32.v vsseg4e64.v vsseg4e8.v vsseg5e16.v vsseg5e32.v vsseg5e64.v vsseg5e8.v vsseg6e16.v vsseg6e32.v vsseg6e64.v vsseg6e8.v vsseg7e16.v vsseg7e32.v vsseg7e64.v vsseg7e8.v vsseg8e16.v vsseg8e32.v vsseg8e64.v vsseg8e8.v vssra.vi vssra.vv vssra.vx vssrl.vi vssrl.vv vssrl.vx vssseg2e16.v vssseg2e32.v vssseg2e64.v vssseg2e8.v vssseg3e16.v vssseg3e32.v vssseg3e64.v vssseg3e8.v vssseg4e16.v vssseg4e32.v vssseg4e64.v vssseg4e8.v vssseg5e16.v vssseg5e32.v vssseg5e64.v vssseg5e8.v vssseg6e16.v vssseg6e32.v vssseg6e64.v vssseg6e8.v vssseg7e16.v vssseg7e32.v vssseg7e64.v vssseg7e8.v vssseg8e16.v vssseg8e32.v vssseg8e64.v vssseg8e8.v vssub.vv vssub.vx vssubu.vv vssubu.vx vsub.vv vsub.vx vsuxei16.v vsuxei32.v vsuxei64.v vsuxei8.v vsuxseg2ei16.v vsuxseg2ei32.v vsuxseg2ei64.v vsuxseg2ei8.v vsuxseg3ei16.v vsuxseg3ei32.v vsuxseg3ei64.v vsuxseg3ei8.v vsuxseg4ei16.v vsuxseg4ei32.v vsuxseg4ei64.v vsuxseg4ei8.v vsuxseg5ei16.v vsuxseg5ei32.v vsuxseg5ei64.v vsuxseg5ei8.v vsuxseg6ei16.v vsuxseg6ei32.v vsuxseg6ei64.v vsuxseg6ei8.v vsuxseg7ei16.v vsuxseg7ei32.v vsuxseg7ei64.v vsuxseg7ei8.v vsuxseg8ei16.v vsuxseg8ei32.v vsuxseg8ei64.v vsuxseg8ei8.v vwadd.vv vwadd.vx vwadd.wv vwadd.wx vwaddu.vv vwaddu.vx vwaddu.wv vwaddu.wx vwcvt.x.x.v vwcvtu.x.x.v vwmacc.vv vwmacc.vx vwmaccsu.vv vwmaccsu.vx vwmaccu.vv vwmaccu.vx vwmaccus.vx vwmul.vv vwmul.vx vwmulsu.vv vwmulsu.vx vwmulu.vv vwmulu.vx vwredsum.vs vwredsumu.vs vwsub.vv vwsub.vx vwsub.wv vwsub.wx vwsubu.vv vwsubu.vx vwsubu.wv vwsubu.wx vxor.vi vxor.vv vxor.vx vzext.vf2 vzext.vf4 vzext.vf8
+INSN_CLASS_ZAAMO: amoadd.d amoadd.d.aq amoadd.d.aqrl amoadd.d.rl amoadd.w amoadd.w.aq amoadd.w.aqrl amoadd.w.rl amoand.d amoand.d.aq amoand.d.aqrl amoand.d.rl amoand.w amoand.w.aq amoand.w.aqrl amoand.w.rl amomax.d amomax.d.aq amomax.d.aqrl amomax.d.rl amomax.w amomax.w.aq amomax.w.aqrl amomax.w.rl amomaxu.d amomaxu.d.aq amomaxu.d.aqrl amomaxu.d.rl amomaxu.w amomaxu.w.aq amomaxu.w.aqrl amomaxu.w.rl amomin.d amomin.d.aq amomin.d.aqrl amomin.d.rl amomin.w amomin.w.aq amomin.w.aqrl amomin.w.rl amominu.d amominu.d.aq amominu.d.aqrl amominu.d.rl amominu.w amominu.w.aq amominu.w.aqrl amominu.w.rl amoor.d amoor.d.aq amoor.d.aqrl amoor.d.rl amoor.w amoor.w.aq amoor.w.aqrl amoor.w.rl amoswap.d amoswap.d.aq amoswap.d.aqrl amoswap.d.rl amoswap.w amoswap.w.aq amoswap.w.aqrl amoswap.w.rl amoxor.d amoxor.d.aq amoxor.d.aqrl amoxor.d.rl amoxor.w amoxor.w.aq amoxor.w.aqrl amoxor.w.rl
+INSN_CLASS_ZABHA_AND_ZACAS: amocas.b amocas.b.aq amocas.b.aqrl amocas.b.rl amocas.h amocas.h.aq amocas.h.aqrl amocas.h.rl
+INSN_CLASS_ZABHA: amoadd.b amoadd.b.aq amoadd.b.aqrl amoadd.b.rl amoadd.h amoadd.h.aq amoadd.h.aqrl amoadd.h.rl amoand.b amoand.b.aq amoand.b.aqrl amoand.b.rl amoand.h amoand.h.aq amoand.h.aqrl amoand.h.rl amomax.b amomax.b.aq amomax.b.aqrl amomax.b.rl amomax.h amomax.h.aq amomax.h.aqrl amomax.h.rl amomaxu.b amomaxu.b.aq amomaxu.b.aqrl amomaxu.b.rl amomaxu.h amomaxu.h.aq amomaxu.h.aqrl amomaxu.h.rl amomin.b amomin.b.aq amomin.b.aqrl amomin.b.rl amomin.h amomin.h.aq amomin.h.aqrl amomin.h.rl amominu.b amominu.b.aq amominu.b.aqrl amominu.b.rl amominu.h amominu.h.aq amominu.h.aqrl amominu.h.rl amoor.b amoor.b.aq amoor.b.aqrl amoor.b.rl amoor.h amoor.h.aq amoor.h.aqrl amoor.h.rl amoswap.b amoswap.b.aq amoswap.b.aqrl amoswap.b.rl amoswap.h amoswap.h.aq amoswap.h.aqrl amoswap.h.rl amoxor.b amoxor.b.aq amoxor.b.aqrl amoxor.b.rl amoxor.h amoxor.h.aq amoxor.h.aqrl amoxor.h.rl
+INSN_CLASS_ZACAS: amocas.d amocas.d.aq amocas.d.aqrl amocas.d.rl amocas.q amocas.q.aq amocas.q.aqrl amocas.q.rl amocas.w amocas.w.aq amocas.w.aqrl amocas.w.rl
+INSN_CLASS_ZALRSC: lr.d lr.d.aq lr.d.aqrl lr.d.rl lr.w lr.w.aq lr.w.aqrl lr.w.rl sc.d sc.d.aq sc.d.aqrl sc.d.rl sc.w sc.w.aq sc.w.aqrl sc.w.rl
+INSN_CLASS_ZAWRS: wrs.nto wrs.sto
+INSN_CLASS_ZBA: add.uw sh1add sh1add.uw sh2add sh2add.uw sh3add sh3add.uw slli.uw zext.w
+INSN_CLASS_ZBB_OR_ZBKB: andn orn rev8 rol rolw ror rori roriw rorw xnor zext.h
+INSN_CLASS_ZBB: clz clzw cpop cpopw ctz ctzw max maxu min minu orc.b sext.b sext.h
+INSN_CLASS_ZBC_OR_ZBKC: clmul clmulh
+INSN_CLASS_ZBC: clmulr
+INSN_CLASS_ZBKB: brev8 pack packh packw unzip zip
+INSN_CLASS_ZBKX: xperm4 xperm8
+INSN_CLASS_ZBS: bclr bclri bext bexti binv binvi bset bseti
+INSN_CLASS_ZCA: add addi addiw addw and andi beq beqz bne bnez c.add c.addi c.addi16sp c.addi4spn c.addiw c.addw c.and c.andi c.beqz c.bnez c.ebreak c.j c.jal c.jalr c.jr c.ld c.ldsp c.li c.lui c.lw c.lwsp c.mv c.nop c.or c.sd c.sdsp c.slli c.slli64 c.srai c.srai64 c.srli c.srli64 c.sub c.subw c.sw c.swsp c.unimp c.xor ca cb ci ciw cj cl cr cs css ebreak j jal jalr jr ld li lui lw move mv nop or ret sbreak sd sext.w sll slli sra srai srl srli sub subw sw unimp xor
+INSN_CLASS_ZCB_AND_ZBA: c.zext.w zext.w
+INSN_CLASS_ZCB_AND_ZBB: c.sext.b c.sext.h c.zext.h sext.b sext.h zext.h
+INSN_CLASS_ZCB_AND_ZMMUL: c.mul mul
+INSN_CLASS_ZCB: andi c.lbu c.lh c.lhu c.not c.sb c.sext.w c.sh c.zext.b lbu lh lhu not sb sh zext.b
+INSN_CLASS_ZCD: c.fld c.fldsp c.fsd c.fsdsp fld fsd
+INSN_CLASS_ZCF: c.flw c.flwsp c.fsw c.fswsp ca cb ci ciw cl cr cs css flw fsw
+INSN_CLASS_ZCLSD: c.ld c.ldsp c.sd c.sdsp ld sd
+INSN_CLASS_ZCMOP: c.mop.1 c.mop.11 c.mop.13 c.mop.15 c.mop.3 c.mop.5 c.mop.7 c.mop.9
+INSN_CLASS_ZCMP: cm.mva01s cm.mvsa01 cm.pop cm.popret cm.popretz cm.push
+INSN_CLASS_ZCMT: cm.jalt cm.jt
+INSN_CLASS_ZFA: fleq.s fli.s fltq.s fmaxm.s fminm.s fround.s froundnx.s
+INSN_CLASS_ZFBFMIN: fcvt.bf16.s fcvt.s.bf16
+INSN_CLASS_ZFH_AND_ZFA: fleq.h fltq.h fmaxm.h fminm.h fround.h froundnx.h
+INSN_CLASS_ZFH_INX: fabs.h fadd.h fclass.h fcvt.h.l fcvt.h.lu fcvt.h.w fcvt.h.wu fcvt.l.h fcvt.lu.h fcvt.w.h fcvt.wu.h fdiv.h feq.h fge.h fgt.h fle.h flt.h fmadd.h fmax.h fmin.h fmsub.h fmul.h fmv.h fneg.h fnmadd.h fnmsub.h fsgnj.h fsgnjn.h fsgnjx.h fsqrt.h fsub.h
+INSN_CLASS_ZFH_OR_ZVFH_AND_ZFA: fli.h
+INSN_CLASS_ZFHMIN_AND_D_INX: fcvt.d.h fcvt.h.d
+INSN_CLASS_ZFHMIN_AND_Q_INX: fcvt.h.q fcvt.q.h
+INSN_CLASS_ZFHMIN_INX: fcvt.h.s fcvt.s.h
+INSN_CLASS_ZFHMIN: flh fmv.h.x fmv.x.h fsh
+INSN_CLASS_ZICBOM: cbo.clean cbo.flush cbo.inval
+INSN_CLASS_ZICBOP: prefetch.i prefetch.r prefetch.w
+INSN_CLASS_ZICBOZ: cbo.zero
+INSN_CLASS_ZICFILP: lpad tail
+INSN_CLASS_ZICFISS_AND_ZCMOP: c.sspopchk c.sspush sspopchk sspush
+INSN_CLASS_ZICFISS: ssamoswap.d ssamoswap.d.aq ssamoswap.d.aqrl ssamoswap.d.rl ssamoswap.w ssamoswap.w.aq ssamoswap.w.aqrl ssamoswap.w.rl sspopchk sspush ssrdp
+INSN_CLASS_ZICOND: czero.eqz czero.nez
+INSN_CLASS_ZICSR: csrc csrci csrr csrrc csrrci csrrs csrrsi csrrw csrrwi csrs csrsi csrw csrwi
+INSN_CLASS_ZIFENCEI: fence.i
+INSN_CLASS_ZIHINTNTL_AND_ZCA: c.ntl.all c.ntl.p1 c.ntl.pall c.ntl.s1 ntl.all ntl.p1 ntl.pall ntl.s1
+INSN_CLASS_ZIHINTNTL: ntl.all ntl.p1 ntl.pall ntl.s1
+INSN_CLASS_ZIHINTPAUSE: pause
+INSN_CLASS_ZILSD: ld sd
+INSN_CLASS_ZIMOP: mop.r.0 mop.r.1 mop.r.10 mop.r.11 mop.r.12 mop.r.13 mop.r.14 mop.r.15 mop.r.16 mop.r.17 mop.r.18 mop.r.19 mop.r.2 mop.r.20 mop.r.21 mop.r.22 mop.r.23 mop.r.24 mop.r.25 mop.r.26 mop.r.27 mop.r.28 mop.r.29 mop.r.3 mop.r.30 mop.r.31 mop.r.4 mop.r.5 mop.r.6 mop.r.7 mop.r.8 mop.r.9 mop.rr.0 mop.rr.1 mop.rr.2 mop.rr.3 mop.rr.4 mop.rr.5 mop.rr.6 mop.rr.7
+INSN_CLASS_ZKND_OR_ZKNE: aes64ks1i aes64ks2
+INSN_CLASS_ZKND: aes32dsi aes32dsmi aes64ds aes64dsm aes64im
+INSN_CLASS_ZKNE: aes32esi aes32esmi aes64es aes64esm
+INSN_CLASS_ZKNH: sha256sig0 sha256sig1 sha256sum0 sha256sum1 sha512sig0 sha512sig0h sha512sig0l sha512sig1 sha512sig1h sha512sig1l sha512sum0 sha512sum0r sha512sum1 sha512sum1r
+INSN_CLASS_ZKSED: sm4ed sm4ks
+INSN_CLASS_ZKSH: sm3p0 sm3p1
+INSN_CLASS_ZMMUL: mul mulh mulhsu mulhu mulw
+INSN_CLASS_ZVBB: vbrev.v vclz.v vcpop.v vctz.v vwsll.vi vwsll.vv vwsll.vx
+INSN_CLASS_ZVBC: vclmul.vv vclmul.vx vclmulh.vv vclmulh.vx
+INSN_CLASS_ZVEF: vfabs.v vfadd.vf vfadd.vv vfclass.v vfcvt.f.x.v vfcvt.f.xu.v vfcvt.rtz.x.f.v vfcvt.rtz.xu.f.v vfcvt.x.f.v vfcvt.xu.f.v vfdiv.vf vfdiv.vv vfmacc.vf vfmacc.vv vfmadd.vf vfmadd.vv vfmax.vf vfmax.vv vfmerge.vfm vfmin.vf vfmin.vv vfmsac.vf vfmsac.vv vfmsub.vf vfmsub.vv vfmul.vf vfmul.vv vfmv.f.s vfmv.s.f vfmv.v.f vfncvt.f.f.w vfncvt.f.x.w vfncvt.f.xu.w vfncvt.rod.f.f.w vfncvt.rtz.x.f.w vfncvt.rtz.xu.f.w vfncvt.x.f.w vfncvt.xu.f.w vfneg.v vfnmacc.vf vfnmacc.vv vfnmadd.vf vfnmadd.vv vfnmsac.vf vfnmsac.vv vfnmsub.vf vfnmsub.vv vfrdiv.vf vfrec7.v vfrece7.v vfredmax.vs vfredmin.vs vfredosum.vs vfredsum.vs vfredusum.vs vfrsqrt7.v vfrsqrte7.v vfrsub.vf vfsgnj.vf vfsgnj.vv vfsgnjn.vf vfsgnjn.vv vfsgnjx.vf vfsgnjx.vv vfslide1down.vf vfslide1up.vf vfsqrt.v vfsub.vf vfsub.vv vfwadd.vf vfwadd.vv vfwadd.wf vfwadd.wv vfwcvt.f.f.v vfwcvt.f.x.v vfwcvt.f.xu.v vfwcvt.rtz.x.f.v vfwcvt.rtz.xu.f.v vfwcvt.x.f.v vfwcvt.xu.f.v vfwmacc.vf vfwmacc.vv vfwmsac.vf vfwmsac.vv vfwmul.vf vfwmul.vv vfwnmacc.vf vfwnmacc.vv vfwnmsac.vf vfwnmsac.vv vfwredosum.vs vfwredsum.vs vfwredusum.vs vfwsub.vf vfwsub.vv vfwsub.wf vfwsub.wv vmfeq.vf vmfeq.vv vmfge.vf vmfge.vv vmfgt.vf vmfgt.vv vmfle.vf vmfle.vv vmflt.vf vmflt.vv vmfne.vf vmfne.vv
+INSN_CLASS_ZVFBFMIN: vfncvtbf16.f.f.w vfwcvtbf16.f.f.v
+INSN_CLASS_ZVFBFWMA: vfwmaccbf16.vf vfwmaccbf16.vv
+INSN_CLASS_ZVKB: vandn.vv vandn.vx vbrev8.v vrev8.v vrol.vv vrol.vx vror.vi vror.vv vror.vx
+INSN_CLASS_ZVKG: vghsh.vv vgmul.vv
+INSN_CLASS_ZVKNED: vaesdf.vs vaesdf.vv vaesdm.vs vaesdm.vv vaesef.vs vaesef.vv vaesem.vs vaesem.vv vaeskf1.vi vaeskf2.vi vaesz.vs
+INSN_CLASS_ZVKNHA_OR_ZVKNHB: vsha2ch.vv vsha2cl.vv vsha2ms.vv
+INSN_CLASS_ZVKSED: vsm4k.vi vsm4r.vs vsm4r.vv
+INSN_CLASS_ZVKSH: vsm3c.vi vsm3me.vv
