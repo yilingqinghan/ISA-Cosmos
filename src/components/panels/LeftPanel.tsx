@@ -691,7 +691,7 @@ useEffect(() => {
           {/* 上：编辑器 */}
           <div className="left-top nice-card" style={{display:'flex', flexDirection:'column', minHeight:120, minWidth:0, overflow:'hidden'}}>
             <div className="panel-toolbar">
-              <div className="panel-title">{tr('编辑器⚝','Editor⚝')}</div>
+              <div className="panel-title">{tr('编辑器','Editor')}</div>
               <div className="grow" />
               {editorControlsHidden ? (
                 <>
@@ -732,7 +732,7 @@ useEffect(() => {
                   <select aria-label="选择字体" className="btn" value={editorFont} onChange={(e)=>setEditorFont(e.target.value as any)} style={{padding:'2px 8px'}}>
                     <option value="Fira">Fira Code</option>
                     <option value="JetBrains">JetBrains Mono</option>
-                    <option value="System">系统等宽</option>
+                    <option value="System">{tr('系统等宽','Default')}</option>
                   </select>
                   <span style={{width:6}} />
                   <button title={tr('字号变小','Smaller')} className="btn" onClick={()=>setEditorFontSize(s=>Math.max(10, s-1))}>－</button>

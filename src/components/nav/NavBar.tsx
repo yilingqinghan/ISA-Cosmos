@@ -52,7 +52,7 @@ export function LeftNotch({ inline = false }: { inline?: boolean }) {
           }}
           title={tr('口号', 'Slogan')}
         >
-          {tr('ISA，轻松上手！', 'ISA, easy to learn!')}
+          {tr('ISA, easy to learn！', 'ISA, easy to learn!')}
         </div>
       </a>
     </div>

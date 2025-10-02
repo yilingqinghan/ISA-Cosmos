@@ -11,7 +11,7 @@ const add: InstructionModule = {
     const [rd = 'x3', rs1 = 'x1', rs2 = 'x2'] = ctx.operands || []
 
     // 1) Env → slots (scalar add: default 32-bit word → 1 slot)
-    const { regBits, elemBits, rawSlots, slots: N } =
+    const { regBits, elemBits, rawSlots, slots: N } = 
       vectorSlotsFromEnv(ctx.env, { maxSlots: 8, defaultRegBits: 32, defaultElemBits: 32 })
 
     // 2) Ellipsis handling
