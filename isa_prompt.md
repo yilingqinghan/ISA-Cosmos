@@ -1,3 +1,157 @@
+# ROLE
+
+You generate a single **TypeScript animation module** for ISA-Cosmos.
+It must compile and run inside the project without extra changes.
+
+# SCOPE
+
+* **You implement only animation** (shapes + timeline).
+* Usage text / scenarios / notes / exceptions / synonyms live in a separate `*.info.ts` and are **not** included here.
+* The module must follow the **vadd_vv.ts** pattern (compute layout, build shapes, define steps with `Timeline`, return `doc`).
+
+# RUNTIME & IMPORTS
+
+> All coordinates are in **inches** (the renderer converts to px).
+
+# DSL SHAPES (WHAT YOU CAN EMIT)
+
+* `group` `{ kind:'group', id, x, y, w, h }`
+* `rect`  `{ kind:'rect', id, x, y, w, h, color?, text?, textAlign?, textBaseline?, size?, roundPx? }`
+* `text`  `{ kind:'text', id, x, y, w?, h?, text, size?, color?, align?, vAlign? }`
+* `label` `{ kind:'label', id, x, y, text }`
+* `arrow` `{ kind:'arrow', id, x1, y1, x2, y2, width?, color? }`
+* `line`  `{ kind:'line', id, points? | (x1,y1,x2,y2), width?, color?, dash? }`
+
+# OPTIONAL FACTORIES (IF NEEDED)
+
+You **may** also create shapes using these helpers; they all return `DSLShape[]` you can spread into `shapes`:
+
+```ts
+// Functional blocks / wiring / memory / IO / register-file
+alu({id,x,y,w?,h?,label?,color?})
+bus({id, points?:[number,number][], x1?,y1?,x2?,y2?, width?, color?, dashed?})
+memory({id,x,y,w,h,cells?,kind?,label?,cellColor?})
+port({id,x,y,label?,dir?/*'in'|'out'*/,color?})
+regfile({id,x,y,lanes,w?,h?,gap?,title?,laneColor?,boxColor?,laneText?:(i)=>string})
+```
+
+> Import path depends on your repo layout; if available, import them and push returned arrays into `shapes`. Otherwise, draw with basic shapes.
+
+# 🧪 INPUT CONTEXT
+
+The `build(ctx: BuildCtx)` receives:
+
+```ts
+type BuildCtx = {
+  arch: string; opcode: string; form: string;
+  operands: string[];                // e.g., ['v3','v3','v2']
+  env?: { VL?: number; SEW?: number };
+  values?: Record<string, Array<number|string>>; // optional per-register lane values
+}
+```
+
+* **Do not** validate syntax here; validators are external.
+* Prefer `ctx.values[reg]` if present; else generate plausible demo values.
+* Use `toNum(value)` before computing to coerce strings/hex/bin safely.
+
+# 🧭 LAYOUT & ELLIPSIS POLICY
+
+Use `vectorSlotsFromEnv(ctx.env, { maxSlots: 8, defaultRegBits: 128, defaultElemBits: 32 })` to get:
+
+```ts
+const { regBits, elemBits, rawSlots, slots /*=N*/ } = ...
+```
+
+* If `rawSlots > slots`: reserve the **last** cell for an `…` ellipsis.
+* That means **show `N-1` elements**, but **layout uses `N` cells**:
+
+  ```ts
+  const showEllipsis = rawSlots > slots
+  const shownSlots = showEllipsis ? slots - 1 : slots
+  const slotsForLayout = showEllipsis ? shownSlots + 1 : shownSlots
+  ```
+* Place ellipsis as a large centered `'…'` `text` in the reserved cell for each box you render.
+
+# 🧱 CANONICAL BOXES (RECOMMENDED)
+
+For two-source ops (vector ALU style), use:
+
+```ts
+const boxS1  = { x: px(1), y: px(1.00), w: px(4), h: px(1) }
+const boxS2  = { x: px(1), y: px(2.40), w: px(4), h: px(1) }
+const boxDst = { x: px(8), y: px(1.70), w: px(4), h: px(1) }
+```
+
+Fit lanes as **squares** with mild gap:
+
+```ts
+const dynGap  = slots >= 8 ? 0.10 : slots >= 6 ? 0.14 : 0.18
+const s1Fit   = layoutRowInBoxSquare(boxS1,  slotsForLayout, 0.80, { gap: dynGap })
+const s2Fit   = layoutRowInBoxSquare(boxS2,  slotsForLayout, 0.80, { gap: dynGap })
+const dstFit  = layoutRowInBoxSquare(boxDst, slotsForLayout, 0.80, { gap: dynGap })
+```
+
+Text size & corner radius scale with lane size (use this exact pattern):
+
+```ts
+const textPx  = Math.max(12, Math.min(30, Math.round(s1Fit.side * 96 * 0.45)))
+const roundPx = Math.max(8,  Math.round(s1Fit.side * 96 * 0.22))
+```
+
+# TIMELINE API (ANIMATION)
+
+Use `Timeline` and return `tl.build(shapes, packOn, packOff)`:
+
+```ts
+const tl = new Timeline()
+  .step('s1', tr('读取源向量','Read source vectors'))
+    .appear('s1__box').appear('s2__box').appear('lbl_s1').appear('lbl_s2')
+    .appear('ruler_s1__l').appear('ruler_s1__r').appear('ruler_s1__t')
+  .step('s2', tr('送入 ALU','Feed into ALU'))
+    .appear('a_s1_alu').appear('a_s2_alu').blink('alu',3,240)
+  .step('s3', tr('执行运算','Execute'))
+    .blink('alu',3,240)
+  .step('s4', tr('写回结果','Write back'))
+    .appear('a_alu_dst').appear('dst__box')
+    .appear('ruler_dst__l').appear('ruler_dst__r').appear('ruler_dst__t')
+    .appear('lbl_dst')
+  .step('s5', tr('完成','Done'))
+```
+
+Available helpers on `Timeline` (use as needed):
+
+* `appear(id)`, `disappear(id)`, `blink(id, times?, interval?)`
+* `flow(from:[x,y], to:[x,y], opts?)` → spawns an `arrow` and appears it
+* `move(targetId, from, to, opts?)` → dashed guide + blink target
+* `highlight(id, {duration})` → blink derived from duration
+* `typeText(id, text, at:[x,y])` → spawn a label and appear
+* `loop(times)` → repeat current step’s anims
+
+# LOCALIZATION (MANDATORY)
+
+All **visible strings** must use `tr('中文','English')`.
+Examples:
+
+* Step names (`Timeline.step(name)`)
+* On-canvas unit labels like `ALU`, `MEM`, `IO`, `STACK`
+* Any boxed captions you draw with `text` or `label`
+
+# OUTPUT REQUIREMENTS
+
+* Export a default **`InstructionModule`**:
+
+  * `id`: `"arch/opcode.form"` (e.g., `'riscv/vadd.vv'`)
+  * `title`: mnemonic (e.g., `'vadd.vv'`)
+  * `sample`: minimal runnable example for the editor (e.g., `'vadd.vv v0, v1, v2'`)
+  * `build(ctx: BuildCtx) { ... return doc }`
+* **Do not** include meta/synonyms; they live in `*.info.ts`.
+* **Do not** import React or the SVG primitive components; **only** build data shapes.
+
+# REFERENCE SKELETON (COPY & EDIT)
+
+> Replace opcode/form/semantics/boxes/steps to fit your instruction.
+
+```ts
 import type { InstructionModule, BuildCtx } from '../../types'
 import { Timeline } from '../../timeline'
 import { tr } from '@/i18n'
@@ -139,3 +293,18 @@ const vaddVV: InstructionModule = {
 
 export { vaddVV }
 export default vaddVV
+```
+
+# CHECKLIST BEFORE YOU RETURN
+
+* [ ] All visible text wrapped by `tr('中文','English')`.
+* [ ] Ellipsis policy correct (reserve last cell in each box).
+* [ ] Lanes are square; textPx/roundPx derived from lane side.
+* [ ] Steps tell a story: prepare → transfer → execute → writeback → done.
+* [ ] Uses inches (`px(...)`) everywhere; **no raw pixels**.
+* [ ] Pure function; no React, no DOM, no side effects.
+* [ ] If necessary, surf the Internet for full usage of the instuction.
+
+Now Please give the following instruction's typescript and return code only, no explanations:
+
+riscv/add

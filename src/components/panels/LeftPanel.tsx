@@ -691,7 +691,7 @@ useEffect(() => {
           {/* 上：编辑器 */}
           <div className="left-top nice-card" style={{display:'flex', flexDirection:'column', minHeight:120, minWidth:0, overflow:'hidden'}}>
             <div className="panel-toolbar">
-              <div className="panel-title">{tr('编辑器','Editor')}</div>
+              <div className="panel-title">{tr('编辑器⚝','Editor⚝')}</div>
               <div className="grow" />
               {editorControlsHidden ? (
                 <>
