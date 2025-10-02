@@ -1,13 +1,13 @@
-import type { InstructionModule, InstructionMeta, InstructionSetValidator } from './types'
+import type { InstructionModule, InstructionMeta, InstructionSetValidator, InstructionInfoProvider } from './types'
 
 // 自动加载本目录下所有 .ts（包含模块与校验器）
 const modules = (import.meta as any).glob('./**/*.ts', { eager: true }) as Record<string, any>
 
 export const instructionRegistry: Record<string, InstructionModule> = {}
+export const infoRegistry: Record<string, InstructionInfoProvider> = {}
 export const miniDocs: Record<string, InstructionMeta> = {}
 const validators: InstructionSetValidator[] = []
 
-// ===== 新增：用于目录分组的轻量类型 =====
 export interface CatalogItem {
   id: string            // 完整 id，例如 'riscv/v/vadd.vv' 或 'rvv/vadd.vv'
   opcode: string
@@ -26,6 +26,14 @@ export interface CatalogGroup {
 type ModuleMeta = { path: string; mod: InstructionModule }
 const moduleMetas: ModuleMeta[] = []
 
+// 为 miniDocs 定义 getter（可覆盖且不报错）
+function defineMiniDocGetter(key: string, getter: () => InstructionMeta) {
+  const d = Object.getOwnPropertyDescriptor(miniDocs, key)
+  // 如果已有且不可配置，不能重定义；直接跳过以免报错
+  if (d && d.configurable === false) return
+  Object.defineProperty(miniDocs, key, { configurable: true, get: getter })
+}
+
 function isModule(x: any): x is InstructionModule {
   return x && typeof x === 'object' && typeof x.id === 'string' && typeof x.build === 'function'
 }
@@ -33,22 +41,36 @@ function isValidator(x: any): x is InstructionSetValidator {
   return x && typeof x === 'object' && typeof x.arch === 'string' && typeof x.validate === 'function'
 }
 
+function isInfo(x: any): x is InstructionInfoProvider {
+  return x && typeof x === 'object' && typeof x.id === 'string' &&
+    (typeof (x as any).metaGetter === 'function' || typeof (x as any).synonymsGetter === 'function')
+}
+
 for (const p in modules) {
   const mod = modules[p]
   const candidates: any[] = []
-  if (isModule(mod?.default)) candidates.push(mod.default)
+  if (isModule(mod?.default) || isInfo(mod?.default) || isValidator(mod?.default)) {
+    candidates.push(mod.default)
+  }
   for (const k of Object.keys(mod)) {
     if (k === 'default') continue
     const v = (mod as any)[k]
-    if (isModule(v) || isValidator(v)) candidates.push(v)
+    if (isModule(v) || isInfo(v) || isValidator(v)) candidates.push(v)
   }
   for (const c of candidates) {
     if (isModule(c)) {
       instructionRegistry[c.id] = c
-      moduleMetas.push({ path: p.replace(/^\.\//, ''), mod: c }) // 记录源码路径
+      moduleMetas.push({ path: p.replace(/^\.\//, ''), mod: c })
       if (c.meta) {
-        miniDocs[c.id] = c.meta
-        miniDocs[c.id.replace('/', '.')] = c.meta // 兼容旧键
+        const getMeta = () => (typeof c.meta === 'function' ? (c.meta as any)() : c.meta)
+        defineMiniDocGetter(c.id, getMeta)
+        defineMiniDocGetter(c.id.replace('/', '.'), getMeta)
+      }
+    } else if (isInfo(c)) {
+      infoRegistry[c.id] = c
+      if (c.metaGetter) {
+        defineMiniDocGetter(c.id, c.metaGetter as any)
+        defineMiniDocGetter(c.id.replace('/', '.'), c.metaGetter as any)
       }
     } else if (isValidator(c)) {
       validators.push(c)
@@ -57,6 +79,7 @@ for (const p in modules) {
 }
 
 export const getInstrModule = (k: string) => instructionRegistry[k]
+export const getInstrInfo = (k: string) => infoRegistry[k]
 
 // 供 LeftPanel 调用：按 arch 找到对应校验器并汇总错误
 export function validateWithRegistry(ast: { arch: string; opcode: string; form: string; operands: string[] }) {

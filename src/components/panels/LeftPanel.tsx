@@ -4,7 +4,7 @@ import Editor, { OnMount } from '@monaco-editor/react'
 import { LeftNotch } from '../nav/NavBar'
 type Monaco = typeof import('monaco-editor')
 import { useLang, tr } from '@/i18n'
-
+import { getInstrInfo, getInstrModule, miniDocs } from '../../instructions/registry'
 
 export default function LeftPanel() {
   const { arch, pushLog, setDslOverride, vectorEnv } = useApp()
@@ -546,25 +546,23 @@ useEffect(() => {
     }
   }
 
-  // 从指令模块或注册表里读取迷你文档（Usage/Notes）
-  async function loadMiniDoc(ast: {arch:string; opcode:string; form:string}) {
+  // 从指令模块或注册表里读取迷你文档（Usage/Notes），支持动态 metaGetter 和函数式 meta
+  async function loadMiniDoc(ast:{arch:string;opcode:string;form:string}) {
     try {
-      const reg: any = await import('../../instructions/registry').catch(()=>null)
-      if (!reg) return null
-      const key1 = `${ast.arch}/${ast.opcode}.${ast.form}`
-      const key2 = `${ast.arch}.${ast.opcode}.${ast.form}` // 兼容你以前的 key 书写
-      const getInstrModule = (reg as any).getInstrModule
-      let mod = typeof getInstrModule === 'function' ? getInstrModule(key1) : undefined
-      if (!mod && (reg as any).instructionRegistry) {
-        mod = (reg as any).instructionRegistry[key1]
+      const key = `${ast.arch}/${ast.opcode}.${ast.form}`
+      const info = getInstrInfo?.(key)
+      if (info?.metaGetter) {
+        const m = info.metaGetter()
+        return { usage: m.usage||'', scenarios:m.scenarios||[], notes:m.notes||[], exceptions:m.exceptions||[] }
       }
-      const meta = mod?.meta || (reg as any).miniDocs?.[key2] || (reg as any).miniDocs?.[key1]
+  
+      const mod = getInstrModule?.(key)
+      const fromMod = typeof mod?.meta === 'function' ? mod.meta() : mod?.meta
+      const meta = fromMod || (miniDocs as any)[key] || (miniDocs as any)[key.replace('/', '.')]
       if (!meta) return null
       const { usage, scenarios, notes, exceptions } = meta
       return { usage: usage||'', scenarios: scenarios||[], notes: notes||[], exceptions: exceptions||[] }
-    } catch {
-      return null
-    }
+    } catch { return null }
   }
 
   const handleRun = async (opts?: { dontAdvance?: boolean; silent?: boolean; lineOverride?: number })=>{
@@ -614,7 +612,7 @@ useEffect(() => {
     // 使用指令集校验器（LeftPanel 不做通用校验）
     try {
       // 动态导入注册表入口（不存在时静默忽略）
-      const reg: any = await import(/* @vite-ignore */ '../../instructions/registry').catch(()=>null)
+      const reg: any = await import('../../instructions/registry').catch(()=>null)
       const validateWithRegistry = reg?.validateWithRegistry
       if (typeof validateWithRegistry === 'function') {
         const verrs = validateWithRegistry(ast) || []
@@ -631,6 +629,16 @@ useEffect(() => {
     try {
       const out = await buildDocViaModule(ast, payload)
       if (out) {
+        try {
+          const key = `${ast.arch}/${ast.opcode}.${ast.form}`
+          const info = getInstrInfo?.(key)
+          if (info?.synonymsGetter && !(out.doc as any).synonyms) {
+            Object.defineProperty(out.doc as any, 'synonyms', {
+              configurable: true,
+              get: info.synonymsGetter
+            })
+          }
+        } catch {}
         setDslOverride({ doc: out.doc, extras: out.extras, rev: Date.now() } as any)
         usedModule = true
         if (!opts?.silent) pushLog(tr('✅ 模块渲染：','✅ Module render: ') + `${ast.opcode}.${ast.form}`)
